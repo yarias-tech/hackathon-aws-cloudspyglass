@@ -29,7 +29,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - _Requirements: All (infrastructure)_
 
 - [ ] 2. Backend credential management
-  - [ ] 2.1 Implement CredentialManager service
+  - [x] 2.1 Implement CredentialManager service
     - Create `backend/services/credential_manager.py`
     - Implement `set_credentials()` with in-memory storage, whitespace validation, and boto3 session creation
     - Implement `validate_credentials()` calling STS GetCallerIdentity with 10-second timeout
