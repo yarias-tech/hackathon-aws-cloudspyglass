@@ -1,0 +1,35 @@
+name: Deploy to Amazon EKS via OIDC
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write # Requerido para solicitar el JWT de OIDC
+  contents: read  # Requerido para acciones como actions/checkout
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::475997945450:role/kirorole
+          aws-region: us-east-1
+          audience: ://amazonaws.com
+      - name: Additional steps
+        run: |
+          aws sts get-caller-identity
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name mi-cluster-eks --region us-east-1
+
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -f k8s/deployment.yaml
