@@ -5,13 +5,12 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write # Requerido para solicitar el JWT de OIDC
-  contents: read  # Requerido para acciones como actions/checkout
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
