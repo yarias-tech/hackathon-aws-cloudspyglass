@@ -49,7 +49,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that sequential credential submissions always result in latest credentials being active
     - **Validates: Requirements 1.4**
 
-  - [ ]* 2.4 Write property tests for credential error categorization (Property 3)
+  - [x] 2.4 Write property tests for credential error categorization (Property 3)
     - **Property 3: Credential error categorization**
     - Test that all validation failures produce properly structured error responses with descriptive messages
     - **Validates: Requirements 2.3**
