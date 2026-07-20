@@ -54,7 +54,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that all validation failures produce properly structured error responses with descriptive messages
     - **Validates: Requirements 2.3**
 
-  - [ ] 2.5 Implement credential API routes
+  - [x] 2.5 Implement credential API routes
     - Create `backend/routes/credentials.py`
     - POST `/api/credentials` — submit and validate credentials
     - GET `/api/credentials/status` — return current credential status
