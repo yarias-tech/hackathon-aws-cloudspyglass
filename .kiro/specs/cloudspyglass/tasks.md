@@ -7,7 +7,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 ## Tasks
 
 - [ ] 1. Project scaffolding and shared types
-  - [ ] 1.1 Set up backend project structure
+  - [x] 1.1 Set up backend project structure
     - Create `backend/` directory with `main.py`, `services/`, `routes/`, `models/`, `tests/` directories
     - Set up `pyproject.toml` with dependencies: fastapi, uvicorn, boto3, pydantic, pytest, pytest-asyncio, hypothesis, moto, httpx
     - Create `backend/models/` with all Pydantic models (CredentialSubmission, CredentialStatus, ValidationResult, Resource, Relationship, ScanResult, ScanRequest, RegionFailure, DiagramNode, DiagramEdge, DiagramData, TagFilter, FilterCriteria, FilteredResult, TagSuggestion, ExportFormat, ExportRequest, ExportResult, AutoRefreshInterval, AppSettings, ErrorResponse)
