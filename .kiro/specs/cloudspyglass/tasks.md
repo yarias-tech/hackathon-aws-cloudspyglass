@@ -29,7 +29,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - _Requirements: All (infrastructure)_
 
 - [ ] 2. Backend credential management
-  - [ ] 2.1 Implement CredentialManager service
+  - [x] 2.1 Implement CredentialManager service
     - Create `backend/services/credential_manager.py`
     - Implement `set_credentials()` with in-memory storage, whitespace validation, and boto3 session creation
     - Implement `validate_credentials()` calling STS GetCallerIdentity with 10-second timeout
@@ -39,22 +39,22 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Support fallback to boto3 credential chain when no UI credentials are provided
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6, 2.1, 2.4_
 
-  - [ ]* 2.2 Write property tests for credential validation (Property 1)
+  - [x] 2.2 Write property tests for credential validation (Property 1)
     - **Property 1: Credential submission validation**
     - Test that empty/whitespace-only access_key_id or secret_access_key are rejected, non-empty are accepted
     - **Validates: Requirements 1.2, 1.6**
 
-  - [ ]* 2.3 Write property tests for credential replacement (Property 2)
+  - [x] 2.3 Write property tests for credential replacement (Property 2)
     - **Property 2: Credential replacement**
     - Test that sequential credential submissions always result in latest credentials being active
     - **Validates: Requirements 1.4**
 
-  - [ ]* 2.4 Write property tests for credential error categorization (Property 3)
+  - [x] 2.4 Write property tests for credential error categorization (Property 3)
     - **Property 3: Credential error categorization**
     - Test that all validation failures produce properly structured error responses with descriptive messages
     - **Validates: Requirements 2.3**
 
-  - [ ] 2.5 Implement credential API routes
+  - [x] 2.5 Implement credential API routes
     - Create `backend/routes/credentials.py`
     - POST `/api/credentials` — submit and validate credentials
     - GET `/api/credentials/status` — return current credential status
