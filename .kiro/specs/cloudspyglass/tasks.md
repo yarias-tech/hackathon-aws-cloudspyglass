@@ -73,7 +73,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Enrich resources with tags, creation_date, iam_role, and service-specific attributes
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ]* 3.2 Write property tests for region selection (Property 4)
+  - [x] 3.2 Write property tests for region selection (Property 4)
     - **Property 4: Region selection scan targeting**
     - Test that Scanner targets exactly the specified regions, or discovers all if empty
     - **Validates: Requirements 3.1**
