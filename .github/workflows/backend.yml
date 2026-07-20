@@ -9,14 +9,6 @@ on:
       - "Dockerfile"
       - "supervisord.conf"
       - "nginx.conf"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "backend/**"
-      - "Dockerfile"
-      - "supervisord.conf"
-      - "nginx.conf"
 
 permissions:
   contents: read
@@ -56,8 +48,6 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-latest
     needs: test
-    # Solo hace deploy en push a main, no en PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
