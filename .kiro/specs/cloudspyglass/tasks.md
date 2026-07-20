@@ -83,7 +83,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that for retry n (1..5), delay = min(2^(n-1), 30)
     - **Validates: Requirements 3.4**
 
-  - [ ]* 3.4 Write property tests for partial failure handling (Property 6)
+  - [x] 3.4 Write property tests for partial failure handling (Property 6)
     - **Property 6: Partial region failure handling**
     - Test that successful regions produce resources and failed regions produce failure entries
     - **Validates: Requirements 3.5**
