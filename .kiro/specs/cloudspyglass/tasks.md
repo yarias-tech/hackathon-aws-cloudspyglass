@@ -6,7 +6,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 
 ## Tasks
 
-- [ ] 1. Project scaffolding and shared types
+- [x] 1. Project scaffolding and shared types
   - [x] 1.1 Set up backend project structure
     - Create `backend/` directory with `main.py`, `services/`, `routes/`, `models/`, `tests/` directories
     - Set up `pyproject.toml` with dependencies: fastapi, uvicorn, boto3, pydantic, pytest, pytest-asyncio, hypothesis, moto, httpx
@@ -22,7 +22,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create shared `src/api/apiClient.ts` utility for standardized error handling
     - _Requirements: 5.1, 14.1_
 
-  - [ ] 1.3 Set up Docker Compose for development
+  - [x] 1.3 Set up Docker Compose for development
     - Create `docker-compose.yml` with frontend (:5173) and backend (:8000) services
     - Create `Dockerfile` multi-stage build (Nginx on :8080 proxying /api/ to uvicorn)
     - Create `nginx.conf` for production proxying
