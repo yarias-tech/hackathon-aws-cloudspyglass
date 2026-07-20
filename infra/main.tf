@@ -18,6 +18,13 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+
+  default_tags {
+    tags = {
+      name    = "CloudSpyGlass"
+      Project = var.app_name
+    }
+  }
 }
 
 # ── Data sources ──────────────────────────────────────────────────────────────
