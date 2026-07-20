@@ -8,13 +8,6 @@ on:
       - "frontend/**"
       - "Dockerfile"
       - "nginx.conf"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "frontend/**"
-      - "Dockerfile"
-      - "nginx.conf"
 
 permissions:
   contents: read
@@ -59,8 +52,6 @@ jobs:
     name: Build Docker & Deploy
     runs-on: ubuntu-latest
     needs: test
-    # Solo hace deploy en push a main, no en PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
