@@ -7,7 +7,7 @@ resource "aws_cloudwatch_log_group" "app" {
   tags = {
     Name = "/ecs/${var.app_name}"
   }
-} ───────────────────────────────────────────────────────────────
+}
 
 resource "aws_ecs_cluster" "app" {
   name = "${var.app_name}-cluster"
