@@ -14,7 +14,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `backend/exceptions.py` with CloudSpyglassError base class and FastAPI exception handler
     - _Requirements: 14.1, 14.2, 14.3_
 
-  - [ ] 1.2 Set up frontend project structure
+  - [x] 1.2 Set up frontend project structure
     - Initialize Vite + React 19 + TypeScript project in `frontend/`
     - Install dependencies: @xyflow/react 12, dagre, react-router-dom 7, jspdf, html2canvas
     - Install dev dependencies: vitest, @testing-library/react, fast-check, @testing-library/jest-dom, msw
