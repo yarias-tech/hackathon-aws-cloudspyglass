@@ -9,8 +9,7 @@ resource "aws_ecr_repository" "app" {
   }
 
   tags = {
-    Name        = var.app_name
-    Environment = "production"
+    Name = var.app_name
   }
 }
 
