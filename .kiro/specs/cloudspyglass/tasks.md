@@ -39,7 +39,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Support fallback to boto3 credential chain when no UI credentials are provided
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6, 2.1, 2.4_
 
-  - [ ]* 2.2 Write property tests for credential validation (Property 1)
+  - [x] 2.2 Write property tests for credential validation (Property 1)
     - **Property 1: Credential submission validation**
     - Test that empty/whitespace-only access_key_id or secret_access_key are rejected, non-empty are accepted
     - **Validates: Requirements 1.2, 1.6**
