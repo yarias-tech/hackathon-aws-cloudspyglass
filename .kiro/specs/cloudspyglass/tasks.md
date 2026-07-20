@@ -62,7 +62,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - _Requirements: 1.2, 2.1, 2.4, 2.5_
 
 - [ ] 3. Backend scanning service
-  - [ ] 3.1 Implement Scanner service
+  - [x] 3.1 Implement Scanner service
     - Create `backend/services/scanner.py`
     - Implement `scan()` method orchestrating multi-region parallel scanning
     - Implement `_scan_region()` with per-region 60-second timeout
