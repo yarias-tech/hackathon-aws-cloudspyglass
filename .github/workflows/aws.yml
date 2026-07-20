@@ -6,11 +6,15 @@ on:
       - main
 
 permissions:
-  contents: read
+  id-token: write # Requerido para solicitar el JWT de OIDC
+  contents: read  # Requerido para acciones como actions/checkout
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,9 +25,10 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
+          audience: sts.amazonaws.com
+      - name: Additional steps
+        run: |
+          aws sts get-caller-identity
 
       - name: Update Kubeconfig
         run: |
