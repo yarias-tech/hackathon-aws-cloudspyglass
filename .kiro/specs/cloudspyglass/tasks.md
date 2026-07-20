@@ -78,7 +78,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that Scanner targets exactly the specified regions, or discovers all if empty
     - **Validates: Requirements 3.1**
 
-  - [ ]* 3.3 Write property tests for exponential backoff (Property 5)
+  - [x] 3.3 Write property tests for exponential backoff (Property 5)
     - **Property 5: Exponential backoff calculation**
     - Test that for retry n (1..5), delay = min(2^(n-1), 30)
     - **Validates: Requirements 3.4**
