@@ -61,7 +61,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - DELETE `/api/credentials` — clear stored credentials
     - _Requirements: 1.2, 2.1, 2.4, 2.5_
 
-- [ ] 3. Backend scanning service
+- [x] 3. Backend scanning service
   - [x] 3.1 Implement Scanner service
     - Create `backend/services/scanner.py`
     - Implement `scan()` method orchestrating multi-region parallel scanning
@@ -88,7 +88,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that successful regions produce resources and failed regions produce failure entries
     - **Validates: Requirements 3.5**
 
-  - [ ] 3.5 Implement scan API routes
+  - [x] 3.5 Implement scan API routes
     - Create `backend/routes/scan.py`
     - POST `/api/scan` — trigger a new scan (reject if already in progress with SCAN_IN_PROGRESS)
     - GET `/api/scan/status` — return current scan progress
