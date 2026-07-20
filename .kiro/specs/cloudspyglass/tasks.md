@@ -44,7 +44,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that empty/whitespace-only access_key_id or secret_access_key are rejected, non-empty are accepted
     - **Validates: Requirements 1.2, 1.6**
 
-  - [ ]* 2.3 Write property tests for credential replacement (Property 2)
+  - [x] 2.3 Write property tests for credential replacement (Property 2)
     - **Property 2: Credential replacement**
     - Test that sequential credential submissions always result in latest credentials being active
     - **Validates: Requirements 1.4**
