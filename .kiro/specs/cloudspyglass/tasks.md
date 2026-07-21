@@ -407,7 +407,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Ensure all pages and components are integrated
     - _Requirements: All frontend_
 
-  - [ ]* 19.3 Write backend integration tests
+  - [x] 19.3 Write backend integration tests
     - Test full scan flow with moto (credential submission → scan → relationship resolution → storage)
     - Test API endpoint contracts with httpx TestClient
     - Test file atomicity under concurrent writes
