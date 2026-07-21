@@ -119,7 +119,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that Lambda, EC2, ECS with IAM role associations produce iam category relationships
     - **Validates: Requirements 4.2**
 
-  - [ ]* 5.4 Write property tests for event relationship detection (Property 9)
+  - [x] 5.4 Write property tests for event relationship detection (Property 9)
     - **Property 9: Event relationship detection**
     - Test that SQS→Lambda, SNS→Lambda, S3→Lambda/SQS/SNS produce event category relationships
     - **Validates: Requirements 4.3**
