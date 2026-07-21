@@ -28,7 +28,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `nginx.conf` for production proxying
     - _Requirements: All (infrastructure)_
 
-- [ ] 2. Backend credential management
+- [x] 2. Backend credential management
   - [x] 2.1 Implement CredentialManager service
     - Create `backend/services/credential_manager.py`
     - Implement `set_credentials()` with in-memory storage, whitespace validation, and boto3 session creation
@@ -61,8 +61,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - DELETE `/api/credentials` — clear stored credentials
     - _Requirements: 1.2, 2.1, 2.4, 2.5_
 
-- [ ] 3. Backend scanning service
-  - [ ] 3.1 Implement Scanner service
+- [x] 3. Backend scanning service
+  - [x] 3.1 Implement Scanner service
     - Create `backend/services/scanner.py`
     - Implement `scan()` method orchestrating multi-region parallel scanning
     - Implement `_scan_region()` with per-region 60-second timeout
@@ -73,32 +73,32 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Enrich resources with tags, creation_date, iam_role, and service-specific attributes
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ]* 3.2 Write property tests for region selection (Property 4)
+  - [x] 3.2 Write property tests for region selection (Property 4)
     - **Property 4: Region selection scan targeting**
     - Test that Scanner targets exactly the specified regions, or discovers all if empty
     - **Validates: Requirements 3.1**
 
-  - [ ]* 3.3 Write property tests for exponential backoff (Property 5)
+  - [x] 3.3 Write property tests for exponential backoff (Property 5)
     - **Property 5: Exponential backoff calculation**
     - Test that for retry n (1..5), delay = min(2^(n-1), 30)
     - **Validates: Requirements 3.4**
 
-  - [ ]* 3.4 Write property tests for partial failure handling (Property 6)
+  - [x] 3.4 Write property tests for partial failure handling (Property 6)
     - **Property 6: Partial region failure handling**
     - Test that successful regions produce resources and failed regions produce failure entries
     - **Validates: Requirements 3.5**
 
-  - [ ] 3.5 Implement scan API routes
+  - [x] 3.5 Implement scan API routes
     - Create `backend/routes/scan.py`
     - POST `/api/scan` — trigger a new scan (reject if already in progress with SCAN_IN_PROGRESS)
     - GET `/api/scan/status` — return current scan progress
     - _Requirements: 3.1, 3.2_
 
-- [ ] 4. Checkpoint — Backend scanning verified
+- [x] 4. Checkpoint — Backend scanning verified
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Backend relationship resolution
-  - [ ] 5.1 Implement RelationshipResolver service
+- [x] 5. Backend relationship resolution
+  - [x] 5.1 Implement RelationshipResolver service
     - Create `backend/services/relationship_resolver.py`
     - Implement `resolve()` orchestrating all category resolvers
     - Implement `_resolve_network_relationships()` — SG attachments, VPC memberships, LB targets
@@ -109,33 +109,33 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle unresolved targets: record relationship and mark target as is_unresolved=True
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ]* 5.2 Write property tests for network relationship detection (Property 7)
+  - [x] 5.2 Write property tests for network relationship detection (Property 7)
     - **Property 7: Network relationship detection**
     - Test that EC2→SG, EC2→VPC, EC2→Subnet, RDS→VPC, Lambda→VPC, LB→targets produce correct network relationships
     - **Validates: Requirements 4.1**
 
-  - [ ]* 5.3 Write property tests for IAM relationship detection (Property 8)
+  - [x] 5.3 Write property tests for IAM relationship detection (Property 8)
     - **Property 8: IAM relationship detection**
     - Test that Lambda, EC2, ECS with IAM role associations produce iam category relationships
     - **Validates: Requirements 4.2**
 
-  - [ ]* 5.4 Write property tests for event relationship detection (Property 9)
+  - [x] 5.4 Write property tests for event relationship detection (Property 9)
     - **Property 9: Event relationship detection**
     - Test that SQS→Lambda, SNS→Lambda, S3→Lambda/SQS/SNS produce event category relationships
     - **Validates: Requirements 4.3**
 
-  - [ ]* 5.5 Write property tests for external component classification (Property 10)
+  - [x] 5.5 Write property tests for external component classification (Property 10)
     - **Property 10: External component classification**
     - Test that cross-account ARNs and non-*.amazonaws.com hostnames are classified as external
     - **Validates: Requirements 4.5**
 
-  - [ ]* 5.6 Write property tests for unresolved target preservation (Property 11)
+  - [x] 5.6 Write property tests for unresolved target preservation (Property 11)
     - **Property 11: Unresolved target preservation**
     - Test that missing target ARNs still produce relationships with is_unresolved=True on target
     - **Validates: Requirements 4.7**
 
-- [ ] 6. Backend filter engine
-  - [ ] 6.1 Implement FilterEngine service
+- [x] 6. Backend filter engine
+  - [x] 6.1 Implement FilterEngine service
     - Create `backend/services/filter_engine.py`
     - Implement `apply_filters()` with AND logic for tags and OR logic for resource types
     - Filter edges: tag-filtered edges require both endpoints in filtered set; type-filtered edges require at least one endpoint in filtered set
@@ -143,37 +143,37 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Implement `get_tag_suggestions()` returning top 20 by descending frequency
     - _Requirements: 7.1, 7.3, 7.4, 7.6, 8.1, 8.2, 8.4, 8.5_
 
-  - [ ]* 6.2 Write property tests for tag filter AND logic (Property 14)
+  - [x] 6.2 Write property tests for tag filter AND logic (Property 14)
     - **Property 14: Tag filter AND logic with edge filtering**
     - Test that filtered results contain only resources matching ALL tag criteria and edges where BOTH endpoints match
     - **Validates: Requirements 7.1, 7.3, 7.4**
 
-  - [ ]* 6.3 Write property tests for tag autocomplete ordering (Property 15)
+  - [x] 6.3 Write property tests for tag autocomplete ordering (Property 15)
     - **Property 15: Tag autocomplete frequency ordering**
     - Test that suggestions return ≤20 entries ordered by descending frequency
     - **Validates: Requirements 7.2**
 
-  - [ ]* 6.4 Write property tests for filter removal round-trip (Property 16)
+  - [x] 6.4 Write property tests for filter removal round-trip (Property 16)
     - **Property 16: Filter removal round-trip**
     - Test that applying then removing all filters produces original unfiltered result
     - **Validates: Requirements 7.6**
 
-  - [ ]* 6.5 Write property tests for resource type filter options (Property 17)
+  - [x] 6.5 Write property tests for resource type filter options (Property 17)
     - **Property 17: Resource type filter available options**
     - Test that available type options equal the set of distinct resource_type values in scan data
     - **Validates: Requirements 8.1**
 
-  - [ ]* 6.6 Write property tests for resource type OR logic (Property 18)
+  - [x] 6.6 Write property tests for resource type OR logic (Property 18)
     - **Property 18: Resource type OR logic with edge visibility**
     - Test that filtered results contain resources matching ANY selected type, plus edges with at least one endpoint of selected type
     - **Validates: Requirements 8.2**
 
-  - [ ]* 6.7 Write property tests for combined filter intersection (Property 19)
+  - [x] 6.7 Write property tests for combined filter intersection (Property 19)
     - **Property 19: Combined filter intersection**
     - Test that combined tag + type filters produce intersection (ALL tags AND at least one type)
     - **Validates: Requirements 8.5**
 
-  - [ ] 6.8 Implement filter API routes
+  - [x] 6.8 Implement filter API routes
     - Create `backend/routes/filters.py`
     - GET `/api/tags/suggestions?prefix={prefix}` — return tag autocomplete suggestions
     - Create `backend/routes/diagrams.py`
@@ -181,8 +181,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - GET `/api/diagrams/latest/filtered` — return filtered diagram data (accepts FilterCriteria as query params)
     - _Requirements: 7.2, 5.1_
 
-- [ ] 7. Backend scan storage
-  - [ ] 7.1 Implement ScanStorage service
+- [x] 7. Backend scan storage
+  - [x] 7.1 Implement ScanStorage service
     - Create `backend/services/scan_storage.py`
     - Implement `save()` with atomic write (write to temp file, then os.replace)
     - Implement `load()` with JSON parsing and Pydantic validation
@@ -191,28 +191,28 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle corrupt/invalid files: discard and return None
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ]* 7.2 Write property tests for persistence round-trip (Property 21)
+  - [x] 7.2 Write property tests for persistence round-trip (Property 21)
     - **Property 21: Scan result persistence round-trip**
     - Test that serialize→deserialize produces equivalent ScanResult
     - **Validates: Requirements 10.1**
 
-  - [ ]* 7.3 Write property tests for single file per account (Property 22)
+  - [x] 7.3 Write property tests for single file per account (Property 22)
     - **Property 22: Single file per account invariant**
     - Test that sequential saves for same account_id result in exactly one file
     - **Validates: Requirements 10.3**
 
-  - [ ]* 7.4 Write property tests for write failure preservation (Property 23)
+  - [x] 7.4 Write property tests for write failure preservation (Property 23)
     - **Property 23: Write failure preserves previous file**
     - Test that failed writes leave the previous file unchanged
     - **Validates: Requirements 10.5**
 
-  - [ ]* 7.5 Write property tests for corrupt file handling (Property 24)
+  - [x] 7.5 Write property tests for corrupt file handling (Property 24)
     - **Property 24: Corrupt file graceful handling**
     - Test that invalid UTF-8, invalid JSON, or schema-violating content returns None
     - **Validates: Requirements 10.6**
 
-- [ ] 8. Backend export service
-  - [ ] 8.1 Implement ExportService
+- [x] 8. Backend export service
+  - [x] 8.1 Implement ExportService
     - Create `backend/services/export_service.py`
     - Implement `export()` generating PDF, PNG, SVG from diagram data
     - Implement `_generate_filename()` with pattern {Account_ID}_{YYYYMMDD_HHmmss}.{format}
@@ -221,28 +221,28 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Enforce 30-second export timeout
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-  - [ ]* 8.2 Write property tests for export filename format (Property 25)
+  - [x] 8.2 Write property tests for export filename format (Property 25)
     - **Property 25: Export filename format**
     - Test that generated filenames match {Account_ID}_{YYYYMMDD_HHmmss}.{format} pattern
     - **Validates: Requirements 11.3**
 
-  - [ ]* 8.3 Write property tests for export size limit (Property 26)
+  - [x] 8.3 Write property tests for export size limit (Property 26)
     - **Property 26: Export size limit enforcement**
     - Test that exports exceeding 50 MB are rejected without producing a file
     - **Validates: Requirements 11.6**
 
-  - [ ]* 8.4 Write property tests for filtered export annotation (Property 27)
+  - [x] 8.4 Write property tests for filtered export annotation (Property 27)
     - **Property 27: Filtered export annotation**
     - Test that exports with active filters contain only filtered resources and include filter annotation
     - **Validates: Requirements 11.2**
 
-  - [ ] 8.5 Implement export API route
+  - [x] 8.5 Implement export API route
     - Create `backend/routes/export.py`
     - POST `/api/export` — trigger export with format and optional filters
     - _Requirements: 11.4_
 
-- [ ] 9. Backend icon and image serving
-  - [ ] 9.1 Implement image serving routes
+- [x] 9. Backend icon and image serving
+  - [x] 9.1 Implement image serving routes
     - Create `backend/routes/images.py`
     - GET `/api/images/icons/{service_type}` — serve SVG icon from assets/icons/
     - GET `/api/images/logo` — serve application logo from assets/logo/
@@ -251,58 +251,58 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Set correct Content-Type headers (image/svg+xml for SVG)
     - _Requirements: 13.1, 13.2, 13.3, 13.6, 13.7_
 
-  - [ ]* 9.2 Write property tests for icon endpoint correctness (Property 28)
+  - [x] 9.2 Write property tests for icon endpoint correctness (Property 28)
     - **Property 28: Icon endpoint correctness**
     - Test that valid service_type with existing SVG returns content with image/svg+xml
     - **Validates: Requirements 13.2**
 
-  - [ ]* 9.3 Write property tests for icon error handling (Property 29)
+  - [x] 9.3 Write property tests for icon error handling (Property 29)
     - **Property 29: Icon error handling**
     - Test that unknown service_type returns 400 and missing file returns 404, both with standard error structure
     - **Validates: Requirements 13.6, 13.7**
 
-- [ ] 10. Backend settings and error handling
-  - [ ] 10.1 Implement settings API routes
+- [x] 10. Backend settings and error handling
+  - [x] 10.1 Implement settings API routes
     - Create `backend/routes/settings.py`
     - GET `/api/settings` — return current AppSettings
     - PUT `/api/settings` — update auto-refresh interval and selected regions
     - _Requirements: 12.1, 12.2_
 
-  - [ ]* 10.2 Write property tests for error response structure (Property 30)
+  - [x] 10.2 Write property tests for error response structure (Property 30)
     - **Property 30: Error response structure invariant**
     - Test that all error responses contain exactly: error_code (UPPER_SNAKE_CASE), message (≤500 chars), details (string|null), timestamp (ISO 8601 UTC), recoverable (boolean)
     - **Validates: Requirements 14.1**
 
-  - [ ]* 10.3 Write property tests for error recoverability classification (Property 31)
+  - [x] 10.3 Write property tests for error recoverability classification (Property 31)
     - **Property 31: Error recoverability classification**
     - Test that transient errors (timeout, throttle) have recoverable=true and permanent errors (invalid input, auth failure) have recoverable=false
     - **Validates: Requirements 14.2, 14.3**
 
-- [ ] 11. Checkpoint — Backend complete
+- [x] 11. Checkpoint — Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Frontend diagram rendering
-  - [ ] 12.1 Implement DiagramCanvas and layout engine
+- [x] 12. Frontend diagram rendering
+  - [x] 12.1 Implement DiagramCanvas and layout engine
     - Create `src/components/DiagramCanvas.tsx` wrapping @xyflow/react ReactFlow
     - Implement dagre layout with top-to-bottom rank direction
     - Configure pan and zoom (0.25x to 4.0x range, fitView on initial load)
     - Handle empty state (no scan data) with EmptyState component
     - _Requirements: 5.4, 5.5, 5.7_
 
-  - [ ] 12.2 Implement ResourceNode custom node
+  - [x] 12.2 Implement ResourceNode custom node
     - Create `src/components/ResourceNode.tsx` with icon, name, and type display
     - Load icons from `/api/images/icons/{service_type}`
     - Display dashed border for external components
     - Show placeholder icon on load failure
     - _Requirements: 5.1, 5.6, 5.9_
 
-  - [ ] 12.3 Implement RelationshipEdge custom edge
+  - [x] 12.3 Implement RelationshipEdge custom edge
     - Create `src/components/RelationshipEdge.tsx` with category-based styling
     - Blue solid for network, green dashed for iam, orange dotted animated for event, gray solid for data
     - Implement tooltip on hover (within 200ms) showing interaction type, source, target, derived_from
     - _Requirements: 5.3, 5.8_
 
-  - [ ]* 12.4 Write property tests for edge styling (Property 12)
+  - [x] 12.4 Write property tests for edge styling (Property 12)
     - **Property 12: Edge styling by category**
     - Test that each relationship category maps to correct color/style/animation
     - **Validates: Requirements 5.3**

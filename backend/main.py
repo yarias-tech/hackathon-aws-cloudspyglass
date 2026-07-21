@@ -4,6 +4,12 @@ from fastapi import FastAPI
 
 from .exceptions import CloudSpyglassError, cloudspyglass_error_handler
 from .routes.credentials import router as credentials_router
+from .routes.diagrams import router as diagrams_router
+from .routes.export import router as export_router
+from .routes.filters import router as filters_router
+from .routes.images import router as images_router
+from .routes.scan import router as scan_router
+from .routes.settings import router as settings_router
 
 app = FastAPI(
     title="CloudSpyglass",
@@ -16,6 +22,12 @@ app.add_exception_handler(CloudSpyglassError, cloudspyglass_error_handler)
 
 # Register routers
 app.include_router(credentials_router)
+app.include_router(scan_router)
+app.include_router(filters_router)
+app.include_router(diagrams_router)
+app.include_router(export_router)
+app.include_router(images_router)
+app.include_router(settings_router)
 
 
 @app.get("/api/health")
