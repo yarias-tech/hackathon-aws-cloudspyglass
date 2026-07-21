@@ -2,14 +2,12 @@
 
 from fastapi import APIRouter, Query
 
+from ..dependencies import filter_engine
 from ..exceptions import CloudSpyglassError
 from ..models.filters import TagSuggestion
-from ..services.filter_engine import FilterEngine
 from .scan import get_last_scan_result
 
 router = APIRouter(prefix="/api/tags", tags=["filters"])
-
-_filter_engine = FilterEngine()
 
 
 @router.get("/suggestions", response_model=list[TagSuggestion])
@@ -32,4 +30,4 @@ async def get_tag_suggestions(
             status_code=404,
         )
 
-    return _filter_engine.get_tag_suggestions(scan_result, prefix)
+    return filter_engine.get_tag_suggestions(scan_result, prefix)

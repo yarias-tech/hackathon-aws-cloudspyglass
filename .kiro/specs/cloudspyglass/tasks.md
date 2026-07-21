@@ -393,33 +393,33 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 - [x] 18. Checkpoint — Frontend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 19. Integration wiring and end-to-end
-  - [ ] 19.1 Wire backend FastAPI application
+- [x] 19. Integration wiring and end-to-end
+  - [x] 19.1 Wire backend FastAPI application
     - Create `backend/main.py` with all route registrations, CORS middleware, exception handlers
     - Register all routers: credentials, scan, diagrams, filters, export, settings, images
     - Inject service dependencies (CredentialManager, Scanner, ScanStorage, FilterEngine, ExportService, RelationshipResolver)
     - _Requirements: All backend_
 
-  - [ ] 19.2 Wire frontend App entry point
+  - [x] 19.2 Wire frontend App entry point
     - Create `src/App.tsx` with router configuration and global error boundary
     - Create `src/components/ErrorBanner.tsx` for global error display
     - Create `src/components/LoadingSpinner.tsx` shared loading indicator
     - Ensure all pages and components are integrated
     - _Requirements: All frontend_
 
-  - [ ]* 19.3 Write backend integration tests
+  - [x] 19.3 Write backend integration tests
     - Test full scan flow with moto (credential submission → scan → relationship resolution → storage)
     - Test API endpoint contracts with httpx TestClient
     - Test file atomicity under concurrent writes
     - _Requirements: 3.2, 4.1, 10.2_
 
-  - [ ]* 19.4 Write frontend integration tests
+  - [x] 19.4 Write frontend integration tests
     - Test page-level flows with MSW (mock service worker)
     - Test credential submission → scan → diagram rendering flow
     - Test filter interaction flow
     - _Requirements: 5.1, 7.1, 8.1_
 
-- [ ] 20. Final checkpoint — All tests pass
+- [x] 20. Final checkpoint — All tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
