@@ -354,7 +354,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Apply client-side filter state management
     - _Requirements: 5.1, 7.1, 8.1_
 
-  - [ ] 15.2 Implement SettingsPage
+  - [x] 15.2 Implement SettingsPage
     - Create `src/pages/SettingsPage.tsx` at route /settings
     - Include CredentialForm, RegionSelector, auto-refresh interval selector
     - Display credential status (Connected/Disconnected/Expired), Account_ID, expiry
