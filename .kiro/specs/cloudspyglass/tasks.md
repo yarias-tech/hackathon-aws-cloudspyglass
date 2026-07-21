@@ -114,7 +114,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that EC2→SG, EC2→VPC, EC2→Subnet, RDS→VPC, Lambda→VPC, LB→targets produce correct network relationships
     - **Validates: Requirements 4.1**
 
-  - [ ]* 5.3 Write property tests for IAM relationship detection (Property 8)
+  - [x] 5.3 Write property tests for IAM relationship detection (Property 8)
     - **Property 8: IAM relationship detection**
     - Test that Lambda, EC2, ECS with IAM role associations produce iam category relationships
     - **Validates: Requirements 4.2**
