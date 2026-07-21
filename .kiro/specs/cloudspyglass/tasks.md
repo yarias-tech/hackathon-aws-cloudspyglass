@@ -173,7 +173,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that combined tag + type filters produce intersection (ALL tags AND at least one type)
     - **Validates: Requirements 8.5**
 
-  - [ ] 6.8 Implement filter API routes
+  - [x] 6.8 Implement filter API routes
     - Create `backend/routes/filters.py`
     - GET `/api/tags/suggestions?prefix={prefix}` — return tag autocomplete suggestions
     - Create `backend/routes/diagrams.py`
