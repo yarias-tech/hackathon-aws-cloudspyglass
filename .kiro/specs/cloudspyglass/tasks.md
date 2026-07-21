@@ -390,7 +390,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle export errors and display appropriate messages
     - _Requirements: 11.1, 11.2_
 
-- [ ] 18. Checkpoint — Frontend complete
+- [x] 18. Checkpoint — Frontend complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 19. Integration wiring and end-to-end
