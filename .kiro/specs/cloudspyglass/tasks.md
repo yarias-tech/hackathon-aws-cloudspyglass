@@ -302,7 +302,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Implement tooltip on hover (within 200ms) showing interaction type, source, target, derived_from
     - _Requirements: 5.3, 5.8_
 
-  - [ ]* 12.4 Write property tests for edge styling (Property 12)
+  - [x] 12.4 Write property tests for edge styling (Property 12)
     - **Property 12: Edge styling by category**
     - Test that each relationship category maps to correct color/style/animation
     - **Validates: Requirements 5.3**
