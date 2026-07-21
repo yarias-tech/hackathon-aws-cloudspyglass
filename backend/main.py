@@ -7,6 +7,7 @@ from .routes.credentials import router as credentials_router
 from .routes.diagrams import router as diagrams_router
 from .routes.export import router as export_router
 from .routes.filters import router as filters_router
+from .routes.images import router as images_router
 from .routes.scan import router as scan_router
 
 app = FastAPI(
@@ -24,6 +25,7 @@ app.include_router(scan_router)
 app.include_router(filters_router)
 app.include_router(diagrams_router)
 app.include_router(export_router)
+app.include_router(images_router)
 
 
 @app.get("/api/health")
