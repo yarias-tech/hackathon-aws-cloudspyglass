@@ -341,7 +341,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `src/__tests__/properties/filter.property.test.ts`
     - **Validates: Requirements 7.1, 7.3, 7.4, 7.6, 8.1, 8.2, 8.5**
 
-  - [ ]* 14.3 Write frontend property tests for tag suggestions (Property 15)
+  - [x] 14.3 Write frontend property tests for tag suggestions (Property 15)
     - **Property 15: Tag autocomplete frequency ordering**
     - Create `src/__tests__/properties/tag-suggestions.property.test.ts`
     - **Validates: Requirements 7.2**
