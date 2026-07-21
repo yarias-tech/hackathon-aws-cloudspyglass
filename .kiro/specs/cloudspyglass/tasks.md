@@ -28,7 +28,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `nginx.conf` for production proxying
     - _Requirements: All (infrastructure)_
 
-- [ ] 2. Backend credential management
+- [x] 2. Backend credential management
   - [x] 2.1 Implement CredentialManager service
     - Create `backend/services/credential_manager.py`
     - Implement `set_credentials()` with in-memory storage, whitespace validation, and boto3 session creation
@@ -94,7 +94,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - GET `/api/scan/status` — return current scan progress
     - _Requirements: 3.1, 3.2_
 
-- [ ] 4. Checkpoint — Backend scanning verified
+- [x] 4. Checkpoint — Backend scanning verified
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Backend relationship resolution
