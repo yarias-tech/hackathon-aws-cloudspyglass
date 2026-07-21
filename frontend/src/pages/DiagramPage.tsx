@@ -3,6 +3,7 @@ import { DiagramCanvas } from '../components/DiagramCanvas';
 import { FilterBar } from '../components/FilterBar';
 import { DetailPanel } from '../components/DetailPanel';
 import { ScanControls } from '../components/ScanControls';
+import { ExportMenu } from '../components/ExportMenu';
 import { apiClient, ApiError } from '../api/apiClient';
 import type { DiagramData } from '../types/diagram';
 import type { FilterCriteria, FilteredResult } from '../types/filters';
@@ -10,32 +11,6 @@ import type { Resource } from '../types/resources';
 import type { ErrorResponse } from '../types/errors';
 import type { AppSettings, AutoRefreshInterval } from '../types/settings';
 
-
-
-/**
- * Placeholder ExportMenu component.
- * Will be properly implemented in task 17.1.
- */
-function ExportMenu() {
-  return (
-    <button
-      type="button"
-      style={{
-        padding: '0.5rem 1rem',
-        backgroundColor: '#6b7280',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '0.375rem',
-        cursor: 'pointer',
-        fontSize: '0.8rem',
-        fontWeight: 500,
-      }}
-      aria-label="Export menu"
-    >
-      Export
-    </button>
-  );
-}
 
 /** Determine whether filter criteria has any active filters */
 function hasActiveFilters(filters: FilterCriteria): boolean {
@@ -354,7 +329,7 @@ export function DiagramPage() {
           onScanComplete={handleScanComplete}
           onError={handleScanError}
         />
-        <ExportMenu />
+        <ExportMenu filters={filters} />
       </div>
 
       {/* Filter bar */}

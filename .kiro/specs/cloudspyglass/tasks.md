@@ -383,8 +383,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that failed auto-refresh leaves diagram data unchanged
     - **Validates: Requirements 9.4**
 
-- [ ] 17. Frontend export
-  - [ ] 17.1 Implement ExportMenu component
+- [x] 17. Frontend export
+  - [x] 17.1 Implement ExportMenu component
     - Create `src/components/ExportMenu.tsx` with PDF, PNG, SVG format selection
     - Trigger POST /api/export with format and current filter criteria
     - Handle export errors and display appropriate messages
