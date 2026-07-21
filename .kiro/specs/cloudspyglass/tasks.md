@@ -201,7 +201,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that sequential saves for same account_id result in exactly one file
     - **Validates: Requirements 10.3**
 
-  - [ ]* 7.4 Write property tests for write failure preservation (Property 23)
+  - [x] 7.4 Write property tests for write failure preservation (Property 23)
     - **Property 23: Write failure preserves previous file**
     - Test that failed writes leave the previous file unchanged
     - **Validates: Requirements 10.5**
