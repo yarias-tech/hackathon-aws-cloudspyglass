@@ -168,7 +168,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that filtered results contain resources matching ANY selected type, plus edges with at least one endpoint of selected type
     - **Validates: Requirements 8.2**
 
-  - [ ]* 6.7 Write property tests for combined filter intersection (Property 19)
+  - [x] 6.7 Write property tests for combined filter intersection (Property 19)
     - **Property 19: Combined filter intersection**
     - Test that combined tag + type filters produce intersection (ALL tags AND at least one type)
     - **Validates: Requirements 8.5**
