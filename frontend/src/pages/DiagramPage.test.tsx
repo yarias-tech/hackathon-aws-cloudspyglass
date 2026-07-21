@@ -97,15 +97,14 @@ describe('DiagramPage', () => {
     });
   });
 
-  it('renders header with ScanControls and ExportMenu placeholders', async () => {
+  it('renders toolbar with ScanControls and ExportMenu placeholders', async () => {
     (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue(mockDiagramData);
     renderDiagramPage();
 
     await waitFor(() => {
-      expect(screen.getByText('CloudSpyglass')).toBeInTheDocument();
+      expect(screen.getByLabelText('Scan controls')).toBeInTheDocument();
     });
 
-    expect(screen.getByLabelText('Scan controls')).toBeInTheDocument();
     expect(screen.getByLabelText('Export menu')).toBeInTheDocument();
   });
 

@@ -229,7 +229,7 @@ export function DiagramPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100vh',
+          height: '100%',
           flexDirection: 'column',
           gap: '1rem',
         }}
@@ -260,7 +260,7 @@ export function DiagramPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100vh',
+          height: '100%',
           flexDirection: 'column',
           gap: '1rem',
         }}
@@ -288,26 +288,22 @@ export function DiagramPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Top toolbar */}
-      <header
+      <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           padding: '0.5rem 1rem',
           borderBottom: '1px solid #e5e7eb',
           backgroundColor: '#fff',
+          gap: '0.5rem',
         }}
       >
-        <h1 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: '#111827' }}>
-          CloudSpyglass
-        </h1>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <ScanControls />
-          <ExportMenu />
-        </div>
-      </header>
+        <ScanControls />
+        <ExportMenu />
+      </div>
 
       {/* Filter bar */}
       <FilterBar
