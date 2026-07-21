@@ -181,7 +181,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - GET `/api/diagrams/latest/filtered` — return filtered diagram data (accepts FilterCriteria as query params)
     - _Requirements: 7.2, 5.1_
 
-- [ ] 7. Backend scan storage
+- [x] 7. Backend scan storage
   - [x] 7.1 Implement ScanStorage service
     - Create `backend/services/scan_storage.py`
     - Implement `save()` with atomic write (write to temp file, then os.replace)
@@ -191,7 +191,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle corrupt/invalid files: discard and return None
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ]* 7.2 Write property tests for persistence round-trip (Property 21)
+  - [x] 7.2 Write property tests for persistence round-trip (Property 21)
     - **Property 21: Scan result persistence round-trip**
     - Test that serialize→deserialize produces equivalent ScanResult
     - **Validates: Requirements 10.1**
