@@ -413,7 +413,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test file atomicity under concurrent writes
     - _Requirements: 3.2, 4.1, 10.2_
 
-  - [ ]* 19.4 Write frontend integration tests
+  - [x] 19.4 Write frontend integration tests
     - Test page-level flows with MSW (mock service worker)
     - Test credential submission → scan → diagram rendering flow
     - Test filter interaction flow
