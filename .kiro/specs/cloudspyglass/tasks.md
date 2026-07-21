@@ -231,7 +231,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that exports exceeding 50 MB are rejected without producing a file
     - **Validates: Requirements 11.6**
 
-  - [ ]* 8.4 Write property tests for filtered export annotation (Property 27)
+  - [x] 8.4 Write property tests for filtered export annotation (Property 27)
     - **Property 27: Filtered export annotation**
     - Test that exports with active filters contain only filtered resources and include filter annotation
     - **Validates: Requirements 11.2**
