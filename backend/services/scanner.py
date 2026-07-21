@@ -21,12 +21,15 @@ MAX_RETRIES = 5
 MAX_BACKOFF_SECONDS = 30
 
 # Global resource types (scanned once, not per-region)
-GLOBAL_RESOURCE_TYPES = ["s3", "iam_role", "cloudfront", "route53"]
+GLOBAL_RESOURCE_TYPES = ["s3", "iam_role", "cloudfront", "route53", "ecr"]
 
 # Regional resource types (scanned per region)
 REGIONAL_RESOURCE_TYPES = [
     "ec2", "security_group", "vpc", "subnet", "lambda", "rds",
     "alb", "nlb", "ecs", "sns", "sqs", "dynamodb", "api_gateway",
+    "eks", "elasticache", "ebs", "elastic_ip", "nat_gateway",
+    "transit_gateway", "vpn_gateway", "step_functions", "kinesis",
+    "secrets_manager", "redshift", "opensearch", "codepipeline", "glue",
 ]
 
 ALL_RESOURCE_TYPES = REGIONAL_RESOURCE_TYPES + GLOBAL_RESOURCE_TYPES
@@ -322,6 +325,21 @@ class Scanner:
             "cloudfront": self._fetch_cloudfront,
             "route53": self._fetch_route53,
             "api_gateway": self._fetch_api_gateway,
+            "eks": self._fetch_eks,
+            "elasticache": self._fetch_elasticache,
+            "ebs": self._fetch_ebs,
+            "elastic_ip": self._fetch_elastic_ips,
+            "nat_gateway": self._fetch_nat_gateways,
+            "transit_gateway": self._fetch_transit_gateways,
+            "vpn_gateway": self._fetch_vpn_gateways,
+            "step_functions": self._fetch_step_functions,
+            "kinesis": self._fetch_kinesis,
+            "secrets_manager": self._fetch_secrets_manager,
+            "ecr": self._fetch_ecr,
+            "redshift": self._fetch_redshift,
+            "opensearch": self._fetch_opensearch,
+            "codepipeline": self._fetch_codepipeline,
+            "glue": self._fetch_glue,
         }
         return fetchers[resource_type]
 
@@ -1068,5 +1086,602 @@ class Scanner:
                         "api_key_source": api.get("apiKeySource"),
                     },
                 ))
+
+        return resources
+
+    # ------------------------------------------------------------------
+    # Tier 1: Additional Resource Fetchers
+    # ------------------------------------------------------------------
+
+    def _fetch_eks(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch EKS clusters."""
+        eks = session.client("eks", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = eks.get_paginator("list_clusters")
+        cluster_names: list[str] = []
+        for page in paginator.paginate():
+            cluster_names.extend(page.get("clusters", []))
+
+        for name in cluster_names:
+            try:
+                resp = eks.describe_cluster(name=name)
+                cluster = resp.get("cluster", {})
+                cluster_arn = cluster.get("arn", f"arn:aws:eks:{region}:{account_id}:cluster/{name}")
+                tags = cluster.get("tags", {})
+
+                resources.append(Resource(
+                    arn=cluster_arn,
+                    resource_type="eks",
+                    name=name,
+                    region=region,
+                    tags=tags,
+                    creation_date=cluster.get("createdAt", "").isoformat()
+                        if cluster.get("createdAt") else None,
+                    iam_role=cluster.get("roleArn"),
+                    attributes={
+                        "status": cluster.get("status"),
+                        "version": cluster.get("version"),
+                        "endpoint": cluster.get("endpoint"),
+                        "platform_version": cluster.get("platformVersion"),
+                        "vpc_id": cluster.get("resourcesVpcConfig", {}).get("vpcId"),
+                    },
+                ))
+            except ClientError:
+                pass
+
+        return resources
+
+    def _fetch_elasticache(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch ElastiCache clusters."""
+        client = session.client("elasticache", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = client.get_paginator("describe_cache_clusters")
+        for page in paginator.paginate(ShowCacheNodeInfo=True):
+            for cluster in page.get("CacheClusters", []):
+                cluster_id = cluster["CacheClusterId"]
+                cluster_arn = cluster.get("ARN",
+                    f"arn:aws:elasticache:{region}:{account_id}:cluster:{cluster_id}")
+
+                # Fetch tags
+                tags = {}
+                try:
+                    tag_resp = client.list_tags_for_resource(ResourceName=cluster_arn)
+                    tags = self._extract_tags(tag_resp.get("TagList"))
+                except ClientError:
+                    pass
+
+                resources.append(Resource(
+                    arn=cluster_arn,
+                    resource_type="elasticache",
+                    name=cluster_id,
+                    region=region,
+                    tags=tags,
+                    creation_date=cluster.get("CacheClusterCreateTime", "").isoformat()
+                        if cluster.get("CacheClusterCreateTime") else None,
+                    attributes={
+                        "engine": cluster.get("Engine"),
+                        "engine_version": cluster.get("EngineVersion"),
+                        "cache_node_type": cluster.get("CacheNodeType"),
+                        "num_cache_nodes": cluster.get("NumCacheNodes"),
+                        "status": cluster.get("CacheClusterStatus"),
+                        "preferred_az": cluster.get("PreferredAvailabilityZone"),
+                    },
+                ))
+
+        return resources
+
+    def _fetch_ebs(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch EBS volumes."""
+        ec2 = session.client("ec2", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = ec2.get_paginator("describe_volumes")
+        for page in paginator.paginate():
+            for vol in page.get("Volumes", []):
+                vol_id = vol["VolumeId"]
+                tags = self._extract_tags(vol.get("Tags"))
+                name = self._get_name_from_tags(tags, vol_id)
+
+                attachments = vol.get("Attachments", [])
+                attached_to = attachments[0].get("InstanceId") if attachments else None
+
+                resources.append(Resource(
+                    arn=f"arn:aws:ec2:{region}:{account_id}:volume/{vol_id}",
+                    resource_type="ebs",
+                    name=name,
+                    region=region,
+                    tags=tags,
+                    creation_date=vol.get("CreateTime", "").isoformat()
+                        if vol.get("CreateTime") else None,
+                    attributes={
+                        "volume_type": vol.get("VolumeType"),
+                        "size_gb": vol.get("Size"),
+                        "state": vol.get("State"),
+                        "iops": vol.get("Iops"),
+                        "encrypted": vol.get("Encrypted", False),
+                        "availability_zone": vol.get("AvailabilityZone"),
+                        "attached_to": attached_to,
+                    },
+                ))
+
+        return resources
+
+    def _fetch_elastic_ips(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Elastic IP addresses."""
+        ec2 = session.client("ec2", region_name=region)
+        resources: list[Resource] = []
+
+        response = ec2.describe_addresses()
+        for addr in response.get("Addresses", []):
+            alloc_id = addr.get("AllocationId", addr.get("PublicIp", "unknown"))
+            tags = self._extract_tags(addr.get("Tags"))
+            name = self._get_name_from_tags(tags, addr.get("PublicIp", alloc_id))
+
+            resources.append(Resource(
+                arn=f"arn:aws:ec2:{region}:{account_id}:elastic-ip/{alloc_id}",
+                resource_type="elastic_ip",
+                name=name,
+                region=region,
+                tags=tags,
+                attributes={
+                    "public_ip": addr.get("PublicIp"),
+                    "private_ip": addr.get("PrivateIpAddress"),
+                    "instance_id": addr.get("InstanceId"),
+                    "network_interface_id": addr.get("NetworkInterfaceId"),
+                    "domain": addr.get("Domain"),
+                },
+            ))
+
+        return resources
+
+    def _fetch_nat_gateways(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch NAT Gateways."""
+        ec2 = session.client("ec2", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = ec2.get_paginator("describe_nat_gateways")
+        for page in paginator.paginate():
+            for ngw in page.get("NatGateways", []):
+                ngw_id = ngw["NatGatewayId"]
+                tags = self._extract_tags(ngw.get("Tags"))
+                name = self._get_name_from_tags(tags, ngw_id)
+
+                resources.append(Resource(
+                    arn=f"arn:aws:ec2:{region}:{account_id}:natgateway/{ngw_id}",
+                    resource_type="nat_gateway",
+                    name=name,
+                    region=region,
+                    tags=tags,
+                    creation_date=ngw.get("CreateTime", "").isoformat()
+                        if ngw.get("CreateTime") else None,
+                    attributes={
+                        "state": ngw.get("State"),
+                        "vpc_id": ngw.get("VpcId"),
+                        "subnet_id": ngw.get("SubnetId"),
+                        "connectivity_type": ngw.get("ConnectivityType"),
+                    },
+                ))
+
+        return resources
+
+    def _fetch_transit_gateways(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Transit Gateways."""
+        ec2 = session.client("ec2", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = ec2.get_paginator("describe_transit_gateways")
+        for page in paginator.paginate():
+            for tgw in page.get("TransitGateways", []):
+                tgw_id = tgw["TransitGatewayId"]
+                tgw_arn = tgw.get("TransitGatewayArn",
+                    f"arn:aws:ec2:{region}:{account_id}:transit-gateway/{tgw_id}")
+                tags = self._extract_tags(tgw.get("Tags"))
+                name = self._get_name_from_tags(tags, tgw_id)
+
+                resources.append(Resource(
+                    arn=tgw_arn,
+                    resource_type="transit_gateway",
+                    name=name,
+                    region=region,
+                    tags=tags,
+                    creation_date=tgw.get("CreationTime", "").isoformat()
+                        if tgw.get("CreationTime") else None,
+                    attributes={
+                        "state": tgw.get("State"),
+                        "owner_id": tgw.get("OwnerId"),
+                        "description": tgw.get("Description", ""),
+                    },
+                ))
+
+        return resources
+
+    def _fetch_vpn_gateways(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch VPN Gateways."""
+        ec2 = session.client("ec2", region_name=region)
+        resources: list[Resource] = []
+
+        response = ec2.describe_vpn_gateways()
+        for vgw in response.get("VpnGateways", []):
+            vgw_id = vgw["VpnGatewayId"]
+            tags = self._extract_tags(vgw.get("Tags"))
+            name = self._get_name_from_tags(tags, vgw_id)
+
+            vpc_attachments = vgw.get("VpcAttachments", [])
+            attached_vpc = vpc_attachments[0].get("VpcId") if vpc_attachments else None
+
+            resources.append(Resource(
+                arn=f"arn:aws:ec2:{region}:{account_id}:vpn-gateway/{vgw_id}",
+                resource_type="vpn_gateway",
+                name=name,
+                region=region,
+                tags=tags,
+                attributes={
+                    "state": vgw.get("State"),
+                    "type": vgw.get("Type"),
+                    "availability_zone": vgw.get("AvailabilityZone"),
+                    "attached_vpc": attached_vpc,
+                },
+            ))
+
+        return resources
+
+    def _fetch_step_functions(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Step Functions state machines."""
+        sfn = session.client("stepfunctions", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = sfn.get_paginator("list_state_machines")
+        for page in paginator.paginate():
+            for sm in page.get("stateMachines", []):
+                sm_arn = sm["stateMachineArn"]
+                sm_name = sm["name"]
+
+                # Get tags
+                tags = {}
+                try:
+                    tag_resp = sfn.list_tags_for_resource(resourceArn=sm_arn)
+                    tags = {t["key"]: t["value"] for t in tag_resp.get("tags", [])}
+                except ClientError:
+                    pass
+
+                # Get details
+                try:
+                    detail = sfn.describe_state_machine(stateMachineArn=sm_arn)
+                    role_arn = detail.get("roleArn")
+                    created = detail.get("creationDate")
+                    status = detail.get("status")
+                    sm_type = detail.get("type")
+                except ClientError:
+                    role_arn = None
+                    created = sm.get("creationDate")
+                    status = None
+                    sm_type = sm.get("type")
+
+                resources.append(Resource(
+                    arn=sm_arn,
+                    resource_type="step_functions",
+                    name=sm_name,
+                    region=region,
+                    tags=tags,
+                    creation_date=created.isoformat() if created else None,
+                    iam_role=role_arn,
+                    attributes={
+                        "status": status,
+                        "type": sm_type,
+                    },
+                ))
+
+        return resources
+
+    def _fetch_kinesis(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Kinesis data streams."""
+        kinesis = session.client("kinesis", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = kinesis.get_paginator("list_streams")
+        stream_names: list[str] = []
+        for page in paginator.paginate():
+            stream_names.extend(page.get("StreamNames", []))
+
+        for name in stream_names:
+            try:
+                resp = kinesis.describe_stream_summary(StreamName=name)
+                desc = resp.get("StreamDescriptionSummary", {})
+                stream_arn = desc.get("StreamARN",
+                    f"arn:aws:kinesis:{region}:{account_id}:stream/{name}")
+
+                # Get tags
+                tags = {}
+                try:
+                    tag_resp = kinesis.list_tags_for_stream(StreamName=name)
+                    tags = {t["Key"]: t["Value"] for t in tag_resp.get("Tags", [])}
+                except ClientError:
+                    pass
+
+                resources.append(Resource(
+                    arn=stream_arn,
+                    resource_type="kinesis",
+                    name=name,
+                    region=region,
+                    tags=tags,
+                    creation_date=desc.get("StreamCreationTimestamp", "").isoformat()
+                        if desc.get("StreamCreationTimestamp") else None,
+                    attributes={
+                        "status": desc.get("StreamStatus"),
+                        "retention_period_hours": desc.get("RetentionPeriodHours"),
+                        "shard_count": desc.get("OpenShardCount"),
+                        "encryption_type": desc.get("EncryptionType"),
+                    },
+                ))
+            except ClientError:
+                pass
+
+        return resources
+
+    def _fetch_secrets_manager(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Secrets Manager secrets (metadata only, not values)."""
+        client = session.client("secretsmanager", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = client.get_paginator("list_secrets")
+        for page in paginator.paginate():
+            for secret in page.get("SecretList", []):
+                secret_arn = secret["ARN"]
+                secret_name = secret["Name"]
+                tags = self._extract_tags(secret.get("Tags"))
+
+                resources.append(Resource(
+                    arn=secret_arn,
+                    resource_type="secrets_manager",
+                    name=secret_name,
+                    region=region,
+                    tags=tags,
+                    creation_date=secret.get("CreatedDate", "").isoformat()
+                        if secret.get("CreatedDate") else None,
+                    attributes={
+                        "description": secret.get("Description", ""),
+                        "rotation_enabled": secret.get("RotationEnabled", False),
+                        "last_accessed": secret.get("LastAccessedDate", "").isoformat()
+                            if secret.get("LastAccessedDate") else None,
+                        "last_changed": secret.get("LastChangedDate", "").isoformat()
+                            if secret.get("LastChangedDate") else None,
+                    },
+                ))
+
+        return resources
+
+    def _fetch_ecr(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch ECR repositories (global-ish, scanned once)."""
+        ecr = session.client("ecr", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = ecr.get_paginator("describe_repositories")
+        for page in paginator.paginate():
+            for repo in page.get("repositories", []):
+                repo_arn = repo["repositoryArn"]
+                repo_name = repo["repositoryName"]
+
+                # Get tags
+                tags = {}
+                try:
+                    tag_resp = ecr.list_tags_for_resource(resourceArn=repo_arn)
+                    tags = {t["Key"]: t["Value"] for t in tag_resp.get("tags", [])}
+                except ClientError:
+                    pass
+
+                resources.append(Resource(
+                    arn=repo_arn,
+                    resource_type="ecr",
+                    name=repo_name,
+                    region=region,
+                    tags=tags,
+                    creation_date=repo.get("createdAt", "").isoformat()
+                        if repo.get("createdAt") else None,
+                    attributes={
+                        "repository_uri": repo.get("repositoryUri"),
+                        "image_tag_mutability": repo.get("imageTagMutability"),
+                        "scan_on_push": repo.get("imageScanningConfiguration", {}).get(
+                            "scanOnPush", False),
+                        "encryption_type": repo.get("encryptionConfiguration", {}).get(
+                            "encryptionType"),
+                    },
+                ))
+
+        return resources
+
+    def _fetch_redshift(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Redshift clusters."""
+        client = session.client("redshift", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = client.get_paginator("describe_clusters")
+        for page in paginator.paginate():
+            for cluster in page.get("Clusters", []):
+                cluster_id = cluster["ClusterIdentifier"]
+                cluster_arn = f"arn:aws:redshift:{region}:{account_id}:cluster:{cluster_id}"
+
+                tags = self._extract_tags(cluster.get("Tags"))
+
+                resources.append(Resource(
+                    arn=cluster_arn,
+                    resource_type="redshift",
+                    name=cluster_id,
+                    region=region,
+                    tags=tags,
+                    creation_date=cluster.get("ClusterCreateTime", "").isoformat()
+                        if cluster.get("ClusterCreateTime") else None,
+                    attributes={
+                        "node_type": cluster.get("NodeType"),
+                        "status": cluster.get("ClusterStatus"),
+                        "number_of_nodes": cluster.get("NumberOfNodes"),
+                        "db_name": cluster.get("DBName"),
+                        "vpc_id": cluster.get("VpcId"),
+                        "encrypted": cluster.get("Encrypted", False),
+                    },
+                ))
+
+        return resources
+
+    def _fetch_opensearch(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch OpenSearch domains."""
+        client = session.client("opensearch", region_name=region)
+        resources: list[Resource] = []
+
+        try:
+            response = client.list_domain_names()
+            domain_names = [d["DomainName"] for d in response.get("DomainNames", [])]
+        except ClientError:
+            return resources
+
+        # Describe domains in batches of 5
+        for i in range(0, len(domain_names), 5):
+            batch = domain_names[i:i + 5]
+            try:
+                resp = client.describe_domains(DomainNames=batch)
+                for domain in resp.get("DomainStatusList", []):
+                    domain_arn = domain["ARN"]
+                    domain_name = domain["DomainName"]
+
+                    # Get tags
+                    tags = {}
+                    try:
+                        tag_resp = client.list_tags(ARN=domain_arn)
+                        tags = self._extract_tags(tag_resp.get("TagList"))
+                    except ClientError:
+                        pass
+
+                    vpc_options = domain.get("VPCOptions", {})
+
+                    resources.append(Resource(
+                        arn=domain_arn,
+                        resource_type="opensearch",
+                        name=domain_name,
+                        region=region,
+                        tags=tags,
+                        attributes={
+                            "engine_version": domain.get("EngineVersion"),
+                            "instance_type": domain.get("ClusterConfig", {}).get(
+                                "InstanceType"),
+                            "instance_count": domain.get("ClusterConfig", {}).get(
+                                "InstanceCount"),
+                            "processing": domain.get("Processing", False),
+                            "endpoint": domain.get("Endpoint"),
+                            "vpc_id": vpc_options.get("VPCId"),
+                        },
+                    ))
+            except ClientError:
+                pass
+
+        return resources
+
+    def _fetch_codepipeline(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch CodePipeline pipelines."""
+        client = session.client("codepipeline", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = client.get_paginator("list_pipelines")
+        for page in paginator.paginate():
+            for pipeline in page.get("pipelines", []):
+                pipeline_name = pipeline["name"]
+                pipeline_arn = f"arn:aws:codepipeline:{region}:{account_id}:{pipeline_name}"
+
+                # Get tags
+                tags = {}
+                try:
+                    tag_resp = client.list_tags_for_resource(resourceArn=pipeline_arn)
+                    tags = {t["key"]: t["value"] for t in tag_resp.get("tags", [])}
+                except ClientError:
+                    pass
+
+                resources.append(Resource(
+                    arn=pipeline_arn,
+                    resource_type="codepipeline",
+                    name=pipeline_name,
+                    region=region,
+                    tags=tags,
+                    creation_date=pipeline.get("created", "").isoformat()
+                        if pipeline.get("created") else None,
+                    attributes={
+                        "version": pipeline.get("version"),
+                        "updated": pipeline.get("updated", "").isoformat()
+                            if pipeline.get("updated") else None,
+                    },
+                ))
+
+        return resources
+
+    def _fetch_glue(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Glue databases and jobs."""
+        glue = session.client("glue", region_name=region)
+        resources: list[Resource] = []
+
+        # Fetch Glue Jobs
+        try:
+            paginator = glue.get_paginator("get_jobs")
+            for page in paginator.paginate():
+                for job in page.get("Jobs", []):
+                    job_name = job["Name"]
+                    job_arn = f"arn:aws:glue:{region}:{account_id}:job/{job_name}"
+
+                    # Get tags
+                    tags = {}
+                    try:
+                        tag_resp = glue.get_tags(ResourceArn=job_arn)
+                        tags = tag_resp.get("Tags", {})
+                    except ClientError:
+                        pass
+
+                    resources.append(Resource(
+                        arn=job_arn,
+                        resource_type="glue",
+                        name=job_name,
+                        region=region,
+                        tags=tags,
+                        creation_date=job.get("CreatedOn", "").isoformat()
+                            if job.get("CreatedOn") else None,
+                        iam_role=job.get("Role"),
+                        attributes={
+                            "type": "job",
+                            "worker_type": job.get("WorkerType"),
+                            "number_of_workers": job.get("NumberOfWorkers"),
+                            "glue_version": job.get("GlueVersion"),
+                            "status": job.get("LastModifiedOn", "").isoformat()
+                                if job.get("LastModifiedOn") else None,
+                        },
+                    ))
+        except ClientError:
+            pass
 
         return resources
