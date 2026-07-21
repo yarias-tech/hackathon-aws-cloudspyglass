@@ -148,7 +148,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that filtered results contain only resources matching ALL tag criteria and edges where BOTH endpoints match
     - **Validates: Requirements 7.1, 7.3, 7.4**
 
-  - [ ]* 6.3 Write property tests for tag autocomplete ordering (Property 15)
+  - [x] 6.3 Write property tests for tag autocomplete ordering (Property 15)
     - **Property 15: Tag autocomplete frequency ordering**
     - Test that suggestions return ≤20 entries ordered by descending frequency
     - **Validates: Requirements 7.2**
