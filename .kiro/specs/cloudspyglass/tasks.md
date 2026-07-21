@@ -134,7 +134,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that missing target ARNs still produce relationships with is_unresolved=True on target
     - **Validates: Requirements 4.7**
 
-- [ ] 6. Backend filter engine
+- [x] 6. Backend filter engine
   - [x] 6.1 Implement FilterEngine service
     - Create `backend/services/filter_engine.py`
     - Implement `apply_filters()` with AND logic for tags and OR logic for resource types
@@ -206,7 +206,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that failed writes leave the previous file unchanged
     - **Validates: Requirements 10.5**
 
-  - [ ]* 7.5 Write property tests for corrupt file handling (Property 24)
+  - [x] 7.5 Write property tests for corrupt file handling (Property 24)
     - **Property 24: Corrupt file graceful handling**
     - Test that invalid UTF-8, invalid JSON, or schema-violating content returns None
     - **Validates: Requirements 10.6**
