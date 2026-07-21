@@ -368,8 +368,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Configure react-router-dom routes: / (DiagramPage), /settings (SettingsPage)
     - _Requirements: 13.4, 13.5_
 
-- [ ] 16. Frontend scan controls and auto-refresh
-  - [ ] 16.1 Implement ScanControls and auto-refresh logic
+- [x] 16. Frontend scan controls and auto-refresh
+  - [x] 16.1 Implement ScanControls and auto-refresh logic
     - Create `src/components/ScanControls.tsx` with manual refresh button
     - Implement auto-refresh timer based on AppSettings.auto_refresh_interval
     - Skip scheduled scan if one is already in progress

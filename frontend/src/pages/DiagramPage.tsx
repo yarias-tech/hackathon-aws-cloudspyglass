@@ -2,36 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { DiagramCanvas } from '../components/DiagramCanvas';
 import { FilterBar } from '../components/FilterBar';
 import { DetailPanel } from '../components/DetailPanel';
+import { ScanControls } from '../components/ScanControls';
 import { apiClient, ApiError } from '../api/apiClient';
 import type { DiagramData } from '../types/diagram';
 import type { FilterCriteria, FilteredResult } from '../types/filters';
 import type { Resource } from '../types/resources';
 import type { ErrorResponse } from '../types/errors';
+import type { AppSettings, AutoRefreshInterval } from '../types/settings';
 
-/**
- * Placeholder ScanControls component.
- * Will be properly implemented in task 16.1.
- */
-function ScanControls() {
-  return (
-    <button
-      type="button"
-      style={{
-        padding: '0.5rem 1rem',
-        backgroundColor: '#2563eb',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '0.375rem',
-        cursor: 'pointer',
-        fontSize: '0.8rem',
-        fontWeight: 500,
-      }}
-      aria-label="Scan controls"
-    >
-      Scan
-    </button>
-  );
-}
+
 
 /**
  * Placeholder ExportMenu component.
@@ -94,6 +73,9 @@ export function DiagramPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-refresh settings state
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<AutoRefreshInterval>('manual');
+
   // Filter state
   const [filters, setFilters] = useState<FilterCriteria>({
     tag_filters: [],
@@ -135,6 +117,37 @@ export function DiagramPage() {
 
     fetchDiagram();
     return () => { cancelled = true; };
+  }, []);
+
+  // Fetch settings to get auto-refresh interval
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchSettings() {
+      try {
+        const appSettings = await apiClient.get<AppSettings>('/settings');
+        if (!cancelled) {
+          setAutoRefreshInterval(appSettings.auto_refresh_interval);
+        }
+      } catch {
+        // Settings fetch failure is non-critical; default to 'manual'
+      }
+    }
+
+    fetchSettings();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Handle scan complete from ScanControls — update diagram data
+  const handleScanComplete = useCallback((data: DiagramData) => {
+    setDiagramData(data);
+  }, []);
+
+  // Handle scan error from ScanControls — show error without clearing diagram (Req 9.4)
+  const handleScanError = useCallback((message: string) => {
+    setError(message);
+    // Clear error after 5 seconds so it doesn't persist forever
+    setTimeout(() => setError(null), 5000);
   }, []);
 
   // Fetch filtered data when filters change
@@ -252,8 +265,8 @@ export function DiagramPage() {
     );
   }
 
-  // Error state
-  if (error) {
+  // Error state — only show full-page error if no diagram data loaded yet
+  if (error && !diagramData) {
     return (
       <div
         style={{
@@ -289,6 +302,41 @@ export function DiagramPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Non-blocking error banner for scan refresh failures (Req 9.4) */}
+      {error && diagramData && (
+        <div
+          role="alert"
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: '#fef2f2',
+            borderBottom: '1px solid #fecaca',
+            color: '#dc2626',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+          data-testid="scan-error-banner"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              lineHeight: 1,
+            }}
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Top toolbar */}
       <div
         style={{
@@ -301,7 +349,11 @@ export function DiagramPage() {
           gap: '0.5rem',
         }}
       >
-        <ScanControls />
+        <ScanControls
+          autoRefreshInterval={autoRefreshInterval}
+          onScanComplete={handleScanComplete}
+          onError={handleScanError}
+        />
         <ExportMenu />
       </div>
 

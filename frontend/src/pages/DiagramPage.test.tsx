@@ -102,7 +102,7 @@ describe('DiagramPage', () => {
     renderDiagramPage();
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Scan controls')).toBeInTheDocument();
+      expect(screen.getByLabelText('Refresh scan')).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText('Export menu')).toBeInTheDocument();
