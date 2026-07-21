@@ -182,7 +182,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - _Requirements: 7.2, 5.1_
 
 - [ ] 7. Backend scan storage
-  - [ ] 7.1 Implement ScanStorage service
+  - [x] 7.1 Implement ScanStorage service
     - Create `backend/services/scan_storage.py`
     - Implement `save()` with atomic write (write to temp file, then os.replace)
     - Implement `load()` with JSON parsing and Pydantic validation
