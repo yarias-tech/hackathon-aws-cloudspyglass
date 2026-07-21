@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "8000:8000"
-    working_dir: /workspace/backend
+    working_dir: /workspace
     volumes:
       - ./backend:/workspace/backend
       - ./data:/workspace/data
