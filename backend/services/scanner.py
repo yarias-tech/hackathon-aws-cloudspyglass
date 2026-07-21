@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Constants
 TOTAL_SCAN_TIMEOUT_SECONDS = 600  # 10 minutes
-REGION_SCAN_TIMEOUT_SECONDS = 60  # 60 seconds per region
+REGION_SCAN_TIMEOUT_SECONDS = 180  # 180 seconds per region
 MAX_RETRIES = 5
 MAX_BACKOFF_SECONDS = 30
 
@@ -86,33 +86,50 @@ class Scanner:
         all_failures.extend(global_failures)
 
         # Parallel scan of regional resources with total timeout
+        # Limit concurrency to avoid throttling — scan 5 regions at a time
         try:
-            region_tasks = [
-                self._scan_region(region, account_id)
-                for region in regions
-            ]
-            results = await asyncio.wait_for(
-                asyncio.gather(*region_tasks, return_exceptions=True),
-                timeout=TOTAL_SCAN_TIMEOUT_SECONDS,
-            )
+            for batch_start in range(0, len(regions), 5):
+                batch_regions = regions[batch_start:batch_start + 5]
+                region_tasks = [
+                    self._scan_region(region, account_id)
+                    for region in batch_regions
+                ]
 
-            for i, result in enumerate(results):
-                region = regions[i]
-                if isinstance(result, Exception):
-                    all_failures.append(RegionFailure(
-                        region=region,
-                        resource_type="all",
-                        error_message=str(result),
-                        timestamp=datetime.now(timezone.utc).isoformat(),
-                    ))
-                else:
-                    resources, failures = result
-                    all_resources.extend(resources)
-                    all_failures.extend(failures)
-                    scanned_regions.append(region)
+                # Check if we've exceeded total timeout
+                elapsed = time.time() - start_time
+                remaining = TOTAL_SCAN_TIMEOUT_SECONDS - elapsed
+                if remaining <= 0:
+                    for region in regions[batch_start:]:
+                        all_failures.append(RegionFailure(
+                            region=region,
+                            resource_type="all",
+                            error_message="Scan cancelled: total 10-minute timeout reached",
+                            timestamp=datetime.now(timezone.utc).isoformat(),
+                        ))
+                    break
+
+                results = await asyncio.wait_for(
+                    asyncio.gather(*region_tasks, return_exceptions=True),
+                    timeout=remaining,
+                )
+
+                for i, result in enumerate(results):
+                    region = batch_regions[i]
+                    if isinstance(result, Exception):
+                        all_failures.append(RegionFailure(
+                            region=region,
+                            resource_type="all",
+                            error_message=str(result),
+                            timestamp=datetime.now(timezone.utc).isoformat(),
+                        ))
+                    else:
+                        resources, failures = result
+                        all_resources.extend(resources)
+                        all_failures.extend(failures)
+                        scanned_regions.append(region)
 
         except asyncio.TimeoutError:
-            # Total 10-minute timeout reached — return what we have
+            # Total timeout reached — return what we have
             logger.warning("Total scan timeout reached (10 minutes)")
             for region in regions:
                 if region not in scanned_regions:
