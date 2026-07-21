@@ -1,6 +1,7 @@
 name: Backend — Build & Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
