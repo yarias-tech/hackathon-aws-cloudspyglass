@@ -347,7 +347,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - **Validates: Requirements 7.2**
 
 - [ ] 15. Frontend pages and navigation
-  - [ ] 15.1 Implement DiagramPage
+  - [x] 15.1 Implement DiagramPage
     - Create `src/pages/DiagramPage.tsx` as main route (/)
     - Integrate DiagramCanvas, FilterBar, ExportMenu, ScanControls, DetailPanel
     - Fetch diagram data from GET /api/diagrams/latest
