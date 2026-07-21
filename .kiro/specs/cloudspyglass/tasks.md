@@ -124,7 +124,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that SQS→Lambda, SNS→Lambda, S3→Lambda/SQS/SNS produce event category relationships
     - **Validates: Requirements 4.3**
 
-  - [ ]* 5.5 Write property tests for external component classification (Property 10)
+  - [x] 5.5 Write property tests for external component classification (Property 10)
     - **Property 10: External component classification**
     - Test that cross-account ARNs and non-*.amazonaws.com hostnames are classified as external
     - **Validates: Requirements 4.5**
