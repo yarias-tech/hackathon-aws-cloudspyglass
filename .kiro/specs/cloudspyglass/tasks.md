@@ -211,8 +211,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that invalid UTF-8, invalid JSON, or schema-violating content returns None
     - **Validates: Requirements 10.6**
 
-- [ ] 8. Backend export service
-  - [ ] 8.1 Implement ExportService
+- [x] 8. Backend export service
+  - [x] 8.1 Implement ExportService
     - Create `backend/services/export_service.py`
     - Implement `export()` generating PDF, PNG, SVG from diagram data
     - Implement `_generate_filename()` with pattern {Account_ID}_{YYYYMMDD_HHmmss}.{format}
@@ -221,22 +221,22 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Enforce 30-second export timeout
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-  - [ ]* 8.2 Write property tests for export filename format (Property 25)
+  - [x] 8.2 Write property tests for export filename format (Property 25)
     - **Property 25: Export filename format**
     - Test that generated filenames match {Account_ID}_{YYYYMMDD_HHmmss}.{format} pattern
     - **Validates: Requirements 11.3**
 
-  - [ ]* 8.3 Write property tests for export size limit (Property 26)
+  - [x] 8.3 Write property tests for export size limit (Property 26)
     - **Property 26: Export size limit enforcement**
     - Test that exports exceeding 50 MB are rejected without producing a file
     - **Validates: Requirements 11.6**
 
-  - [ ]* 8.4 Write property tests for filtered export annotation (Property 27)
+  - [x] 8.4 Write property tests for filtered export annotation (Property 27)
     - **Property 27: Filtered export annotation**
     - Test that exports with active filters contain only filtered resources and include filter annotation
     - **Validates: Requirements 11.2**
 
-  - [ ] 8.5 Implement export API route
+  - [x] 8.5 Implement export API route
     - Create `backend/routes/export.py`
     - POST `/api/export` — trigger export with format and optional filters
     - _Requirements: 11.4_
