@@ -212,7 +212,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - **Validates: Requirements 10.6**
 
 - [ ] 8. Backend export service
-  - [ ] 8.1 Implement ExportService
+  - [x] 8.1 Implement ExportService
     - Create `backend/services/export_service.py`
     - Implement `export()` generating PDF, PNG, SVG from diagram data
     - Implement `_generate_filename()` with pattern {Account_ID}_{YYYYMMDD_HHmmss}.{format}
