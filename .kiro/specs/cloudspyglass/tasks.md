@@ -278,7 +278,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that transient errors (timeout, throttle) have recoverable=true and permanent errors (invalid input, auth failure) have recoverable=false
     - **Validates: Requirements 14.2, 14.3**
 
-- [ ] 11. Checkpoint — Backend complete
+- [x] 11. Checkpoint — Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Frontend diagram rendering
