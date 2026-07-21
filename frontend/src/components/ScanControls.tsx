@@ -66,14 +66,17 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
         : {};
       await apiClient.post<unknown>('/scan', body);
 
-      // Poll scan status until completed or failed
+      // Poll scan status until completed, failed, or idle (cancelled)
       let scanComplete = false;
       let attempts = 0;
-      const maxAttempts = 120; // 10 minutes at 5-second intervals
+      const maxAttempts = 360; // 30 minutes at 5-second intervals
 
-      while (!scanComplete && attempts < maxAttempts) {
+      while (!scanComplete && attempts < maxAttempts && scanningRef.current) {
         await new Promise(resolve => setTimeout(resolve, 5000));
         attempts++;
+
+        // If scanning was stopped externally (handleCancelScan set scanning=false)
+        if (!scanningRef.current) return;
 
         try {
           const status = await apiClient.get<{ status: string; error_message?: string }>('/scan/status');
@@ -82,15 +85,21 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
           } else if (status.status === 'failed') {
             onError(status.error_message || 'Scan failed');
             return;
+          } else if (status.status === 'idle' && attempts > 1) {
+            // Scan was cancelled — stop polling silently
+            // (skip on first poll to avoid race with scan startup)
+            return;
           }
-          // If still 'in_progress', keep polling
+          // If still 'in_progress' or 'idle' on first poll, keep polling
         } catch {
           // Status check failed, keep trying
         }
       }
 
       if (!scanComplete) {
-        onError('Scan timed out waiting for completion');
+        if (scanningRef.current) {
+          onError('Scan timed out waiting for completion');
+        }
         return;
       }
 
@@ -152,12 +161,13 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
 
   /** Handle scan cancellation */
   const handleCancelScan = useCallback(async () => {
+    // Set scanning to false first so the polling loop exits
+    setScanning(false);
     try {
       await apiClient.post<unknown>('/scan/cancel');
     } catch {
       // Ignore errors on cancel — scan may have already finished
     }
-    setScanning(false);
   }, []);
 
   return (

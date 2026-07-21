@@ -55,7 +55,7 @@ _scan_completed_at: str | None = None
 _scan_error_message: str | None = None
 _last_scan_result: ScanResult | None = None
 _scan_task: asyncio.Task | None = None
-_scan_cancelled: bool = False
+_scan_generation: int = 0  # Increments with each scan to prevent stale task interference
 
 
 # ---------------------------------------------------------------------------
@@ -63,24 +63,16 @@ _scan_cancelled: bool = False
 # ---------------------------------------------------------------------------
 
 
-async def _run_scan(regions: list[str] | None) -> None:
+async def _run_scan(regions: list[str] | None, generation: int) -> None:
     """Execute the scan in the background, updating module-level state."""
     global _scan_status, _scan_started_at, _scan_completed_at
-    global _scan_error_message, _last_scan_result, _scan_cancelled
+    global _scan_error_message, _last_scan_result, _scan_generation
 
     try:
-        if _scan_cancelled:
-            _scan_status = ScanStatus.idle
-            _scan_completed_at = datetime.now(timezone.utc).isoformat()
-            _scan_error_message = "Scan cancelled by user"
-            return
-
         result = await scanner.scan(regions=regions)
 
-        if _scan_cancelled:
-            _scan_status = ScanStatus.idle
-            _scan_completed_at = datetime.now(timezone.utc).isoformat()
-            _scan_error_message = "Scan cancelled by user"
+        # Check if this scan is still the current one (not cancelled/superseded)
+        if generation != _scan_generation:
             return
 
         # Resolve relationships using the account_id from the scan result
@@ -89,11 +81,14 @@ async def _run_scan(regions: list[str] | None) -> None:
             try:
                 resolver = get_relationship_resolver(account_id)
                 relationships, unresolved = resolver.resolve(result.resources)
-                # Attach relationships and unresolved resources to the scan result
                 result.relationships = relationships
                 result.resources.extend(unresolved)
             except Exception as rel_exc:
                 logger.warning("Relationship resolution failed: %s", rel_exc)
+
+        # Check again after relationship resolution
+        if generation != _scan_generation:
+            return
 
         _last_scan_result = result
         _scan_status = ScanStatus.completed
@@ -113,14 +108,17 @@ async def _run_scan(regions: list[str] | None) -> None:
             len(result.scanned_regions),
         )
     except asyncio.CancelledError:
-        _scan_status = ScanStatus.idle
-        _scan_completed_at = datetime.now(timezone.utc).isoformat()
-        _scan_error_message = "Scan cancelled by user"
-        logger.info("Scan cancelled by user")
+        # Only update state if this is still the current scan
+        if generation == _scan_generation:
+            _scan_status = ScanStatus.idle
+            _scan_completed_at = datetime.now(timezone.utc).isoformat()
+            _scan_error_message = "Scan cancelled by user"
+        logger.info("Scan generation %d cancelled", generation)
     except Exception as exc:
-        _scan_status = ScanStatus.failed
-        _scan_completed_at = datetime.now(timezone.utc).isoformat()
-        _scan_error_message = str(exc)
+        if generation == _scan_generation:
+            _scan_status = ScanStatus.failed
+            _scan_completed_at = datetime.now(timezone.utc).isoformat()
+            _scan_error_message = str(exc)
         logger.exception("Scan failed: %s", exc)
 
 
@@ -143,6 +141,7 @@ async def trigger_scan(request: ScanRequest | None = None) -> dict[str, Any]:
     Requirements: 3.1, 3.2
     """
     global _scan_status, _scan_started_at, _scan_completed_at, _scan_error_message
+    global _scan_generation, _scan_task
 
     if request is None:
         request = ScanRequest()
@@ -161,10 +160,14 @@ async def trigger_scan(request: ScanRequest | None = None) -> dict[str, Any]:
     _scan_started_at = datetime.now(timezone.utc).isoformat()
     _scan_completed_at = None
     _scan_error_message = None
-    _scan_cancelled = False
+    _scan_generation += 1
+
+    # Cancel any previous task that might still be running
+    if _scan_task and not _scan_task.done():
+        _scan_task.cancel()
 
     # Launch scan as a background coroutine
-    _scan_task = asyncio.create_task(_run_scan(request.regions))
+    _scan_task = asyncio.create_task(_run_scan(request.regions, _scan_generation))
 
     return {
         "status": "accepted",
@@ -181,7 +184,7 @@ async def cancel_scan() -> dict[str, str]:
     Returns the scan to idle state, preserving any previously completed results.
     """
     global _scan_status, _scan_completed_at, _scan_error_message
-    global _scan_task, _scan_cancelled
+    global _scan_task, _scan_generation
 
     if _scan_status != ScanStatus.in_progress:
         raise CloudSpyglassError(
@@ -191,7 +194,8 @@ async def cancel_scan() -> dict[str, str]:
             status_code=400,
         )
 
-    _scan_cancelled = True
+    # Increment generation so the old task stops updating state
+    _scan_generation += 1
 
     # Cancel the background task
     if _scan_task and not _scan_task.done():
