@@ -211,7 +211,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that invalid UTF-8, invalid JSON, or schema-violating content returns None
     - **Validates: Requirements 10.6**
 
-- [ ] 8. Backend export service
+- [x] 8. Backend export service
   - [x] 8.1 Implement ExportService
     - Create `backend/services/export_service.py`
     - Implement `export()` generating PDF, PNG, SVG from diagram data
@@ -236,7 +236,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that exports with active filters contain only filtered resources and include filter annotation
     - **Validates: Requirements 11.2**
 
-  - [ ] 8.5 Implement export API route
+  - [x] 8.5 Implement export API route
     - Create `backend/routes/export.py`
     - POST `/api/export` — trigger export with format and optional filters
     - _Requirements: 11.4_
