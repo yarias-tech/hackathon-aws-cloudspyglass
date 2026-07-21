@@ -10,7 +10,7 @@ class CredentialSubmission(BaseModel):
 
     access_key_id: str = Field(..., max_length=128)
     secret_access_key: str = Field(..., max_length=128)
-    session_token: str | None = Field(None, max_length=1024)
+    session_token: str | None = Field(None, max_length=4096)
     region: str
 
 

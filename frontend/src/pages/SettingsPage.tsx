@@ -375,7 +375,7 @@ export function SettingsPage() {
                 type="password"
                 value={sessionToken}
                 onChange={(e) => setSessionToken(e.target.value)}
-                maxLength={1024}
+                maxLength={4096}
                 placeholder="••••••••••••••••"
                 style={{
                   width: '100%',

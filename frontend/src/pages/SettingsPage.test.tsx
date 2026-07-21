@@ -260,7 +260,7 @@ describe('SettingsPage', () => {
 
     expect(accessKeyInput).toHaveAttribute('maxLength', '128');
     expect(secretKeyInput).toHaveAttribute('maxLength', '128');
-    expect(sessionTokenInput).toHaveAttribute('maxLength', '1024');
+    expect(sessionTokenInput).toHaveAttribute('maxLength', '4096');
     expect(secretKeyInput).toHaveAttribute('type', 'password');
     expect(sessionTokenInput).toHaveAttribute('type', 'password');
   });
