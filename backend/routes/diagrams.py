@@ -92,10 +92,20 @@ async def get_filtered_diagram(
                 status_code=400,
             )
 
-    # Parse type_filters from comma-separated string
+    # Parse type_filters from JSON array or comma-separated string
     parsed_type_filters: list[str] = []
     if type_filters:
-        parsed_type_filters = [t.strip() for t in type_filters.split(",") if t.strip()]
+        # Try JSON array first (frontend sends ["type1","type2"])
+        try:
+            raw_types = json.loads(type_filters)
+            if isinstance(raw_types, list):
+                parsed_type_filters = [str(t).strip() for t in raw_types if str(t).strip()]
+            else:
+                # Not a list, treat as comma-separated
+                parsed_type_filters = [t.strip() for t in type_filters.split(",") if t.strip()]
+        except (json.JSONDecodeError, ValueError):
+            # Fall back to comma-separated
+            parsed_type_filters = [t.strip() for t in type_filters.split(",") if t.strip()]
 
     return filter_engine.apply_filters(
         scan_result,

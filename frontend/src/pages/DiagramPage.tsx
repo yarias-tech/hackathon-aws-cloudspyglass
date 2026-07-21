@@ -359,7 +359,7 @@ export function DiagramPage() {
 
       {/* Main content area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <DiagramCanvas data={displayData} />
+        <DiagramCanvas data={displayData} isFiltered={hasActiveFilters(filters)} />
 
         {/* Detail panel overlay */}
         <DetailPanel
