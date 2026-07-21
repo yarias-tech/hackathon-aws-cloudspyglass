@@ -97,8 +97,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 - [x] 4. Checkpoint — Backend scanning verified
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Backend relationship resolution
-  - [ ] 5.1 Implement RelationshipResolver service
+- [x] 5. Backend relationship resolution
+  - [x] 5.1 Implement RelationshipResolver service
     - Create `backend/services/relationship_resolver.py`
     - Implement `resolve()` orchestrating all category resolvers
     - Implement `_resolve_network_relationships()` — SG attachments, VPC memberships, LB targets
