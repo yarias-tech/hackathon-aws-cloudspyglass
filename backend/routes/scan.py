@@ -90,6 +90,11 @@ async def _run_scan(regions: list[str] | None) -> None:
 # ---------------------------------------------------------------------------
 
 
+def get_last_scan_result() -> ScanResult | None:
+    """Return the most recent scan result (or None if no scan has completed)."""
+    return _last_scan_result
+
+
 @router.post("")
 async def trigger_scan(request: ScanRequest) -> dict[str, Any]:
     """Trigger a new infrastructure scan.

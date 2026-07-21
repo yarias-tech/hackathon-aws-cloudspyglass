@@ -135,7 +135,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - **Validates: Requirements 4.7**
 
 - [ ] 6. Backend filter engine
-  - [ ] 6.1 Implement FilterEngine service
+  - [x] 6.1 Implement FilterEngine service
     - Create `backend/services/filter_engine.py`
     - Implement `apply_filters()` with AND logic for tags and OR logic for resource types
     - Filter edges: tag-filtered edges require both endpoints in filtered set; type-filtered edges require at least one endpoint in filtered set
@@ -143,37 +143,37 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Implement `get_tag_suggestions()` returning top 20 by descending frequency
     - _Requirements: 7.1, 7.3, 7.4, 7.6, 8.1, 8.2, 8.4, 8.5_
 
-  - [ ]* 6.2 Write property tests for tag filter AND logic (Property 14)
+  - [x] 6.2 Write property tests for tag filter AND logic (Property 14)
     - **Property 14: Tag filter AND logic with edge filtering**
     - Test that filtered results contain only resources matching ALL tag criteria and edges where BOTH endpoints match
     - **Validates: Requirements 7.1, 7.3, 7.4**
 
-  - [ ]* 6.3 Write property tests for tag autocomplete ordering (Property 15)
+  - [x] 6.3 Write property tests for tag autocomplete ordering (Property 15)
     - **Property 15: Tag autocomplete frequency ordering**
     - Test that suggestions return ≤20 entries ordered by descending frequency
     - **Validates: Requirements 7.2**
 
-  - [ ]* 6.4 Write property tests for filter removal round-trip (Property 16)
+  - [x] 6.4 Write property tests for filter removal round-trip (Property 16)
     - **Property 16: Filter removal round-trip**
     - Test that applying then removing all filters produces original unfiltered result
     - **Validates: Requirements 7.6**
 
-  - [ ]* 6.5 Write property tests for resource type filter options (Property 17)
+  - [x] 6.5 Write property tests for resource type filter options (Property 17)
     - **Property 17: Resource type filter available options**
     - Test that available type options equal the set of distinct resource_type values in scan data
     - **Validates: Requirements 8.1**
 
-  - [ ]* 6.6 Write property tests for resource type OR logic (Property 18)
+  - [x] 6.6 Write property tests for resource type OR logic (Property 18)
     - **Property 18: Resource type OR logic with edge visibility**
     - Test that filtered results contain resources matching ANY selected type, plus edges with at least one endpoint of selected type
     - **Validates: Requirements 8.2**
 
-  - [ ]* 6.7 Write property tests for combined filter intersection (Property 19)
+  - [x] 6.7 Write property tests for combined filter intersection (Property 19)
     - **Property 19: Combined filter intersection**
     - Test that combined tag + type filters produce intersection (ALL tags AND at least one type)
     - **Validates: Requirements 8.5**
 
-  - [ ] 6.8 Implement filter API routes
+  - [x] 6.8 Implement filter API routes
     - Create `backend/routes/filters.py`
     - GET `/api/tags/suggestions?prefix={prefix}` — return tag autocomplete suggestions
     - Create `backend/routes/diagrams.py`
