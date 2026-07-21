@@ -1,7 +1,21 @@
-name: Infra — Terraform Plan & Apply
+name: Infra — Terraform
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
   workflow_dispatch:
+    inputs:
+      action:
+        description: "Accion a ejecutar"
+        required: true
+        default: "apply"
+        type: choice
+        options:
+          - apply
+          - destroy
 
 permissions:
   contents: read
@@ -12,7 +26,7 @@ env:
 
 jobs:
   terraform:
-    name: Terraform
+    name: Terraform ${{ github.event.inputs.action || 'apply' }}
     runs-on: ubuntu-latest
 
     defaults:
@@ -44,5 +58,26 @@ jobs:
       - name: Terraform Validate
         run: terraform validate -no-color
 
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -var-file="terraform.tfvars" -out=tfplan -no-color -detailed-exitcode
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Check Plan Result
+        run: |
+          EXIT_CODE="${{ steps.plan.outputs.exit_code }}"
+          if [ "$EXIT_CODE" = "1" ]; then
+            echo "Terraform plan failed with errors."
+            exit 1
+          fi
+          echo "Plan exit code: $EXIT_CODE (0=no changes, 2=changes pending)"
+
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        if: ${{ github.event.inputs.action != 'destroy' }}
+        run: terraform apply -auto-approve -no-color tfplan
+
+      - name: Terraform Destroy
+        if: ${{ github.event.inputs.action == 'destroy' }}
+        run: terraform destroy -var-file="terraform.tfvars" -auto-approve -no-color
