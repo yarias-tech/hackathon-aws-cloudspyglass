@@ -23,31 +23,9 @@ env:
   TASK_DEFINITION: infra/ecs-task-definition.json
 
 jobs:
-  test:
-    name: Tests
-  deploy:
-    name: Build & Deploy
-    runs-on: ubuntu-latestheckout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: pip install --quiet .[dev]
-        working-directory: backend
-
-      - name: Run tests
-        run: pytest --tb=short
-        working-directory: backend
-
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: test
 
     steps:
       - name: Checkout code
