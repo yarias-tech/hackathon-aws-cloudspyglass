@@ -281,28 +281,28 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 - [x] 11. Checkpoint — Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Frontend diagram rendering
-  - [ ] 12.1 Implement DiagramCanvas and layout engine
+- [x] 12. Frontend diagram rendering
+  - [x] 12.1 Implement DiagramCanvas and layout engine
     - Create `src/components/DiagramCanvas.tsx` wrapping @xyflow/react ReactFlow
     - Implement dagre layout with top-to-bottom rank direction
     - Configure pan and zoom (0.25x to 4.0x range, fitView on initial load)
     - Handle empty state (no scan data) with EmptyState component
     - _Requirements: 5.4, 5.5, 5.7_
 
-  - [ ] 12.2 Implement ResourceNode custom node
+  - [x] 12.2 Implement ResourceNode custom node
     - Create `src/components/ResourceNode.tsx` with icon, name, and type display
     - Load icons from `/api/images/icons/{service_type}`
     - Display dashed border for external components
     - Show placeholder icon on load failure
     - _Requirements: 5.1, 5.6, 5.9_
 
-  - [ ] 12.3 Implement RelationshipEdge custom edge
+  - [x] 12.3 Implement RelationshipEdge custom edge
     - Create `src/components/RelationshipEdge.tsx` with category-based styling
     - Blue solid for network, green dashed for iam, orange dotted animated for event, gray solid for data
     - Implement tooltip on hover (within 200ms) showing interaction type, source, target, derived_from
     - _Requirements: 5.3, 5.8_
 
-  - [ ]* 12.4 Write property tests for edge styling (Property 12)
+  - [x] 12.4 Write property tests for edge styling (Property 12)
     - **Property 12: Edge styling by category**
     - Test that each relationship category maps to correct color/style/animation
     - **Validates: Requirements 5.3**
