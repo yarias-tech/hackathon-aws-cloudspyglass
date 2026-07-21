@@ -135,7 +135,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - **Validates: Requirements 4.7**
 
 - [ ] 6. Backend filter engine
-  - [ ] 6.1 Implement FilterEngine service
+  - [x] 6.1 Implement FilterEngine service
     - Create `backend/services/filter_engine.py`
     - Implement `apply_filters()` with AND logic for tags and OR logic for resource types
     - Filter edges: tag-filtered edges require both endpoints in filtered set; type-filtered edges require at least one endpoint in filtered set
