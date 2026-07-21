@@ -143,7 +143,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Implement `get_tag_suggestions()` returning top 20 by descending frequency
     - _Requirements: 7.1, 7.3, 7.4, 7.6, 8.1, 8.2, 8.4, 8.5_
 
-  - [ ]* 6.2 Write property tests for tag filter AND logic (Property 14)
+  - [x] 6.2 Write property tests for tag filter AND logic (Property 14)
     - **Property 14: Tag filter AND logic with edge filtering**
     - Test that filtered results contain only resources matching ALL tag criteria and edges where BOTH endpoints match
     - **Validates: Requirements 7.1, 7.3, 7.4**
