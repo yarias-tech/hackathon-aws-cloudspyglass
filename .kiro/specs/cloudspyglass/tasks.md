@@ -368,8 +368,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Configure react-router-dom routes: / (DiagramPage), /settings (SettingsPage)
     - _Requirements: 13.4, 13.5_
 
-- [ ] 16. Frontend scan controls and auto-refresh
-  - [ ] 16.1 Implement ScanControls and auto-refresh logic
+- [x] 16. Frontend scan controls and auto-refresh
+  - [x] 16.1 Implement ScanControls and auto-refresh logic
     - Create `src/components/ScanControls.tsx` with manual refresh button
     - Implement auto-refresh timer based on AppSettings.auto_refresh_interval
     - Skip scheduled scan if one is already in progress
@@ -378,7 +378,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Retain current diagram on refresh failure, show error
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-  - [ ]* 16.2 Write property tests for diagram state preservation on refresh failure (Property 20)
+  - [x] 16.2 Write property tests for diagram state preservation on refresh failure (Property 20)
     - **Property 20: Diagram state preservation on refresh failure**
     - Test that failed auto-refresh leaves diagram data unchanged
     - **Validates: Requirements 9.4**
