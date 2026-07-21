@@ -9,11 +9,11 @@ terraform {
   }
 
   # Descomenta esto cuando tengas un bucket S3 para el estado remoto
-  # backend "s3" {
-  #   bucket = "cloudspyglass-terraform-state"
-  #   key    = "infra/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+  backend "s3" {
+    bucket = "cloudspyglass"
+    key    = "infra/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {
