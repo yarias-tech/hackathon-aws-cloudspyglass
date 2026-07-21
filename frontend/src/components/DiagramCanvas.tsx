@@ -6,6 +6,7 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type EdgeTypes,
   type FitViewOptions,
   useNodesState,
   useEdgesState,
@@ -16,10 +17,16 @@ import '@xyflow/react/dist/style.css';
 import type { DiagramData, DiagramNode, DiagramEdge } from '../types/diagram';
 import { EmptyState } from './EmptyState';
 import { ResourceNode } from './ResourceNode';
+import { RelationshipEdge } from './RelationshipEdge';
 
 /** Register custom node types for React Flow */
 const nodeTypes: NodeTypes = {
   resource: ResourceNode,
+};
+
+/** Register custom edge types for React Flow */
+const edgeTypes: EdgeTypes = {
+  relationship: RelationshipEdge,
 };
 
 /** Default node dimensions used for dagre layout calculations */
@@ -32,17 +39,6 @@ const MAX_ZOOM = 4.0;
 
 const FIT_VIEW_OPTIONS: FitViewOptions = {
   padding: 0.2,
-};
-
-/** Edge style map per design specification */
-const EDGE_STYLE_MAP: Record<
-  DiagramEdge['category'],
-  { stroke: string; strokeDasharray?: string; animated: boolean }
-> = {
-  network: { stroke: '#2563eb', animated: false },
-  iam: { stroke: '#16a34a', strokeDasharray: '5 5', animated: false },
-  event: { stroke: '#ea580c', strokeDasharray: '2 2', animated: true },
-  data: { stroke: '#6b7280', animated: false },
 };
 
 /**
@@ -91,20 +87,13 @@ function applyDagreLayout(
     };
   });
 
-  // Convert diagram edges to React Flow edges with styling
+  // Convert diagram edges to React Flow edges using custom RelationshipEdge type
   const edges: Edge[] = diagramEdges.map((edge) => {
-    const style = EDGE_STYLE_MAP[edge.category];
     return {
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      animated: style.animated,
-      style: {
-        stroke: style.stroke,
-        strokeWidth: 2,
-        strokeDasharray: style.strokeDasharray,
-      },
-      label: edge.label ?? undefined,
+      type: 'relationship',
       data: {
         category: edge.category,
         derivedFrom: edge.derived_from,
@@ -154,6 +143,7 @@ export function DiagramCanvas({ data }: DiagramCanvasProps) {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onInit={onInit}

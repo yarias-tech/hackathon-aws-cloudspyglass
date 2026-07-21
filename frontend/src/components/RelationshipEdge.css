@@ -1,0 +1,56 @@
+.relationship-edge__tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-h, #1f2937);
+  white-space: nowrap;
+  z-index: 1000;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+}
+
+.relationship-edge__tooltip-row {
+  display: flex;
+  gap: 6px;
+}
+
+.relationship-edge__tooltip-label {
+  font-weight: 600;
+  color: var(--text, #6b7280);
+  text-transform: capitalize;
+}
+
+.relationship-edge__tooltip-value {
+  color: var(--text-h, #1f2937);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Edge path interaction area */
+.relationship-edge__path--interactive {
+  stroke-width: 12px;
+  stroke: transparent;
+  fill: none;
+  cursor: pointer;
+}
+
+/* Animated flow for event category */
+@keyframes edge-flow {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.relationship-edge__path--animated {
+  animation: edge-flow 1s linear infinite;
+}

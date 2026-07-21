@@ -281,7 +281,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 - [x] 11. Checkpoint — Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Frontend diagram rendering
+- [x] 12. Frontend diagram rendering
   - [x] 12.1 Implement DiagramCanvas and layout engine
     - Create `src/components/DiagramCanvas.tsx` wrapping @xyflow/react ReactFlow
     - Implement dagre layout with top-to-bottom rank direction
@@ -296,7 +296,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Show placeholder icon on load failure
     - _Requirements: 5.1, 5.6, 5.9_
 
-  - [ ] 12.3 Implement RelationshipEdge custom edge
+  - [x] 12.3 Implement RelationshipEdge custom edge
     - Create `src/components/RelationshipEdge.tsx` with category-based styling
     - Blue solid for network, green dashed for iam, orange dotted animated for event, gray solid for data
     - Implement tooltip on hover (within 200ms) showing interaction type, source, target, derived_from
