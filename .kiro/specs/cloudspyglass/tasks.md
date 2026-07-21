@@ -129,7 +129,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that cross-account ARNs and non-*.amazonaws.com hostnames are classified as external
     - **Validates: Requirements 4.5**
 
-  - [ ]* 5.6 Write property tests for unresolved target preservation (Property 11)
+  - [x] 5.6 Write property tests for unresolved target preservation (Property 11)
     - **Property 11: Unresolved target preservation**
     - Test that missing target ARNs still produce relationships with is_unresolved=True on target
     - **Validates: Requirements 4.7**
