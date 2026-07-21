@@ -21,8 +21,8 @@ provider "aws" {
 
   default_tags {
     tags = {
-      name    = "CloudSpyGlass"
-      Project = var.app_name
+      Application = "CloudSpyGlass"
+      Project     = var.app_name
     }
   }
 }
