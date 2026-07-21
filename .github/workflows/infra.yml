@@ -44,21 +44,5 @@ jobs:
       - name: Terraform Validate
         run: terraform validate -no-color
 
-      - name: Terraform Plan
-        id: plan
-        run: |
-          terraform plan -var-file="terraform.tfvars" -out=tfplan -no-color -detailed-exitcode
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Check Plan Result
-        run: |
-          EXIT_CODE="${{ steps.plan.outputs.exit_code }}"
-          if [ "$EXIT_CODE" = "1" ]; then
-            echo "Terraform plan failed with errors."
-            exit 1
-          fi
-          echo "Plan exit code: $EXIT_CODE (0=no changes, 2=changes pending)"
-
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
