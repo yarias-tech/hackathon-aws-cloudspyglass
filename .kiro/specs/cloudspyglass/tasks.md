@@ -261,8 +261,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that unknown service_type returns 400 and missing file returns 404, both with standard error structure
     - **Validates: Requirements 13.6, 13.7**
 
-- [ ] 10. Backend settings and error handling
-  - [ ] 10.1 Implement settings API routes
+- [x] 10. Backend settings and error handling
+  - [x] 10.1 Implement settings API routes
     - Create `backend/routes/settings.py`
     - GET `/api/settings` — return current AppSettings
     - PUT `/api/settings` — update auto-refresh interval and selected regions
