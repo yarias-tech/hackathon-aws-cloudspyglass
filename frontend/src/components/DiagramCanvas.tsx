@@ -108,6 +108,8 @@ interface DiagramCanvasProps {
   data: DiagramData | null;
   /** Whether filters are currently active — affects empty state messaging */
   isFiltered?: boolean;
+  /** Callback when a node is clicked — receives the node ID (resource ARN) */
+  onNodeClick?: (nodeId: string) => void;
 }
 
 /**
@@ -116,7 +118,7 @@ interface DiagramCanvasProps {
  * - Supports pan and zoom within 0.25x to 4.0x range, fitView on load (Requirement 5.5)
  * - Shows EmptyState when no scan data exists (Requirement 5.7)
  */
-export function DiagramCanvas({ data, isFiltered = false }: DiagramCanvasProps) {
+export function DiagramCanvas({ data, isFiltered = false, onNodeClick }: DiagramCanvasProps) {
   const hasData = data !== null && data.nodes.length > 0;
 
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
@@ -139,6 +141,12 @@ export function DiagramCanvas({ data, isFiltered = false }: DiagramCanvasProps) 
   const onInit = useCallback(() => {
     // fitView is handled declaratively via the fitView prop
   }, []);
+
+  const handleNodeClick = useCallback((_event: unknown, node: Node) => {
+    if (onNodeClick) {
+      onNodeClick(node.id);
+    }
+  }, [onNodeClick]);
 
   // Show empty state if no data or no nodes
   if (!hasData) {
@@ -180,6 +188,7 @@ export function DiagramCanvas({ data, isFiltered = false }: DiagramCanvasProps) 
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
         onInit={onInit}
         fitView
         fitViewOptions={FIT_VIEW_OPTIONS}

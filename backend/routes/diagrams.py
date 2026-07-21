@@ -2,6 +2,7 @@
 
 import json
 import logging
+from urllib.parse import unquote
 
 from fastapi import APIRouter, Query
 
@@ -9,14 +10,15 @@ from ..dependencies import filter_engine
 from ..exceptions import CloudSpyglassError
 from ..models.diagram import DiagramData
 from ..models.filters import FilteredResult, TagFilter
+from ..models.resources import Resource
 from .scan import get_last_scan_result
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/diagrams", tags=["diagrams"])
+router = APIRouter(prefix="/api", tags=["diagrams"])
 
 
-@router.get("/latest", response_model=DiagramData)
+@router.get("/diagrams/latest", response_model=DiagramData)
 async def get_latest_diagram() -> DiagramData:
     """Return the latest unfiltered diagram data from the most recent scan.
 
@@ -36,7 +38,7 @@ async def get_latest_diagram() -> DiagramData:
     return result.diagram
 
 
-@router.get("/latest/filtered", response_model=FilteredResult)
+@router.get("/diagrams/latest/filtered", response_model=FilteredResult)
 async def get_filtered_diagram(
     tag_filters: str | None = Query(
         default=None,
@@ -111,4 +113,33 @@ async def get_filtered_diagram(
         scan_result,
         tag_filters=parsed_tag_filters if parsed_tag_filters else None,
         type_filters=parsed_type_filters if parsed_type_filters else None,
+    )
+
+
+@router.get("/resources/{resource_id:path}", response_model=Resource)
+async def get_resource_detail(resource_id: str) -> Resource:
+    """Return full resource metadata for a given resource ARN.
+
+    Looks up the resource from the latest scan result.
+    The resource_id is the ARN (URL-encoded in the path).
+    """
+    scan_result = get_last_scan_result()
+    if scan_result is None:
+        raise CloudSpyglassError(
+            error_code="NO_SCAN_DATA",
+            message="No scan data available. Please run a scan first.",
+            recoverable=True,
+            status_code=404,
+        )
+
+    decoded_id = unquote(resource_id)
+    for resource in scan_result.resources:
+        if resource.arn == decoded_id:
+            return resource
+
+    raise CloudSpyglassError(
+        error_code="RESOURCE_NOT_FOUND",
+        message=f"Resource not found: {decoded_id}",
+        recoverable=False,
+        status_code=404,
     )

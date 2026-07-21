@@ -170,14 +170,14 @@ export function DiagramPage() {
   }, []);
 
   // Handle node click to show detail panel.
-  // Exposed via window for DiagramCanvas onNodeClick integration (React Flow node click).
+  // Fetches full resource metadata from the backend.
   const handleNodeClick = useCallback(async (resourceId: string) => {
     setDetailLoading(true);
     setDetailError(null);
     setSelectedResource(null);
 
     try {
-      const resource = await apiClient.get<Resource>(`/resources/${resourceId}`);
+      const resource = await apiClient.get<Resource>(`/resources/${encodeURIComponent(resourceId)}`);
       setSelectedResource(resource);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -195,15 +195,6 @@ export function DiagramPage() {
       setDetailLoading(false);
     }
   }, []);
-
-  // Store handleNodeClick on the window object for React Flow node click event integration.
-  // This will be wired directly when DiagramCanvas adds onNodeClick prop support.
-  useEffect(() => {
-    (window as unknown as Record<string, unknown>).__cloudspyglass_onNodeClick = handleNodeClick;
-    return () => {
-      delete (window as unknown as Record<string, unknown>).__cloudspyglass_onNodeClick;
-    };
-  }, [handleNodeClick]);
 
   // Handle detail panel close
   const handleDetailClose = useCallback(() => {
@@ -373,7 +364,7 @@ export function DiagramPage() {
 
       {/* Main content area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <DiagramCanvas data={displayData} isFiltered={hasActiveFilters(filters)} />
+        <DiagramCanvas data={displayData} isFiltered={hasActiveFilters(filters)} onNodeClick={handleNodeClick} />
 
         {/* Detail panel overlay */}
         <DetailPanel
