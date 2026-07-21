@@ -378,7 +378,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Retain current diagram on refresh failure, show error
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-  - [ ]* 16.2 Write property tests for diagram state preservation on refresh failure (Property 20)
+  - [x] 16.2 Write property tests for diagram state preservation on refresh failure (Property 20)
     - **Property 20: Diagram state preservation on refresh failure**
     - Test that failed auto-refresh leaves diagram data unchanged
     - **Validates: Requirements 9.4**
