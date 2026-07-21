@@ -116,6 +116,8 @@ export function DiagramPage() {
   // Handle scan complete from ScanControls — update diagram data
   const handleScanComplete = useCallback((data: DiagramData) => {
     setDiagramData(data);
+    setError(null);
+    setLoading(false);
   }, []);
 
   // Handle scan error from ScanControls — show error without clearing diagram (Req 9.4)
@@ -246,31 +248,45 @@ export function DiagramPage() {
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
           flexDirection: 'column',
-          gap: '1rem',
+          height: '100%',
         }}
-        role="alert"
       >
-        <span style={{ color: '#dc2626', fontSize: '1rem', fontWeight: 500 }}>
-          {error}
-        </span>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
+        {/* Top toolbar with scan button always available */}
+        <div
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
             padding: '0.5rem 1rem',
-            backgroundColor: '#2563eb',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.375rem',
-            cursor: 'pointer',
+            borderBottom: '1px solid #e5e7eb',
+            backgroundColor: '#fff',
+            gap: '0.5rem',
           }}
         >
-          Retry
-        </button>
+          <ScanControls
+            autoRefreshInterval={autoRefreshInterval}
+            onScanComplete={handleScanComplete}
+            onError={handleScanError}
+          />
+        </div>
+
+        {/* Empty state message */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}
+          role="alert"
+        >
+          <span style={{ color: '#6b7280', fontSize: '1rem', fontWeight: 500 }}>
+            No scan data available. Click "Scan" above to discover your AWS infrastructure.
+          </span>
+        </div>
       </div>
     );
   }

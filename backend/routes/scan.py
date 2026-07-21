@@ -116,7 +116,7 @@ def get_last_scan_result() -> ScanResult | None:
 
 
 @router.post("")
-async def trigger_scan(request: ScanRequest) -> dict[str, Any]:
+async def trigger_scan(request: ScanRequest | None = None) -> dict[str, Any]:
     """Trigger a new infrastructure scan.
 
     Rejects the request if a scan is already in progress (409 Conflict).
@@ -124,6 +124,9 @@ async def trigger_scan(request: ScanRequest) -> dict[str, Any]:
     Requirements: 3.1, 3.2
     """
     global _scan_status, _scan_started_at, _scan_completed_at, _scan_error_message
+
+    if request is None:
+        request = ScanRequest()
 
     if _scan_status == ScanStatus.in_progress:
         raise CloudSpyglassError(

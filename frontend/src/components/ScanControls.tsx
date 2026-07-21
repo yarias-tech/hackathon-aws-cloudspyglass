@@ -48,7 +48,8 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError }: S
   }, [scanning]);
 
   /**
-   * Perform a scan: POST /api/scan, then GET /api/diagrams/latest on success.
+   * Perform a scan: POST /api/scan, poll /api/scan/status until complete,
+   * then GET /api/diagrams/latest on success.
    * On failure, calls onError but does NOT clear diagram data (Req 9.4).
    */
   const performScan = useCallback(async () => {
@@ -59,6 +60,34 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError }: S
     try {
       // Trigger a new scan
       await apiClient.post<unknown>('/scan');
+
+      // Poll scan status until completed or failed
+      let scanComplete = false;
+      let attempts = 0;
+      const maxAttempts = 120; // 10 minutes at 5-second intervals
+
+      while (!scanComplete && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        attempts++;
+
+        try {
+          const status = await apiClient.get<{ status: string; error_message?: string }>('/scan/status');
+          if (status.status === 'completed') {
+            scanComplete = true;
+          } else if (status.status === 'failed') {
+            onError(status.error_message || 'Scan failed');
+            return;
+          }
+          // If still 'in_progress', keep polling
+        } catch {
+          // Status check failed, keep trying
+        }
+      }
+
+      if (!scanComplete) {
+        onError('Scan timed out waiting for completion');
+        return;
+      }
 
       // Fetch the latest diagram data after scan completes
       const data = await apiClient.get<DiagramData>('/diagrams/latest');
