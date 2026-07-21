@@ -1,11 +1,7 @@
 name: Infra — Terraform Plan & Apply
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "infra/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
