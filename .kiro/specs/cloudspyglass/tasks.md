@@ -323,8 +323,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that all applicable fields are shown and non-applicable fields are omitted per resource type
     - **Validates: Requirements 6.1**
 
-- [ ] 14. Frontend filter components
-  - [ ] 14.1 Implement FilterBar, TagFilterInput, and TypeFilterSelect
+- [x] 14. Frontend filter components
+  - [x] 14.1 Implement FilterBar, TagFilterInput, and TypeFilterSelect
     - Create `src/components/FilterBar.tsx` containing tag and type filter controls
     - Create `src/components/TagFilterInput.tsx` with autocomplete (fetches from /api/tags/suggestions)
     - Create `src/components/TypeFilterSelect.tsx` as multi-select of resource types from scan data
