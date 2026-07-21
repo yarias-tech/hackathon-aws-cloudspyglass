@@ -241,8 +241,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - POST `/api/export` — trigger export with format and optional filters
     - _Requirements: 11.4_
 
-- [ ] 9. Backend icon and image serving
-  - [ ] 9.1 Implement image serving routes
+- [x] 9. Backend icon and image serving
+  - [x] 9.1 Implement image serving routes
     - Create `backend/routes/images.py`
     - GET `/api/images/icons/{service_type}` — serve SVG icon from assets/icons/
     - GET `/api/images/logo` — serve application logo from assets/logo/
