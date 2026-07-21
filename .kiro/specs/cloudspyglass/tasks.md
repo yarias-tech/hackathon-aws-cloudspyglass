@@ -153,7 +153,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that suggestions return ≤20 entries ordered by descending frequency
     - **Validates: Requirements 7.2**
 
-  - [ ]* 6.4 Write property tests for filter removal round-trip (Property 16)
+  - [x] 6.4 Write property tests for filter removal round-trip (Property 16)
     - **Property 16: Filter removal round-trip**
     - Test that applying then removing all filters produces original unfiltered result
     - **Validates: Requirements 7.6**
