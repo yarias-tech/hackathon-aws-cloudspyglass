@@ -158,7 +158,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that applying then removing all filters produces original unfiltered result
     - **Validates: Requirements 7.6**
 
-  - [ ]* 6.5 Write property tests for resource type filter options (Property 17)
+  - [x] 6.5 Write property tests for resource type filter options (Property 17)
     - **Property 17: Resource type filter available options**
     - Test that available type options equal the set of distinct resource_type values in scan data
     - **Validates: Requirements 8.1**
