@@ -268,7 +268,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - PUT `/api/settings` — update auto-refresh interval and selected regions
     - _Requirements: 12.1, 12.2_
 
-  - [ ]* 10.2 Write property tests for error response structure (Property 30)
+  - [x] 10.2 Write property tests for error response structure (Property 30)
     - **Property 30: Error response structure invariant**
     - Test that all error responses contain exactly: error_code (UPPER_SNAKE_CASE), message (≤500 chars), details (string|null), timestamp (ISO 8601 UTC), recoverable (boolean)
     - **Validates: Requirements 14.1**
