@@ -196,7 +196,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that serialize→deserialize produces equivalent ScanResult
     - **Validates: Requirements 10.1**
 
-  - [ ]* 7.3 Write property tests for single file per account (Property 22)
+  - [x] 7.3 Write property tests for single file per account (Property 22)
     - **Property 22: Single file per account invariant**
     - Test that sequential saves for same account_id result in exactly one file
     - **Validates: Requirements 10.3**
