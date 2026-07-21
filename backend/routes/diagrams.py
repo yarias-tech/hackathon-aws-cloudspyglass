@@ -5,17 +5,15 @@ import logging
 
 from fastapi import APIRouter, Query
 
+from ..dependencies import filter_engine
 from ..exceptions import CloudSpyglassError
 from ..models.diagram import DiagramData
 from ..models.filters import FilteredResult, TagFilter
-from ..services.filter_engine import FilterEngine
 from .scan import get_last_scan_result
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/diagrams", tags=["diagrams"])
-
-_filter_engine = FilterEngine()
 
 
 @router.get("/latest", response_model=DiagramData)
@@ -34,7 +32,7 @@ async def get_latest_diagram() -> DiagramData:
         )
 
     # Apply no filters to get full diagram
-    result = _filter_engine.apply_filters(scan_result)
+    result = filter_engine.apply_filters(scan_result)
     return result.diagram
 
 
@@ -99,7 +97,7 @@ async def get_filtered_diagram(
     if type_filters:
         parsed_type_filters = [t.strip() for t in type_filters.split(",") if t.strip()]
 
-    return _filter_engine.apply_filters(
+    return filter_engine.apply_filters(
         scan_result,
         tag_filters=parsed_tag_filters if parsed_tag_filters else None,
         type_filters=parsed_type_filters if parsed_type_filters else None,

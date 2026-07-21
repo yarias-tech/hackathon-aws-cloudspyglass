@@ -4,18 +4,14 @@ import logging
 
 from fastapi import APIRouter
 
+from ..dependencies import export_service, filter_engine
 from ..exceptions import CloudSpyglassError
 from ..models.export import ExportRequest, ExportResult
-from ..services.export_service import ExportService
-from ..services.filter_engine import FilterEngine
 from .scan import get_last_scan_result
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/export", tags=["export"])
-
-_export_service = ExportService()
-_filter_engine = FilterEngine()
 
 
 @router.post("", response_model=ExportResult)
@@ -40,14 +36,14 @@ async def trigger_export(request: ExportRequest) -> ExportResult:
     tag_filters = request.filters.tag_filters if request.filters else None
     type_filters = request.filters.type_filters if request.filters else None
 
-    filtered_result = _filter_engine.apply_filters(
+    filtered_result = filter_engine.apply_filters(
         scan_result,
         tag_filters=tag_filters if tag_filters else None,
         type_filters=type_filters if type_filters else None,
     )
 
     # Export the diagram data
-    result = await _export_service.export(
+    result = await export_service.export(
         diagram_data=filtered_result.diagram,
         format=request.format,
         filters=request.filters,

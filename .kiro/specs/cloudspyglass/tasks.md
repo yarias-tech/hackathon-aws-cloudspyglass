@@ -394,7 +394,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 19. Integration wiring and end-to-end
-  - [ ] 19.1 Wire backend FastAPI application
+  - [x] 19.1 Wire backend FastAPI application
     - Create `backend/main.py` with all route registrations, CORS middleware, exception handlers
     - Register all routers: credentials, scan, diagrams, filters, export, settings, images
     - Inject service dependencies (CredentialManager, Scanner, ScanStorage, FilterEngine, ExportService, RelationshipResolver)

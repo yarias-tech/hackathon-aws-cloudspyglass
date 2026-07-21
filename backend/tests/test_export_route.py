@@ -81,7 +81,7 @@ class TestExportRoute:
         with patch(
             "backend.routes.export.get_last_scan_result", return_value=scan_result
         ), patch(
-            "backend.routes.export._export_service.export",
+            "backend.routes.export.export_service.export",
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
@@ -107,7 +107,7 @@ class TestExportRoute:
         with patch(
             "backend.routes.export.get_last_scan_result", return_value=scan_result
         ), patch(
-            "backend.routes.export._export_service.export",
+            "backend.routes.export.export_service.export",
             new_callable=AsyncMock,
             return_value=mock_result,
         ) as mock_export:

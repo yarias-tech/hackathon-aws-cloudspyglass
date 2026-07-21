@@ -6,13 +6,16 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel
 
+from ..dependencies import (
+    get_relationship_resolver,
+    scan_storage,
+    scanner,
+)
 from ..exceptions import CloudSpyglassError
 from ..models.scan import ScanRequest, ScanResult
-from ..services.credential_manager import CredentialManager
-from ..services.scanner import Scanner
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +48,6 @@ class ScanProgress(BaseModel):
     total_failures: int | None = None
 
 
-# Module-level singletons (matching pattern from credentials.py)
-_credential_manager = CredentialManager()
-_scanner = Scanner(_credential_manager)
-
 # Module-level scan state
 _scan_status: ScanStatus = ScanStatus.idle
 _scan_started_at: str | None = None
@@ -68,11 +67,32 @@ async def _run_scan(regions: list[str] | None) -> None:
     global _scan_error_message, _last_scan_result
 
     try:
-        result = await _scanner.scan(regions=regions)
+        result = await scanner.scan(regions=regions)
+
+        # Resolve relationships using the account_id from the scan result
+        account_id = result.account_id
+        if account_id and result.resources:
+            try:
+                resolver = get_relationship_resolver(account_id)
+                relationships, unresolved = resolver.resolve(result.resources)
+                # Attach relationships and unresolved resources to the scan result
+                result.relationships = relationships
+                result.resources.extend(unresolved)
+            except Exception as rel_exc:
+                logger.warning("Relationship resolution failed: %s", rel_exc)
+
         _last_scan_result = result
         _scan_status = ScanStatus.completed
         _scan_completed_at = datetime.now(timezone.utc).isoformat()
         _scan_error_message = None
+
+        # Persist scan result to storage
+        if account_id:
+            try:
+                await scan_storage.save(account_id, result)
+            except Exception as storage_exc:
+                logger.warning("Failed to persist scan result: %s", storage_exc)
+
         logger.info(
             "Scan completed: %d resources across %d regions",
             len(result.resources),
