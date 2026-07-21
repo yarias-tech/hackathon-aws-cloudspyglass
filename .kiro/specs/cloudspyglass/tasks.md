@@ -273,7 +273,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that all error responses contain exactly: error_code (UPPER_SNAKE_CASE), message (≤500 chars), details (string|null), timestamp (ISO 8601 UTC), recoverable (boolean)
     - **Validates: Requirements 14.1**
 
-  - [ ]* 10.3 Write property tests for error recoverability classification (Property 31)
+  - [x] 10.3 Write property tests for error recoverability classification (Property 31)
     - **Property 31: Error recoverability classification**
     - Test that transient errors (timeout, throttle) have recoverable=true and permanent errors (invalid input, auth failure) have recoverable=false
     - **Validates: Requirements 14.2, 14.3**
