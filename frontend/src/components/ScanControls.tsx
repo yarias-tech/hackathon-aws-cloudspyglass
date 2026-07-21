@@ -150,6 +150,16 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
     resetTimer();
   }, [performScan, resetTimer]);
 
+  /** Handle scan cancellation */
+  const handleCancelScan = useCallback(async () => {
+    try {
+      await apiClient.post<unknown>('/scan/cancel');
+    } catch {
+      // Ignore errors on cancel — scan may have already finished
+    }
+    setScanning(false);
+  }, []);
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
       {/* Non-blocking refresh indicator (Req 9.5) */}
@@ -192,6 +202,28 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
       >
         {scanning ? 'Scanning…' : 'Scan'}
       </button>
+
+      {/* Stop button — visible only while scanning */}
+      {scanning && (
+        <button
+          type="button"
+          onClick={handleCancelScan}
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: '#dc2626',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.375rem',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+          }}
+          aria-label="Stop scan"
+          data-testid="stop-scan-button"
+        >
+          Stop
+        </button>
+      )}
     </div>
   );
 }

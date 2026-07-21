@@ -54,6 +54,8 @@ _scan_started_at: str | None = None
 _scan_completed_at: str | None = None
 _scan_error_message: str | None = None
 _last_scan_result: ScanResult | None = None
+_scan_task: asyncio.Task | None = None
+_scan_cancelled: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -64,10 +66,22 @@ _last_scan_result: ScanResult | None = None
 async def _run_scan(regions: list[str] | None) -> None:
     """Execute the scan in the background, updating module-level state."""
     global _scan_status, _scan_started_at, _scan_completed_at
-    global _scan_error_message, _last_scan_result
+    global _scan_error_message, _last_scan_result, _scan_cancelled
 
     try:
+        if _scan_cancelled:
+            _scan_status = ScanStatus.idle
+            _scan_completed_at = datetime.now(timezone.utc).isoformat()
+            _scan_error_message = "Scan cancelled by user"
+            return
+
         result = await scanner.scan(regions=regions)
+
+        if _scan_cancelled:
+            _scan_status = ScanStatus.idle
+            _scan_completed_at = datetime.now(timezone.utc).isoformat()
+            _scan_error_message = "Scan cancelled by user"
+            return
 
         # Resolve relationships using the account_id from the scan result
         account_id = result.account_id
@@ -98,6 +112,11 @@ async def _run_scan(regions: list[str] | None) -> None:
             len(result.resources),
             len(result.scanned_regions),
         )
+    except asyncio.CancelledError:
+        _scan_status = ScanStatus.idle
+        _scan_completed_at = datetime.now(timezone.utc).isoformat()
+        _scan_error_message = "Scan cancelled by user"
+        logger.info("Scan cancelled by user")
     except Exception as exc:
         _scan_status = ScanStatus.failed
         _scan_completed_at = datetime.now(timezone.utc).isoformat()
@@ -142,15 +161,49 @@ async def trigger_scan(request: ScanRequest | None = None) -> dict[str, Any]:
     _scan_started_at = datetime.now(timezone.utc).isoformat()
     _scan_completed_at = None
     _scan_error_message = None
+    _scan_cancelled = False
 
     # Launch scan as a background coroutine
-    asyncio.create_task(_run_scan(request.regions))
+    _scan_task = asyncio.create_task(_run_scan(request.regions))
 
     return {
         "status": "accepted",
         "message": "Scan initiated",
         "started_at": _scan_started_at,
         "regions": request.regions,
+    }
+
+
+@router.post("/cancel")
+async def cancel_scan() -> dict[str, str]:
+    """Cancel a running scan.
+
+    Returns the scan to idle state, preserving any previously completed results.
+    """
+    global _scan_status, _scan_completed_at, _scan_error_message
+    global _scan_task, _scan_cancelled
+
+    if _scan_status != ScanStatus.in_progress:
+        raise CloudSpyglassError(
+            error_code="NO_SCAN_IN_PROGRESS",
+            message="No scan is currently in progress to cancel.",
+            recoverable=False,
+            status_code=400,
+        )
+
+    _scan_cancelled = True
+
+    # Cancel the background task
+    if _scan_task and not _scan_task.done():
+        _scan_task.cancel()
+
+    _scan_status = ScanStatus.idle
+    _scan_completed_at = datetime.now(timezone.utc).isoformat()
+    _scan_error_message = "Scan cancelled by user"
+
+    return {
+        "status": "cancelled",
+        "message": "Scan has been cancelled",
     }
 
 
