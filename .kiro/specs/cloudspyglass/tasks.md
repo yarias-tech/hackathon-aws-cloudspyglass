@@ -261,19 +261,19 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that unknown service_type returns 400 and missing file returns 404, both with standard error structure
     - **Validates: Requirements 13.6, 13.7**
 
-- [ ] 10. Backend settings and error handling
-  - [ ] 10.1 Implement settings API routes
+- [x] 10. Backend settings and error handling
+  - [x] 10.1 Implement settings API routes
     - Create `backend/routes/settings.py`
     - GET `/api/settings` — return current AppSettings
     - PUT `/api/settings` — update auto-refresh interval and selected regions
     - _Requirements: 12.1, 12.2_
 
-  - [ ]* 10.2 Write property tests for error response structure (Property 30)
+  - [x] 10.2 Write property tests for error response structure (Property 30)
     - **Property 30: Error response structure invariant**
     - Test that all error responses contain exactly: error_code (UPPER_SNAKE_CASE), message (≤500 chars), details (string|null), timestamp (ISO 8601 UTC), recoverable (boolean)
     - **Validates: Requirements 14.1**
 
-  - [ ]* 10.3 Write property tests for error recoverability classification (Property 31)
+  - [x] 10.3 Write property tests for error recoverability classification (Property 31)
     - **Property 31: Error recoverability classification**
     - Test that transient errors (timeout, throttle) have recoverable=true and permanent errors (invalid input, auth failure) have recoverable=false
     - **Validates: Requirements 14.2, 14.3**
