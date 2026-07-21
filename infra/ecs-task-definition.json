@@ -4,11 +4,11 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "executionRoleArn": "arn:aws:iam::475997945450:role/cloudspyglass-ecs-execution-role",
   "containerDefinitions": [
     {
       "name": "cloudspyglass",
-      "image": "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/cloudspyglass:latest",
+      "image": "475997945450.dkr.ecr.us-east-1.amazonaws.com/cloudspyglass:latest",
       "essential": true,
       "portMappings": [
         {
