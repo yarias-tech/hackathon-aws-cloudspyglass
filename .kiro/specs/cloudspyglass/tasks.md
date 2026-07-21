@@ -332,7 +332,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Show empty state when no resources match filters
     - _Requirements: 7.1, 7.2, 7.4, 7.5, 8.1, 8.3_
 
-  - [ ]* 14.2 Write frontend property tests for filter logic (Properties 14, 16, 17, 18, 19)
+  - [x] 14.2 Write frontend property tests for filter logic (Properties 14, 16, 17, 18, 19)
     - **Property 14: Tag filter AND logic with edge filtering**
     - **Property 16: Filter removal round-trip**
     - **Property 17: Resource type filter available options**
