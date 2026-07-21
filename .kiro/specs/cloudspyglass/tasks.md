@@ -346,15 +346,15 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `src/__tests__/properties/tag-suggestions.property.test.ts`
     - **Validates: Requirements 7.2**
 
-- [ ] 15. Frontend pages and navigation
-  - [ ] 15.1 Implement DiagramPage
+- [x] 15. Frontend pages and navigation
+  - [x] 15.1 Implement DiagramPage
     - Create `src/pages/DiagramPage.tsx` as main route (/)
     - Integrate DiagramCanvas, FilterBar, ExportMenu, ScanControls, DetailPanel
     - Fetch diagram data from GET /api/diagrams/latest
     - Apply client-side filter state management
     - _Requirements: 5.1, 7.1, 8.1_
 
-  - [ ] 15.2 Implement SettingsPage
+  - [x] 15.2 Implement SettingsPage
     - Create `src/pages/SettingsPage.tsx` at route /settings
     - Include CredentialForm, RegionSelector, auto-refresh interval selector
     - Display credential status (Connected/Disconnected/Expired), Account_ID, expiry
@@ -362,7 +362,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Disconnect button with credential clearing
     - _Requirements: 1.1, 2.2, 2.5, 2.6, 3.1, 12.1, 12.3, 12.4, 12.5_
 
-  - [ ] 15.3 Implement NavHeader, AppLogo, and routing
+  - [x] 15.3 Implement NavHeader, AppLogo, and routing
     - Create `src/components/NavHeader.tsx` with logo and navigation links
     - Create `src/components/AppLogo.tsx` loading logo from /api/images/logo
     - Configure react-router-dom routes: / (DiagramPage), /settings (SettingsPage)
