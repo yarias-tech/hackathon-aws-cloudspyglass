@@ -97,8 +97,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
 - [x] 4. Checkpoint — Backend scanning verified
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Backend relationship resolution
-  - [ ] 5.1 Implement RelationshipResolver service
+- [x] 5. Backend relationship resolution
+  - [x] 5.1 Implement RelationshipResolver service
     - Create `backend/services/relationship_resolver.py`
     - Implement `resolve()` orchestrating all category resolvers
     - Implement `_resolve_network_relationships()` — SG attachments, VPC memberships, LB targets
@@ -109,27 +109,27 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle unresolved targets: record relationship and mark target as is_unresolved=True
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ]* 5.2 Write property tests for network relationship detection (Property 7)
+  - [x] 5.2 Write property tests for network relationship detection (Property 7)
     - **Property 7: Network relationship detection**
     - Test that EC2→SG, EC2→VPC, EC2→Subnet, RDS→VPC, Lambda→VPC, LB→targets produce correct network relationships
     - **Validates: Requirements 4.1**
 
-  - [ ]* 5.3 Write property tests for IAM relationship detection (Property 8)
+  - [x] 5.3 Write property tests for IAM relationship detection (Property 8)
     - **Property 8: IAM relationship detection**
     - Test that Lambda, EC2, ECS with IAM role associations produce iam category relationships
     - **Validates: Requirements 4.2**
 
-  - [ ]* 5.4 Write property tests for event relationship detection (Property 9)
+  - [x] 5.4 Write property tests for event relationship detection (Property 9)
     - **Property 9: Event relationship detection**
     - Test that SQS→Lambda, SNS→Lambda, S3→Lambda/SQS/SNS produce event category relationships
     - **Validates: Requirements 4.3**
 
-  - [ ]* 5.5 Write property tests for external component classification (Property 10)
+  - [x] 5.5 Write property tests for external component classification (Property 10)
     - **Property 10: External component classification**
     - Test that cross-account ARNs and non-*.amazonaws.com hostnames are classified as external
     - **Validates: Requirements 4.5**
 
-  - [ ]* 5.6 Write property tests for unresolved target preservation (Property 11)
+  - [x] 5.6 Write property tests for unresolved target preservation (Property 11)
     - **Property 11: Unresolved target preservation**
     - Test that missing target ARNs still produce relationships with is_unresolved=True on target
     - **Validates: Requirements 4.7**
