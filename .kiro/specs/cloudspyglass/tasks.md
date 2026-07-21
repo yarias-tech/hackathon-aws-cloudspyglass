@@ -251,7 +251,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Set correct Content-Type headers (image/svg+xml for SVG)
     - _Requirements: 13.1, 13.2, 13.3, 13.6, 13.7_
 
-  - [ ]* 9.2 Write property tests for icon endpoint correctness (Property 28)
+  - [x] 9.2 Write property tests for icon endpoint correctness (Property 28)
     - **Property 28: Icon endpoint correctness**
     - Test that valid service_type with existing SVG returns content with image/svg+xml
     - **Validates: Requirements 13.2**
