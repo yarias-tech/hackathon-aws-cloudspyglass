@@ -5,6 +5,7 @@ import {
   Controls,
   type Node,
   type Edge,
+  type NodeTypes,
   type FitViewOptions,
   useNodesState,
   useEdgesState,
@@ -14,6 +15,12 @@ import '@xyflow/react/dist/style.css';
 
 import type { DiagramData, DiagramNode, DiagramEdge } from '../types/diagram';
 import { EmptyState } from './EmptyState';
+import { ResourceNode } from './ResourceNode';
+
+/** Register custom node types for React Flow */
+const nodeTypes: NodeTypes = {
+  resource: ResourceNode,
+};
 
 /** Default node dimensions used for dagre layout calculations */
 const NODE_WIDTH = 180;
@@ -68,6 +75,7 @@ function applyDagreLayout(
     const dagreNode = graph.node(node.id);
     return {
       id: node.id,
+      type: 'resource',
       position: {
         x: dagreNode.x - NODE_WIDTH / 2,
         y: dagreNode.y - NODE_HEIGHT / 2,
@@ -145,6 +153,7 @@ export function DiagramCanvas({ data }: DiagramCanvasProps) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onInit={onInit}

@@ -289,7 +289,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle empty state (no scan data) with EmptyState component
     - _Requirements: 5.4, 5.5, 5.7_
 
-  - [ ] 12.2 Implement ResourceNode custom node
+  - [x] 12.2 Implement ResourceNode custom node
     - Create `src/components/ResourceNode.tsx` with icon, name, and type display
     - Load icons from `/api/images/icons/{service_type}`
     - Display dashed border for external components
