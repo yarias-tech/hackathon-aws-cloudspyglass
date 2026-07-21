@@ -163,7 +163,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that available type options equal the set of distinct resource_type values in scan data
     - **Validates: Requirements 8.1**
 
-  - [ ]* 6.6 Write property tests for resource type OR logic (Property 18)
+  - [x] 6.6 Write property tests for resource type OR logic (Property 18)
     - **Property 18: Resource type OR logic with edge visibility**
     - Test that filtered results contain resources matching ANY selected type, plus edges with at least one endpoint of selected type
     - **Validates: Requirements 8.2**
