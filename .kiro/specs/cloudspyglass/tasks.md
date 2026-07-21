@@ -323,8 +323,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that all applicable fields are shown and non-applicable fields are omitted per resource type
     - **Validates: Requirements 6.1**
 
-- [ ] 14. Frontend filter components
-  - [ ] 14.1 Implement FilterBar, TagFilterInput, and TypeFilterSelect
+- [x] 14. Frontend filter components
+  - [x] 14.1 Implement FilterBar, TagFilterInput, and TypeFilterSelect
     - Create `src/components/FilterBar.tsx` containing tag and type filter controls
     - Create `src/components/TagFilterInput.tsx` with autocomplete (fetches from /api/tags/suggestions)
     - Create `src/components/TypeFilterSelect.tsx` as multi-select of resource types from scan data
@@ -332,7 +332,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Show empty state when no resources match filters
     - _Requirements: 7.1, 7.2, 7.4, 7.5, 8.1, 8.3_
 
-  - [ ]* 14.2 Write frontend property tests for filter logic (Properties 14, 16, 17, 18, 19)
+  - [x] 14.2 Write frontend property tests for filter logic (Properties 14, 16, 17, 18, 19)
     - **Property 14: Tag filter AND logic with edge filtering**
     - **Property 16: Filter removal round-trip**
     - **Property 17: Resource type filter available options**
@@ -341,7 +341,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `src/__tests__/properties/filter.property.test.ts`
     - **Validates: Requirements 7.1, 7.3, 7.4, 7.6, 8.1, 8.2, 8.5**
 
-  - [ ]* 14.3 Write frontend property tests for tag suggestions (Property 15)
+  - [x] 14.3 Write frontend property tests for tag suggestions (Property 15)
     - **Property 15: Tag autocomplete frequency ordering**
     - Create `src/__tests__/properties/tag-suggestions.property.test.ts`
     - **Validates: Requirements 7.2**
