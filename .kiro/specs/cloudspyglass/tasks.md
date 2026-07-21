@@ -282,7 +282,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Frontend diagram rendering
-  - [ ] 12.1 Implement DiagramCanvas and layout engine
+  - [x] 12.1 Implement DiagramCanvas and layout engine
     - Create `src/components/DiagramCanvas.tsx` wrapping @xyflow/react ReactFlow
     - Implement dagre layout with top-to-bottom rank direction
     - Configure pan and zoom (0.25x to 4.0x range, fitView on initial load)
