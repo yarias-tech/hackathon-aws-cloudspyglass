@@ -109,7 +109,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle unresolved targets: record relationship and mark target as is_unresolved=True
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-  - [ ]* 5.2 Write property tests for network relationship detection (Property 7)
+  - [x] 5.2 Write property tests for network relationship detection (Property 7)
     - **Property 7: Network relationship detection**
     - Test that EC2→SG, EC2→VPC, EC2→Subnet, RDS→VPC, Lambda→VPC, LB→targets produce correct network relationships
     - **Validates: Requirements 4.1**
