@@ -98,6 +98,10 @@ class TestScannerScan:
             cred_mgr.get_boto3_session = AsyncMock(return_value=session)
 
             scanner = Scanner(cred_mgr)
+            # Mock region discovery to avoid scanning all moto regions (too slow)
+            scanner._discover_enabled_regions = AsyncMock(
+                return_value=["us-east-1", "us-west-2"]
+            )
             result = await scanner.scan(regions=None)
 
             assert result.account_id is not None

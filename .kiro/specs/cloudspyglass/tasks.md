@@ -419,7 +419,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test filter interaction flow
     - _Requirements: 5.1, 7.1, 8.1_
 
-- [ ] 20. Final checkpoint — All tests pass
+- [x] 20. Final checkpoint — All tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
