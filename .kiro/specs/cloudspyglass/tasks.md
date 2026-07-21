@@ -318,7 +318,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Replace content when different node is clicked while panel is open
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ]* 13.2 Write property tests for detail panel metadata completeness (Property 13)
+  - [x] 13.2 Write property tests for detail panel metadata completeness (Property 13)
     - **Property 13: Detail panel metadata completeness**
     - Test that all applicable fields are shown and non-applicable fields are omitted per resource type
     - **Validates: Requirements 6.1**
