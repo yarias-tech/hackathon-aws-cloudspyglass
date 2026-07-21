@@ -4,6 +4,7 @@ import { FilterBar } from '../components/FilterBar';
 import { DetailPanel } from '../components/DetailPanel';
 import { ScanControls } from '../components/ScanControls';
 import { ExportMenu } from '../components/ExportMenu';
+import { RegionScanSelector } from '../components/RegionScanSelector';
 import { apiClient, ApiError } from '../api/apiClient';
 import type { DiagramData } from '../types/diagram';
 import type { FilterCriteria, FilteredResult } from '../types/filters';
@@ -50,6 +51,9 @@ export function DiagramPage() {
 
   // Auto-refresh settings state
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<AutoRefreshInterval>('manual');
+
+  // Region selection state for scanning
+  const [scanRegions, setScanRegions] = useState<string[]>([]);
 
   // Filter state
   const [filters, setFilters] = useState<FilterCriteria>({
@@ -264,10 +268,15 @@ export function DiagramPage() {
             gap: '0.5rem',
           }}
         >
+          <RegionScanSelector
+            selectedRegions={scanRegions}
+            onChange={setScanRegions}
+          />
           <ScanControls
             autoRefreshInterval={autoRefreshInterval}
             onScanComplete={handleScanComplete}
             onError={handleScanError}
+            selectedRegions={scanRegions}
           />
         </div>
 
@@ -340,10 +349,15 @@ export function DiagramPage() {
           gap: '0.5rem',
         }}
       >
+        <RegionScanSelector
+          selectedRegions={scanRegions}
+          onChange={setScanRegions}
+        />
         <ScanControls
           autoRefreshInterval={autoRefreshInterval}
           onScanComplete={handleScanComplete}
           onError={handleScanError}
+          selectedRegions={scanRegions}
         />
         <ExportMenu filters={filters} />
       </div>

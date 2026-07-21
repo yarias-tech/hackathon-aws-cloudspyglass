@@ -15,8 +15,8 @@ from ..models.scan import RegionFailure, ScanResult
 logger = logging.getLogger(__name__)
 
 # Constants
-TOTAL_SCAN_TIMEOUT_SECONDS = 600  # 10 minutes
-REGION_SCAN_TIMEOUT_SECONDS = 180  # 180 seconds per region
+TOTAL_SCAN_TIMEOUT_SECONDS = 1800  # 30 minutes
+REGION_SCAN_TIMEOUT_SECONDS = 360  # 360 seconds per region
 MAX_RETRIES = 5
 MAX_BACKOFF_SECONDS = 30
 

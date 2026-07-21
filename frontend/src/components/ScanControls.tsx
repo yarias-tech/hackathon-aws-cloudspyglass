@@ -22,6 +22,8 @@ export interface ScanControlsProps {
   onScanComplete: (data: DiagramData) => void;
   /** Callback to display an error message (non-blocking) */
   onError: (message: string) => void;
+  /** Optional list of regions to scan. Empty/undefined = all regions */
+  selectedRegions?: string[];
 }
 
 /**
@@ -36,7 +38,7 @@ export interface ScanControlsProps {
  *
  * Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7
  */
-export function ScanControls({ autoRefreshInterval, onScanComplete, onError }: ScanControlsProps) {
+export function ScanControls({ autoRefreshInterval, onScanComplete, onError, selectedRegions }: ScanControlsProps) {
   const [scanning, setScanning] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanningRef = useRef(false);
@@ -58,8 +60,11 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError }: S
 
     setScanning(true);
     try {
-      // Trigger a new scan
-      await apiClient.post<unknown>('/scan');
+      // Trigger a new scan with optional region selection
+      const body = selectedRegions && selectedRegions.length > 0
+        ? { regions: selectedRegions }
+        : {};
+      await apiClient.post<unknown>('/scan', body);
 
       // Poll scan status until completed or failed
       let scanComplete = false;
@@ -106,7 +111,7 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError }: S
     } finally {
       setScanning(false);
     }
-  }, [onScanComplete, onError]);
+  }, [onScanComplete, onError, selectedRegions]);
 
   /** Clear and restart the auto-refresh timer */
   const resetTimer = useCallback(() => {
