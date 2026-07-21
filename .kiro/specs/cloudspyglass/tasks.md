@@ -61,8 +61,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - DELETE `/api/credentials` — clear stored credentials
     - _Requirements: 1.2, 2.1, 2.4, 2.5_
 
-- [ ] 3. Backend scanning service
-  - [ ] 3.1 Implement Scanner service
+- [x] 3. Backend scanning service
+  - [x] 3.1 Implement Scanner service
     - Create `backend/services/scanner.py`
     - Implement `scan()` method orchestrating multi-region parallel scanning
     - Implement `_scan_region()` with per-region 60-second timeout
@@ -73,22 +73,22 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Enrich resources with tags, creation_date, iam_role, and service-specific attributes
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ]* 3.2 Write property tests for region selection (Property 4)
+  - [x] 3.2 Write property tests for region selection (Property 4)
     - **Property 4: Region selection scan targeting**
     - Test that Scanner targets exactly the specified regions, or discovers all if empty
     - **Validates: Requirements 3.1**
 
-  - [ ]* 3.3 Write property tests for exponential backoff (Property 5)
+  - [x] 3.3 Write property tests for exponential backoff (Property 5)
     - **Property 5: Exponential backoff calculation**
     - Test that for retry n (1..5), delay = min(2^(n-1), 30)
     - **Validates: Requirements 3.4**
 
-  - [ ]* 3.4 Write property tests for partial failure handling (Property 6)
+  - [x] 3.4 Write property tests for partial failure handling (Property 6)
     - **Property 6: Partial region failure handling**
     - Test that successful regions produce resources and failed regions produce failure entries
     - **Validates: Requirements 3.5**
 
-  - [ ] 3.5 Implement scan API routes
+  - [x] 3.5 Implement scan API routes
     - Create `backend/routes/scan.py`
     - POST `/api/scan` — trigger a new scan (reject if already in progress with SCAN_IN_PROGRESS)
     - GET `/api/scan/status` — return current scan progress
