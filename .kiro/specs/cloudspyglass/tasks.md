@@ -134,7 +134,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that missing target ARNs still produce relationships with is_unresolved=True on target
     - **Validates: Requirements 4.7**
 
-- [ ] 6. Backend filter engine
+- [x] 6. Backend filter engine
   - [x] 6.1 Implement FilterEngine service
     - Create `backend/services/filter_engine.py`
     - Implement `apply_filters()` with AND logic for tags and OR logic for resource types
@@ -181,8 +181,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - GET `/api/diagrams/latest/filtered` — return filtered diagram data (accepts FilterCriteria as query params)
     - _Requirements: 7.2, 5.1_
 
-- [ ] 7. Backend scan storage
-  - [ ] 7.1 Implement ScanStorage service
+- [x] 7. Backend scan storage
+  - [x] 7.1 Implement ScanStorage service
     - Create `backend/services/scan_storage.py`
     - Implement `save()` with atomic write (write to temp file, then os.replace)
     - Implement `load()` with JSON parsing and Pydantic validation
@@ -191,22 +191,22 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Handle corrupt/invalid files: discard and return None
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ]* 7.2 Write property tests for persistence round-trip (Property 21)
+  - [x] 7.2 Write property tests for persistence round-trip (Property 21)
     - **Property 21: Scan result persistence round-trip**
     - Test that serialize→deserialize produces equivalent ScanResult
     - **Validates: Requirements 10.1**
 
-  - [ ]* 7.3 Write property tests for single file per account (Property 22)
+  - [x] 7.3 Write property tests for single file per account (Property 22)
     - **Property 22: Single file per account invariant**
     - Test that sequential saves for same account_id result in exactly one file
     - **Validates: Requirements 10.3**
 
-  - [ ]* 7.4 Write property tests for write failure preservation (Property 23)
+  - [x] 7.4 Write property tests for write failure preservation (Property 23)
     - **Property 23: Write failure preserves previous file**
     - Test that failed writes leave the previous file unchanged
     - **Validates: Requirements 10.5**
 
-  - [ ]* 7.5 Write property tests for corrupt file handling (Property 24)
+  - [x] 7.5 Write property tests for corrupt file handling (Property 24)
     - **Property 24: Corrupt file graceful handling**
     - Test that invalid UTF-8, invalid JSON, or schema-violating content returns None
     - **Validates: Requirements 10.6**
