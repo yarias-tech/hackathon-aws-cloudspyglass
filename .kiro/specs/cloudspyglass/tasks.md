@@ -221,7 +221,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Enforce 30-second export timeout
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-  - [ ]* 8.2 Write property tests for export filename format (Property 25)
+  - [x] 8.2 Write property tests for export filename format (Property 25)
     - **Property 25: Export filename format**
     - Test that generated filenames match {Account_ID}_{YYYYMMDD_HHmmss}.{format} pattern
     - **Validates: Requirements 11.3**
