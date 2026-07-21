@@ -256,7 +256,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that valid service_type with existing SVG returns content with image/svg+xml
     - **Validates: Requirements 13.2**
 
-  - [ ]* 9.3 Write property tests for icon error handling (Property 29)
+  - [x] 9.3 Write property tests for icon error handling (Property 29)
     - **Property 29: Icon error handling**
     - Test that unknown service_type returns 400 and missing file returns 404, both with standard error structure
     - **Validates: Requirements 13.6, 13.7**
