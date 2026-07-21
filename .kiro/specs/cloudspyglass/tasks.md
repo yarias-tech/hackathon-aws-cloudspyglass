@@ -226,7 +226,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that generated filenames match {Account_ID}_{YYYYMMDD_HHmmss}.{format} pattern
     - **Validates: Requirements 11.3**
 
-  - [ ]* 8.3 Write property tests for export size limit (Property 26)
+  - [x] 8.3 Write property tests for export size limit (Property 26)
     - **Property 26: Export size limit enforcement**
     - Test that exports exceeding 50 MB are rejected without producing a file
     - **Validates: Requirements 11.6**
