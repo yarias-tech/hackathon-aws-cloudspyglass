@@ -1,8 +1,11 @@
 """API routes for diagram export operations."""
 
 import logging
+import re
+from pathlib import Path
 
 from fastapi import APIRouter
+from fastapi.responses import FileResponse
 
 from ..dependencies import export_service, filter_engine
 from ..exceptions import CloudSpyglassError
@@ -12,6 +15,16 @@ from .scan import get_last_scan_result
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/export", tags=["export"])
+
+# Content-type mapping for export formats
+_CONTENT_TYPES: dict[str, str] = {
+    "pdf": "application/pdf",
+    "png": "image/png",
+    "svg": "image/svg+xml",
+}
+
+# Pattern to validate export filenames (account_id_timestamp.format)
+_FILENAME_PATTERN = re.compile(r"^[\w\-]+_\d{8}_\d{6}\.(pdf|png|svg)$")
 
 
 @router.post("", response_model=ExportResult)
@@ -50,3 +63,43 @@ async def trigger_export(request: ExportRequest) -> ExportResult:
     )
 
     return result
+
+
+@router.get("/download/{filename}")
+async def download_export(filename: str) -> FileResponse:
+    """Download a previously generated export file.
+
+    Serves the file with appropriate Content-Disposition and Content-Type
+    headers so the browser triggers a download.
+
+    Requirements: 11.4
+    """
+    # Validate filename to prevent path traversal
+    if not _FILENAME_PATTERN.match(filename):
+        raise CloudSpyglassError(
+            error_code="INVALID_FILENAME",
+            message="Invalid export filename.",
+            recoverable=False,
+            status_code=400,
+        )
+
+    file_path = Path(export_service._export_dir) / filename
+
+    if not file_path.is_file():
+        raise CloudSpyglassError(
+            error_code="EXPORT_NOT_FOUND",
+            message=f"Export file '{filename}' not found.",
+            recoverable=True,
+            status_code=404,
+        )
+
+    # Determine content type from file extension
+    extension = filename.rsplit(".", 1)[-1]
+    content_type = _CONTENT_TYPES.get(extension, "application/octet-stream")
+
+    return FileResponse(
+        path=str(file_path),
+        media_type=content_type,
+        filename=filename,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

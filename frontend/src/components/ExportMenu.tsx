@@ -101,6 +101,8 @@ export function ExportMenu({ filters }: ExportMenuProps) {
 
     try {
       const result = await apiClient.post<ExportResult>('/export', requestBody);
+      // Trigger browser download of the generated file
+      await apiClient.download(`/export/download/${result.filename}`, result.filename);
       showStatus('success', `Exported: ${result.filename}`);
     } catch (err) {
       if (err instanceof ApiError) {

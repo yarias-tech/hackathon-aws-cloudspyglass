@@ -284,29 +284,39 @@ class ExportService:
             x = _SVG_NODE_PADDING + col * (_SVG_NODE_WIDTH + _SVG_NODE_PADDING)
             y = _SVG_HEADER_HEIGHT + _SVG_NODE_PADDING + row * (_SVG_NODE_HEIGHT + _SVG_NODE_PADDING)
 
-            # Node rectangle
-            fill_color = "#E3F2FD" if not node.is_external else "#FFF3E0"
-            stroke_color = "#1565C0" if not node.is_external else "#E65100"
+            # Node rectangle — color by service type
+            if node.is_external:
+                fill_color = "#FFF3E0"
+                stroke_color = "#E65100"
+            else:
+                fill_color, stroke_color = self._get_service_colors(node.resource_type)
+
             svg_parts.append(
                 f'<rect x="{x}" y="{y}" width="{_SVG_NODE_WIDTH}" '
                 f'height="{_SVG_NODE_HEIGHT}" rx="4" ry="4" '
                 f'fill="{fill_color}" stroke="{stroke_color}" stroke-width="1.5"/>'
             )
 
-            # Node type label
-            type_label = xml_escape(node.resource_type[:20])
+            # Node type label — use textLength to guarantee fit
+            type_text = xml_escape(node.resource_type)
+            text_max_width = _SVG_NODE_WIDTH - 20
             svg_parts.append(
                 f'<text x="{x + 10}" y="{y + 20}" '
                 f'font-family="Arial, sans-serif" font-size="10" '
-                f'fill="#666666">{type_label}</text>'
+                f'textLength="{min(len(node.resource_type) * 6, text_max_width)}" '
+                f'lengthAdjust="spacingAndGlyphs" '
+                f'fill="#666666">{type_text}</text>'
             )
 
-            # Node name label
-            name_label = xml_escape(node.name[:22])
+            # Node name label — use textLength to guarantee fit
+            name_text = xml_escape(node.name)
             svg_parts.append(
-                f'<text x="{x + 10}" y="{y + 40}" '
-                f'font-family="Arial, sans-serif" font-size="12" '
-                f'font-weight="bold" fill="#333333">{name_label}</text>'
+                f'<text x="{x + 10}" y="{y + 42}" '
+                f'font-family="Arial, sans-serif" font-size="11" '
+                f'font-weight="bold" '
+                f'textLength="{min(len(node.name) * 6.5, text_max_width)}" '
+                f'lengthAdjust="spacingAndGlyphs" '
+                f'fill="#333333">{name_text}</text>'
             )
 
         # Footer with regions
@@ -329,11 +339,7 @@ class ExportService:
     ) -> bytes:
         """Render diagram data as PNG at 300 DPI.
 
-        Generates a PNG by embedding the SVG content. Uses a simple
-        bitmap approach with a PNG header wrapping the SVG-derived content.
-
-        In production, this would use a proper SVG-to-PNG renderer (e.g., cairosvg).
-        For now, generates a valid minimal PNG with embedded diagram metadata.
+        Converts the SVG representation to PNG using cairosvg at 300 DPI.
 
         Args:
             diagram_data: Diagram payload to render.
@@ -342,32 +348,19 @@ class ExportService:
         Returns:
             PNG content as bytes.
         """
-        import struct
-        import zlib
+        import cairosvg
 
         # Generate SVG first as the source representation
         svg_content = self._render_svg(diagram_data, filters)
 
-        # Create a minimal valid PNG representing the diagram
-        # Calculate dimensions based on node count for 300 DPI output
-        num_nodes = len(diagram_data.nodes)
-        rows = (num_nodes + _SVG_COLUMNS - 1) // _SVG_COLUMNS if num_nodes > 0 else 1
-        width = _SVG_COLUMNS * (_SVG_NODE_WIDTH + _SVG_NODE_PADDING) + _SVG_NODE_PADDING
-        height = (
-            _SVG_HEADER_HEIGHT
-            + rows * (_SVG_NODE_HEIGHT + _SVG_NODE_PADDING)
-            + _SVG_NODE_PADDING
-            + _SVG_FOOTER_HEIGHT
+        # Convert SVG to PNG at 300 DPI (scale factor = 300/96 ≈ 3.125)
+        scale = _PNG_DPI / 96
+        png_content = cairosvg.svg2png(
+            bytestring=svg_content,
+            scale=scale,
         )
 
-        # Scale for 300 DPI (assuming base is 72 DPI)
-        scale = _PNG_DPI / 72
-        png_width = int(width * scale)
-        png_height = int(height * scale)
-
-        # Generate a valid PNG file structure
-        png_data = self._create_png(png_width, png_height)
-        return png_data
+        return png_content
 
     def _render_pdf(
         self,
@@ -376,7 +369,7 @@ class ExportService:
     ) -> bytes:
         """Render diagram data as PDF.
 
-        Generates a minimal valid PDF document embedding the SVG diagram.
+        Converts the SVG representation to a vector PDF using cairosvg.
 
         Args:
             diagram_data: Diagram payload to render.
@@ -385,37 +378,14 @@ class ExportService:
         Returns:
             PDF content as bytes.
         """
-        # Generate SVG content as the diagram representation
+        import cairosvg
+
+        # Generate SVG first as the source representation
         svg_content = self._render_svg(diagram_data, filters)
-        svg_text = svg_content.decode("utf-8")
 
-        # Build a minimal valid PDF with the diagram info as text content
-        title = f"CloudSpyglass - Account {diagram_data.account_id}"
-        timestamp = diagram_data.scan_timestamp
-        resources = diagram_data.total_resources
-        regions = ", ".join(diagram_data.scanned_regions)
+        # Convert SVG to PDF (vector, preserving quality)
+        pdf_content = cairosvg.svg2pdf(bytestring=svg_content)
 
-        # Build content stream text
-        content_lines = [
-            f"CloudSpyglass Infrastructure Diagram",
-            f"Account: {diagram_data.account_id}",
-            f"Scan Time: {timestamp}",
-            f"Total Resources: {resources}",
-            f"Regions: {regions}",
-            f"Nodes: {len(diagram_data.nodes)}",
-            f"Edges: {len(diagram_data.edges)}",
-        ]
-
-        if filters and (filters.tag_filters or filters.type_filters):
-            content_lines.append(f"Active Filters: {self._format_filter_annotation(filters)}")
-
-        # Add node details
-        content_lines.append("")
-        content_lines.append("Resources:")
-        for node in diagram_data.nodes[:50]:  # Limit to prevent oversized PDFs
-            content_lines.append(f"  - {node.name} ({node.resource_type}) [{node.region}]")
-
-        pdf_content = self._create_pdf(title, content_lines)
         return pdf_content
 
     def _format_filter_annotation(self, filters: FilterCriteria) -> str:
@@ -437,6 +407,70 @@ class ExportService:
             parts.append(f"Types: {', '.join(filters.type_filters)}")
 
         return " | ".join(parts)
+
+    @staticmethod
+    def _get_service_colors(resource_type: str) -> tuple[str, str]:
+        """Return (fill_color, stroke_color) for a given AWS resource type.
+
+        Each service category gets a distinct color palette for visual
+        differentiation in exported diagrams.
+
+        Args:
+            resource_type: The AWS resource type string (e.g. "EC2", "Lambda").
+
+        Returns:
+            Tuple of (fill_color, stroke_color) as hex strings.
+        """
+        # Color palette per AWS service type (fill, stroke)
+        service_colors: dict[str, tuple[str, str]] = {
+            # Compute — orange
+            "EC2": ("#FFF3E0", "#E65100"),
+            "Lambda": ("#F3E5F5", "#6A1B9A"),
+            "ECS": ("#FFF3E0", "#E65100"),
+            "EKS": ("#FFF3E0", "#BF360C"),
+            # Networking — blue
+            "VPC": ("#E3F2FD", "#1565C0"),
+            "Subnet": ("#E3F2FD", "#1976D2"),
+            "SecurityGroup": ("#E8EAF6", "#283593"),
+            "ELB": ("#E3F2FD", "#0D47A1"),
+            "ALB": ("#E3F2FD", "#0D47A1"),
+            "NLB": ("#E3F2FD", "#0D47A1"),
+            "CloudFront": ("#E3F2FD", "#01579B"),
+            "Route53": ("#E3F2FD", "#01579B"),
+            "APIGateway": ("#E3F2FD", "#1A237E"),
+            # Storage — green
+            "S3": ("#E8F5E9", "#2E7D32"),
+            "EBS": ("#E8F5E9", "#1B5E20"),
+            "EFS": ("#E8F5E9", "#388E3C"),
+            # Database — purple
+            "RDS": ("#EDE7F6", "#4527A0"),
+            "DynamoDB": ("#EDE7F6", "#311B92"),
+            "ElastiCache": ("#EDE7F6", "#6A1B9A"),
+            # Messaging — pink
+            "SNS": ("#FCE4EC", "#880E4F"),
+            "SQS": ("#FCE4EC", "#AD1457"),
+            "EventBridge": ("#FCE4EC", "#C2185B"),
+            # Identity — yellow
+            "IAM": ("#FFFDE7", "#F57F17"),
+            "IAMRole": ("#FFFDE7", "#F57F17"),
+            "IAMPolicy": ("#FFFDE7", "#FF8F00"),
+            # Monitoring — teal
+            "CloudWatch": ("#E0F2F1", "#00695C"),
+            "CloudTrail": ("#E0F2F1", "#004D40"),
+        }
+
+        # Try exact match first
+        if resource_type in service_colors:
+            return service_colors[resource_type]
+
+        # Try partial match (resource_type might be prefixed, e.g. "AWS::EC2::Instance")
+        resource_upper = resource_type.upper()
+        for key, colors in service_colors.items():
+            if key.upper() in resource_upper:
+                return colors
+
+        # Default — neutral grey
+        return ("#F5F5F5", "#616161")
 
     def _write_atomic(self, filename: str, content: bytes) -> Path:
         """Write content to export directory using atomic write pattern.
@@ -495,131 +529,3 @@ class ExportService:
     def _ensure_export_dir(self) -> None:
         """Create the export directory if it does not exist."""
         self._export_dir.mkdir(parents=True, exist_ok=True)
-
-    def _create_png(self, width: int, height: int) -> bytes:
-        """Create a minimal valid PNG file with the given dimensions.
-
-        Generates a white background PNG suitable for diagram export.
-
-        Args:
-            width: Image width in pixels.
-            height: Image height in pixels.
-
-        Returns:
-            Valid PNG file content as bytes.
-        """
-        import struct
-        import zlib
-
-        def _png_chunk(chunk_type: bytes, data: bytes) -> bytes:
-            chunk = chunk_type + data
-            crc = zlib.crc32(chunk) & 0xFFFFFFFF
-            return struct.pack(">I", len(data)) + chunk + struct.pack(">I", crc)
-
-        # PNG signature
-        signature = b"\x89PNG\r\n\x1a\n"
-
-        # IHDR chunk: width, height, bit depth=8, color type=2 (RGB)
-        ihdr_data = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-        ihdr = _png_chunk(b"IHDR", ihdr_data)
-
-        # pHYs chunk for 300 DPI (pixels per meter: 300 * 39.3701 ≈ 11811)
-        ppm = 11811
-        phys_data = struct.pack(">IIB", ppm, ppm, 1)
-        phys = _png_chunk(b"pHYs", phys_data)
-
-        # IDAT chunk: compressed image data (white pixels)
-        # Each row is filter_byte (0) + RGB pixels
-        row_data = b"\x00" + (b"\xff\xff\xff" * width)
-        raw_data = row_data * height
-        compressed = zlib.compress(raw_data, 9)
-        idat = _png_chunk(b"IDAT", compressed)
-
-        # IEND chunk
-        iend = _png_chunk(b"IEND", b"")
-
-        return signature + ihdr + phys + idat + iend
-
-    def _create_pdf(self, title: str, content_lines: list[str]) -> bytes:
-        """Create a minimal valid PDF document with text content.
-
-        Args:
-            title: Document title.
-            content_lines: Lines of text to include in the page.
-
-        Returns:
-            Valid PDF file content as bytes.
-        """
-        # Build a minimal PDF 1.4 structure
-        objects: list[str] = []
-
-        # Object 1: Catalog
-        objects.append("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj")
-
-        # Object 2: Pages
-        objects.append("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj")
-
-        # Object 3: Page (A4 landscape for diagrams)
-        objects.append(
-            "3 0 obj\n<< /Type /Page /Parent 2 0 R "
-            "/MediaBox [0 0 842 595] "
-            "/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj"
-        )
-
-        # Object 5: Font
-        objects.append(
-            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj"
-        )
-
-        # Object 4: Content stream
-        stream_lines = ["BT", "/F1 14 Tf", f"36 560 Td", f"({self._pdf_escape(title)}) Tj"]
-
-        # Add content lines
-        y_offset = 0
-        for line in content_lines:
-            y_offset -= 18
-            stream_lines.append(f"0 -18 Td")
-            stream_lines.append(f"({self._pdf_escape(line)}) Tj")
-
-        stream_lines.append("ET")
-        stream_content = "\n".join(stream_lines)
-        objects.append(
-            f"4 0 obj\n<< /Length {len(stream_content)} >>\n"
-            f"stream\n{stream_content}\nendstream\nendobj"
-        )
-
-        # Build PDF file
-        pdf_parts = ["%PDF-1.4\n"]
-        offsets: list[int] = []
-
-        for obj in objects:
-            offsets.append(len("".join(pdf_parts)))
-            pdf_parts.append(obj + "\n")
-
-        # Cross-reference table
-        xref_offset = len("".join(pdf_parts))
-        pdf_parts.append("xref\n")
-        pdf_parts.append(f"0 {len(objects) + 1}\n")
-        pdf_parts.append("0000000000 65535 f \n")
-        for offset in offsets:
-            pdf_parts.append(f"{offset:010d} 00000 n \n")
-
-        # Trailer
-        pdf_parts.append(
-            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
-            f"startxref\n{xref_offset}\n%%EOF\n"
-        )
-
-        return "".join(pdf_parts).encode("utf-8")
-
-    @staticmethod
-    def _pdf_escape(text: str) -> str:
-        """Escape special characters for PDF string literals.
-
-        Args:
-            text: Input text string.
-
-        Returns:
-            Escaped string safe for PDF parenthesized strings.
-        """
-        return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
