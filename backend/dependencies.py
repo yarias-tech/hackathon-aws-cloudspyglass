@@ -5,19 +5,29 @@ shared state across the application (e.g., a single CredentialManager
 instance is used by both credentials and scan routes).
 """
 
+from .services.advisor_service import AdvisorService
+from .services.ai_credential_manager import AiCredentialManager
+from .services.context_serializer import ContextSerializer
 from .services.credential_manager import CredentialManager
 from .services.export_service import ExportService
 from .services.filter_engine import FilterEngine
 from .services.relationship_resolver import RelationshipResolver
+from .services.response_parser import ResponseParser
 from .services.scan_storage import ScanStorage
 from .services.scanner import Scanner
 
 # Shared singleton instances
+ai_credential_manager = AiCredentialManager()
 credential_manager = CredentialManager()
 scan_storage = ScanStorage()
 filter_engine = FilterEngine()
 export_service = ExportService()
 scanner = Scanner(credential_manager)
+context_serializer = ContextSerializer()
+response_parser = ResponseParser()
+advisor_service = AdvisorService(
+    ai_credential_manager, scan_storage, context_serializer, response_parser
+)
 
 
 def get_relationship_resolver(account_id: str) -> RelationshipResolver:

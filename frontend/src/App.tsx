@@ -6,6 +6,7 @@ import { NavHeader } from './components/NavHeader';
 import { ErrorBanner } from './components/ErrorBanner';
 import { DiagramPage } from './pages/DiagramPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AdvisorPanel } from './components/AdvisorPanel';
 import type { ErrorResponse } from './types/errors';
 
 interface ErrorBoundaryProps {
@@ -65,6 +66,7 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
 
 function App() {
   return (
+<<<<<<< HEAD
     <LanguageProvider>
       <ScanProvider>
         <BrowserRouter>
@@ -75,6 +77,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<DiagramPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/advisor" element={<AdvisorPanel />} />
                 </Routes>
               </div>
             </AppErrorBoundary>
