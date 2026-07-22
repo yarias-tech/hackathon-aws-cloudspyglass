@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 import time
 from datetime import datetime, timezone
 
@@ -541,6 +542,40 @@ class Scanner:
             except ClientError:
                 pass  # No tags or access denied
 
+            # Get notification configuration targets
+            notification_targets: list[str] = []
+            try:
+                notif_resp = s3.get_bucket_notification_configuration(Bucket=bucket_name)
+                # Lambda function configurations
+                for config in notif_resp.get("LambdaFunctionConfigurations", []):
+                    arn = config.get("LambdaFunctionArn")
+                    if arn:
+                        notification_targets.append(arn)
+                # SQS queue configurations
+                for config in notif_resp.get("QueueConfigurations", []):
+                    arn = config.get("QueueArn")
+                    if arn:
+                        notification_targets.append(arn)
+                # SNS topic configurations
+                for config in notif_resp.get("TopicConfigurations", []):
+                    arn = config.get("TopicArn")
+                    if arn:
+                        notification_targets.append(arn)
+            except ClientError:
+                pass
+
+            # Get replication configuration targets
+            replication_targets: list[str] = []
+            try:
+                repl_resp = s3.get_bucket_replication(Bucket=bucket_name)
+                rules = repl_resp.get("ReplicationConfiguration", {}).get("Rules", [])
+                for rule in rules:
+                    dest_bucket = rule.get("Destination", {}).get("Bucket")
+                    if dest_bucket:
+                        replication_targets.append(dest_bucket)
+            except ClientError:
+                pass  # No replication or access denied
+
             resources.append(Resource(
                 arn=f"arn:aws:s3:::{bucket_name}",
                 resource_type="s3",
@@ -550,6 +585,8 @@ class Scanner:
                 creation_date=creation_date.isoformat() if creation_date else None,
                 attributes={
                     "bucket_name": bucket_name,
+                    "notification_targets": notification_targets,
+                    "replication_targets": replication_targets,
                 },
             ))
 
@@ -579,6 +616,27 @@ class Scanner:
                 # VPC config
                 vpc_config = func.get("VpcConfig", {})
 
+                # Collect event source mappings for this function
+                event_source_arns: list[str] = []
+                try:
+                    esm_paginator = client.get_paginator("list_event_source_mappings")
+                    for esm_page in esm_paginator.paginate(FunctionName=func_arn):
+                        for mapping in esm_page.get("EventSourceMappings", []):
+                            source_arn = mapping.get("EventSourceArn")
+                            if source_arn:
+                                event_source_arns.append(source_arn)
+                except ClientError:
+                    pass
+
+                # Extract ARNs from environment variables
+                environment_resource_arns: list[str] = []
+                env_vars = func.get("Environment", {}).get("Variables", {})
+                arn_pattern = re.compile(r"arn:aws[a-zA-Z-]*:[a-zA-Z0-9-]+:[a-zA-Z0-9-]*:\d{12}:[^\s,\"']+")
+                for value in env_vars.values():
+                    if isinstance(value, str):
+                        found = arn_pattern.findall(value)
+                        environment_resource_arns.extend(found)
+
                 resources.append(Resource(
                     arn=func_arn,
                     resource_type="lambda",
@@ -595,6 +653,8 @@ class Scanner:
                         "vpc_id": vpc_config.get("VpcId"),
                         "subnet_ids": vpc_config.get("SubnetIds", []),
                         "security_group_ids": vpc_config.get("SecurityGroupIds", []),
+                        "event_source_arns": event_source_arns,
+                        "environment_resource_arns": environment_resource_arns,
                     },
                 ))
 
@@ -624,6 +684,19 @@ class Scanner:
 
                 subnet_group = db.get("DBSubnetGroup", {})
 
+                # Collect security group IDs
+                security_group_ids = [
+                    sg["VpcSecurityGroupId"]
+                    for sg in db.get("VpcSecurityGroups", [])
+                    if sg.get("Status") == "active"
+                ]
+
+                # Collect subnet IDs from subnet group
+                subnet_ids = [
+                    s["SubnetIdentifier"]
+                    for s in subnet_group.get("Subnets", [])
+                ]
+
                 resources.append(Resource(
                     arn=db_arn,
                     resource_type="rds",
@@ -641,6 +714,9 @@ class Scanner:
                         "multi_az": db.get("MultiAZ", False),
                         "storage_type": db.get("StorageType"),
                         "allocated_storage": db.get("AllocatedStorage"),
+                        "security_group_ids": security_group_ids,
+                        "subnet_ids": subnet_ids,
+                        "kms_key_id": db.get("KmsKeyId"),
                     },
                 ))
 
@@ -708,6 +784,16 @@ class Scanner:
                 except ClientError:
                     pass
 
+                # Collect subnet IDs from availability zones
+                subnet_ids = [
+                    az["SubnetId"]
+                    for az in lb.get("AvailabilityZones", [])
+                    if az.get("SubnetId")
+                ]
+
+                # Security groups
+                security_group_ids = lb.get("SecurityGroups", [])
+
                 resources.append(Resource(
                     arn=lb_arn,
                     resource_type="alb",
@@ -722,6 +808,8 @@ class Scanner:
                         "vpc_id": lb.get("VpcId"),
                         "state": lb.get("State", {}).get("Code"),
                         "type": "application",
+                        "security_group_ids": security_group_ids,
+                        "subnet_ids": subnet_ids,
                     },
                 ))
 
@@ -751,6 +839,16 @@ class Scanner:
                 except ClientError:
                     pass
 
+                # Collect subnet IDs from availability zones
+                subnet_ids = [
+                    az["SubnetId"]
+                    for az in lb.get("AvailabilityZones", [])
+                    if az.get("SubnetId")
+                ]
+
+                # NLBs may have security groups (newer feature)
+                security_group_ids = lb.get("SecurityGroups", [])
+
                 resources.append(Resource(
                     arn=lb_arn,
                     resource_type="nlb",
@@ -765,6 +863,8 @@ class Scanner:
                         "vpc_id": lb.get("VpcId"),
                         "state": lb.get("State", {}).get("Code"),
                         "type": "network",
+                        "security_group_ids": security_group_ids,
+                        "subnet_ids": subnet_ids,
                     },
                 ))
 
@@ -847,6 +947,23 @@ class Scanner:
                 except ClientError:
                     pass
 
+                # Collect subscription endpoints (Lambda, SQS, HTTP ARNs)
+                subscription_endpoints: list[str] = []
+                try:
+                    sub_paginator = sns.get_paginator("list_subscriptions_by_topic")
+                    for sub_page in sub_paginator.paginate(TopicArn=topic_arn):
+                        for sub in sub_page.get("Subscriptions", []):
+                            endpoint = sub.get("Endpoint", "")
+                            protocol = sub.get("Protocol", "")
+                            # Only collect ARN-based endpoints (lambda, sqs, sns)
+                            if protocol in ("lambda", "sqs", "application") and endpoint.startswith("arn:"):
+                                if endpoint not in subscription_endpoints:
+                                    subscription_endpoints.append(endpoint)
+                except ClientError:
+                    pass
+
+                attrs["subscription_endpoints"] = subscription_endpoints
+
                 resources.append(Resource(
                     arn=topic_arn,
                     resource_type="sns",
@@ -922,6 +1039,7 @@ class Scanner:
     ) -> list[Resource]:
         """Fetch DynamoDB tables."""
         dynamodb = session.client("dynamodb", region_name=region)
+        lambda_client = session.client("lambda", region_name=region)
         resources: list[Resource] = []
         paginator = dynamodb.get_paginator("list_tables")
 
@@ -948,6 +1066,22 @@ class Scanner:
 
                 creation_date = table.get("CreationDateTime")
 
+                # Collect stream targets (Lambda functions triggered by DynamoDB Streams)
+                stream_targets: list[str] = []
+                stream_spec = table.get("StreamSpecification", {})
+                latest_stream_arn = table.get("LatestStreamArn")
+                if stream_spec.get("StreamEnabled") and latest_stream_arn:
+                    # Find Lambda event source mappings for this stream
+                    try:
+                        esm_paginator = lambda_client.get_paginator("list_event_source_mappings")
+                        for esm_page in esm_paginator.paginate(EventSourceArn=latest_stream_arn):
+                            for mapping in esm_page.get("EventSourceMappings", []):
+                                func_arn = mapping.get("FunctionArn")
+                                if func_arn and func_arn not in stream_targets:
+                                    stream_targets.append(func_arn)
+                    except ClientError:
+                        pass
+
                 resources.append(Resource(
                     arn=table_arn,
                     resource_type="dynamodb",
@@ -962,6 +1096,8 @@ class Scanner:
                         "billing_mode": table.get("BillingModeSummary", {}).get(
                             "BillingMode", "PROVISIONED"
                         ),
+                        "stream_enabled": stream_spec.get("StreamEnabled", False),
+                        "stream_targets": stream_targets,
                     },
                 ))
 
@@ -1071,6 +1207,36 @@ class Scanner:
 
                 created = api.get("createdDate")
 
+                # Collect integration targets (Lambda ARNs, HTTP endpoints)
+                integration_targets: list[str] = []
+                try:
+                    res_resp = apigw.get_resources(restApiId=api_id, limit=500)
+                    for resource_item in res_resp.get("items", []):
+                        for method_info in resource_item.get("resourceMethods", {}).values():
+                            # Need to get each method's integration
+                            pass
+                    # Fetch integrations by iterating resources and methods
+                    for resource_item in res_resp.get("items", []):
+                        resource_id = resource_item["id"]
+                        for http_method in resource_item.get("resourceMethods", {}).keys():
+                            try:
+                                integ = apigw.get_integration(
+                                    restApiId=api_id,
+                                    resourceId=resource_id,
+                                    httpMethod=http_method,
+                                )
+                                uri = integ.get("uri", "")
+                                # Extract Lambda ARN from integration URI
+                                # Format: arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/{arn}/invocations
+                                if ":lambda:path" in uri and "/functions/" in uri:
+                                    lambda_arn = uri.split("/functions/")[1].split("/invocations")[0]
+                                    if lambda_arn and lambda_arn not in integration_targets:
+                                        integration_targets.append(lambda_arn)
+                            except ClientError:
+                                pass
+                except ClientError:
+                    pass
+
                 resources.append(Resource(
                     arn=api_arn,
                     resource_type="api_gateway",
@@ -1084,6 +1250,7 @@ class Scanner:
                             "endpointConfiguration", {}
                         ).get("types", []),
                         "api_key_source": api.get("apiKeySource"),
+                        "integration_targets": integration_targets,
                     },
                 ))
 
@@ -1112,6 +1279,8 @@ class Scanner:
                 cluster_arn = cluster.get("arn", f"arn:aws:eks:{region}:{account_id}:cluster/{name}")
                 tags = cluster.get("tags", {})
 
+                vpc_config = cluster.get("resourcesVpcConfig", {})
+
                 resources.append(Resource(
                     arn=cluster_arn,
                     resource_type="eks",
@@ -1126,7 +1295,9 @@ class Scanner:
                         "version": cluster.get("version"),
                         "endpoint": cluster.get("endpoint"),
                         "platform_version": cluster.get("platformVersion"),
-                        "vpc_id": cluster.get("resourcesVpcConfig", {}).get("vpcId"),
+                        "vpc_id": vpc_config.get("vpcId"),
+                        "subnet_ids": vpc_config.get("subnetIds", []),
+                        "security_group_ids": vpc_config.get("securityGroupIds", []),
                     },
                 ))
             except ClientError:
@@ -1156,6 +1327,31 @@ class Scanner:
                 except ClientError:
                     pass
 
+                # Collect security group IDs
+                security_group_ids = [
+                    sg["SecurityGroupId"]
+                    for sg in cluster.get("SecurityGroups", [])
+                    if sg.get("Status") == "active"
+                ]
+
+                # Get VPC info from cache subnet group
+                vpc_id = None
+                subnet_ids: list[str] = []
+                subnet_group_name = cluster.get("CacheSubnetGroupName")
+                if subnet_group_name:
+                    try:
+                        sg_resp = client.describe_cache_subnet_groups(
+                            CacheSubnetGroupName=subnet_group_name
+                        )
+                        for group in sg_resp.get("CacheSubnetGroups", []):
+                            vpc_id = group.get("VpcId")
+                            subnet_ids = [
+                                s["SubnetIdentifier"]
+                                for s in group.get("Subnets", [])
+                            ]
+                    except ClientError:
+                        pass
+
                 resources.append(Resource(
                     arn=cluster_arn,
                     resource_type="elasticache",
@@ -1171,6 +1367,9 @@ class Scanner:
                         "num_cache_nodes": cluster.get("NumCacheNodes"),
                         "status": cluster.get("CacheClusterStatus"),
                         "preferred_az": cluster.get("PreferredAvailabilityZone"),
+                        "vpc_id": vpc_id,
+                        "security_group_ids": security_group_ids,
+                        "subnet_ids": subnet_ids,
                     },
                 ))
 
@@ -1209,6 +1408,7 @@ class Scanner:
                         "encrypted": vol.get("Encrypted", False),
                         "availability_zone": vol.get("AvailabilityZone"),
                         "attached_to": attached_to,
+                        "kms_key_id": vol.get("KmsKeyId"),
                     },
                 ))
 
@@ -1528,6 +1728,13 @@ class Scanner:
 
                 tags = self._extract_tags(cluster.get("Tags"))
 
+                # Collect security group IDs
+                security_group_ids = [
+                    sg["VpcSecurityGroupId"]
+                    for sg in cluster.get("VpcSecurityGroups", [])
+                    if sg.get("Status") == "active"
+                ]
+
                 resources.append(Resource(
                     arn=cluster_arn,
                     resource_type="redshift",
@@ -1543,6 +1750,8 @@ class Scanner:
                         "db_name": cluster.get("DBName"),
                         "vpc_id": cluster.get("VpcId"),
                         "encrypted": cluster.get("Encrypted", False),
+                        "security_group_ids": security_group_ids,
+                        "kms_key_id": cluster.get("KmsKeyId"),
                     },
                 ))
 
@@ -1595,6 +1804,8 @@ class Scanner:
                             "processing": domain.get("Processing", False),
                             "endpoint": domain.get("Endpoint"),
                             "vpc_id": vpc_options.get("VPCId"),
+                            "subnet_ids": vpc_options.get("SubnetIds", []),
+                            "security_group_ids": vpc_options.get("SecurityGroupIds", []),
                         },
                     ))
             except ClientError:
