@@ -1,5 +1,6 @@
 """CloudSpyglass Pydantic models — re-exports for convenience."""
 
+from .advisor import AdvisorResponse, AdvisorStatus, AnalyzeRequest, Suggestion
 from .credentials import CredentialStatus, CredentialSubmission, ValidationResult
 from .diagram import DiagramData, DiagramEdge, DiagramNode
 from .errors import ErrorResponse
@@ -10,6 +11,11 @@ from .scan import RegionFailure, ScanRequest, ScanResult
 from .settings import AppSettings, AutoRefreshInterval
 
 __all__ = [
+    # Advisor
+    "Suggestion",
+    "AdvisorResponse",
+    "AdvisorStatus",
+    "AnalyzeRequest",
     # Credentials
     "CredentialSubmission",
     "CredentialStatus",

@@ -1,0 +1,444 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create `backend/models/ai_credentials.py` with AiCredentialSubmission, AiCredentialStatus, AiValidationResult Pydantic models": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712753409
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712766166
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713207210
+      }
+    ],
+    "1.2 Create `backend/services/ai_credential_manager.py` with AiCredentialManager class": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712753639
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713212518
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713968744
+      }
+    ],
+    "1.3 Add `openai>=1.0.0` to pyproject.toml dependencies": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712753794
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712766956
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713208132
+      }
+    ],
+    "2.1 Create `backend/routes/ai_credentials.py` with POST /api/ai-credentials, GET /api/ai-credentials/status, DELETE /api/ai-credentials endpoints": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754012
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713974913
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714448642
+      }
+    ],
+    "2.2 Add ai_credential_manager singleton to `backend/dependencies.py` and register router in `backend/main.py`": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754134
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714495337
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714837828
+      }
+    ],
+    "3. Checkpoint - Core credentials working": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754225
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714856900
+      }
+    ],
+    "4.1 Create `backend/services/context_serializer.py` with ContextSerializer class": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754291
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713975828
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714452470
+      }
+    ],
+    "4.2 Implement token budget enforcement and priority-based truncation": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754355
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714496281
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714838756
+      }
+    ],
+    "5.1 Create `backend/models/advisor.py` with Suggestion, AdvisorResponse, AdvisorStatus, AnalyzeRequest models": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754421
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713213475
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713969642
+      }
+    ],
+    "5.2 Create `backend/services/response_parser.py` with ResponseParser class": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754480
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713976610
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714450505
+      }
+    ],
+    "6.1 Create `backend/services/prompts.py` with CLOUD_ARCHITECT_SYSTEM_PROMPT and build_user_message function": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754549
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714497197
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714839711
+      }
+    ],
+    "6.2 Create `backend/services/advisor_service.py` with AdvisorService class": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754642
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714857695
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715215948
+      }
+    ],
+    "7. Checkpoint - Backend services complete": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754738
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715502270
+      }
+    ],
+    "8.1 Create `backend/routes/advisor.py` with POST /api/advisor/analyze, GET /api/advisor/status, GET /api/advisor/results endpoints": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754827
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715224084
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715493132
+      }
+    ],
+    "8.2 Add advisor_service singleton to `backend/dependencies.py` and register advisor router in `backend/main.py`": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754911
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715225437
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715495281
+      }
+    ],
+    "9.1 Create `frontend/src/types/aiCredentials.ts` with AiCredentialSubmission and AiCredentialStatus types": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712754969
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713977477
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714449594
+      }
+    ],
+    "9.2 Add collapsible \"Define your own A.I. API credentials\" section to SettingsPage": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755081
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714498108
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714836918
+      }
+    ],
+    "10.1 Create `frontend/src/types/advisor.ts` with Pillar, Severity, Suggestion, AdvisorResponse, AdvisorStatus, AnalyzeRequest types": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755192
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713978646
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714451426
+      }
+    ],
+    "10.2 Create `frontend/src/components/AdvisorPanel.tsx` component": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755260
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714499158
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714840689
+      }
+    ],
+    "10.3 Add Advisor page/route to App.tsx router and navigation link in NavHeader": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755326
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714858617
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715217144
+      }
+    ],
+    "11.1 Add env var placeholders to docker-compose.dev.yml (AI_API_BASE_URL, AI_API_KEY, AI_API_MODEL, AI_API_MAX_TOKENS)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755394
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714859721
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715218325
+      }
+    ],
+    "11.2 Verify dependencies.py has ai_credential_manager and advisor_service singletons correctly wired": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755467
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715226602
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715495698
+      }
+    ],
+    "12. Final Checkpoint": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784712755575
+      },
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715503250
+      }
+    ],
+    "1. AI Credential Models and Manager Service (Backend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784713968868
+      }
+    ],
+    "5. Response Parser and Advisor Models (Backend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714450703
+      }
+    ],
+    "9. AI Credentials UI Section on Settings Page (Frontend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714837013
+      }
+    ],
+    "2. AI Credentials API Route (Backend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714837929
+      }
+    ],
+    "4. Context Serializer (Backend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784714838883
+      }
+    ],
+    "6. Cloud Architect Prompt and Advisor Service Core (Backend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715216043
+      }
+    ],
+    "10. Advisor UI Panel (Frontend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715217288
+      }
+    ],
+    "8. Advisor API Endpoints (Backend)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715495547
+      }
+    ],
+    "11. End-to-End Integration and Wiring (Full Stack)": [
+      {
+        "executionId": "9b043de7-6321-44ef-8717-06d0025de0c7",
+        "chatSessionId": "sess_c0daad4f-6243-4e6d-b7a2-fb0785a630a2",
+        "timestamp": 1784715495957
+      }
+    ]
+  }
+}

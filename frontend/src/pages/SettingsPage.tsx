@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiError } from '../api/apiClient';
 import type { CredentialSubmission, CredentialStatus } from '../types/credentials';
 import type { AppSettings, AutoRefreshInterval } from '../types/settings';
+import type { AiCredentialSubmission, AiCredentialStatus } from '../types/aiCredentials';
 
 const AWS_REGIONS = [
   'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
@@ -53,6 +54,17 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsError, setSettingsError] = useState<string | null>(null);
+
+  // AI Credentials state
+  const [showAiForm, setShowAiForm] = useState(false);
+  const [aiBaseUrl, setAiBaseUrl] = useState('');
+  const [aiModel, setAiModel] = useState('');
+  const [aiApiKey, setAiApiKey] = useState('');
+  const [aiStatus, setAiStatus] = useState<AiCredentialStatus | null>(null);
+  const [aiStatusLoading, setAiStatusLoading] = useState(true);
+  const [aiSubmitting, setAiSubmitting] = useState(false);
+  const [aiSubmitError, setAiSubmitError] = useState<string | null>(null);
+  const [aiResetting, setAiResetting] = useState(false);
 
   // Fetch credential status on mount
   useEffect(() => {
@@ -181,6 +193,77 @@ export function SettingsPage() {
       }
     }
   }, [settings]);
+
+  // Fetch AI credential status on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchAiStatus() {
+      setAiStatusLoading(true);
+      try {
+        const status = await apiClient.get<AiCredentialStatus>('/ai-credentials/status');
+        if (!cancelled) {
+          setAiStatus(status);
+        }
+      } catch {
+        // Non-critical — leave status as null
+      } finally {
+        if (!cancelled) {
+          setAiStatusLoading(false);
+        }
+      }
+    }
+
+    fetchAiStatus();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Handle AI credential submission
+  const handleAiCredentialSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAiSubmitting(true);
+    setAiSubmitError(null);
+
+    const submission: AiCredentialSubmission = {
+      base_url: aiBaseUrl,
+      api_key: aiApiKey,
+      model: aiModel,
+    };
+
+    try {
+      const status = await apiClient.post<AiCredentialStatus>('/ai-credentials', submission);
+      setAiStatus(status);
+      // Clear form and collapse on success
+      setAiBaseUrl('');
+      setAiModel('');
+      setAiApiKey('');
+      setShowAiForm(false);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setAiSubmitError(err.message);
+      } else {
+        setAiSubmitError('Failed to save AI credentials');
+      }
+    } finally {
+      setAiSubmitting(false);
+    }
+  }, [aiBaseUrl, aiApiKey, aiModel]);
+
+  // Handle AI credential reset
+  const handleAiCredentialReset = useCallback(async () => {
+    setAiResetting(true);
+    setAiSubmitError(null);
+    try {
+      const status = await apiClient.delete<AiCredentialStatus>('/ai-credentials');
+      setAiStatus(status);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setAiSubmitError(err.message);
+      }
+    } finally {
+      setAiResetting(false);
+    }
+  }, []);
 
   // Handle region selection toggle
   const handleRegionToggle = useCallback(async (region: string) => {
@@ -561,6 +644,219 @@ export function SettingsPage() {
               );
             })}
           </div>
+        )}
+      </section>
+
+      {/* AI API Credentials Section */}
+      <section style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', backgroundColor: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: aiStatus?.source === 'custom' || showAiForm ? '1rem' : 0 }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#111827', margin: 0 }}>
+            A.I. API Credentials
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowAiForm(!showAiForm)}
+            style={{
+              padding: '0.375rem 0.75rem',
+              backgroundColor: showAiForm ? '#eff6ff' : '#fff',
+              color: '#2563eb',
+              border: '1px solid #2563eb',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+            }}
+            aria-expanded={showAiForm}
+            aria-label="Define your own A.I. API credentials"
+            data-testid="ai-credentials-toggle"
+          >
+            {showAiForm ? 'Hide' : 'Define your own A.I. API credentials'}
+          </button>
+        </div>
+
+        {/* Status badge when custom credentials are configured */}
+        {aiStatusLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} aria-label="Loading AI credential status">
+            <div style={{
+              width: '1rem',
+              height: '1rem',
+              border: '2px solid #e5e7eb',
+              borderTopColor: '#2563eb',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
+            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Loading AI status…</span>
+          </div>
+        ) : aiStatus?.source === 'custom' && !showAiForm ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }} data-testid="ai-status-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{
+                display: 'inline-block',
+                width: '0.5rem',
+                height: '0.5rem',
+                borderRadius: '50%',
+                backgroundColor: aiStatus.connected ? '#16a34a' : '#dc2626',
+              }} />
+              <span style={{ fontWeight: 500, color: aiStatus.connected ? '#16a34a' : '#dc2626' }}>
+                {aiStatus.connected ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+
+            {aiStatus.model && (
+              <div style={{ fontSize: '0.875rem', color: '#374151' }}>
+                <span style={{ fontWeight: 500 }}>Model: </span>
+                <span data-testid="ai-model-name">{aiStatus.model}</span>
+              </div>
+            )}
+
+            {aiStatus.validated_at && (
+              <div style={{ fontSize: '0.875rem', color: '#374151' }}>
+                <span style={{ fontWeight: 500 }}>Validated: </span>
+                <span data-testid="ai-validated-at">{new Date(aiStatus.validated_at).toLocaleString()}</span>
+              </div>
+            )}
+
+            <div style={{ marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={handleAiCredentialReset}
+                disabled={aiResetting}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  backgroundColor: aiResetting ? '#f3f4f6' : '#fef2f2',
+                  color: aiResetting ? '#9ca3af' : '#dc2626',
+                  border: `1px solid ${aiResetting ? '#d1d5db' : '#fecaca'}`,
+                  borderRadius: '0.375rem',
+                  cursor: aiResetting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                }}
+                aria-label="Reset to defaults"
+                data-testid="ai-reset-button"
+              >
+                {aiResetting ? 'Resetting…' : 'Reset to defaults'}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Collapsible credential form */}
+        {showAiForm && (
+          <form onSubmit={handleAiCredentialSubmit} aria-label="AI credential form" data-testid="ai-credential-form">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Base URL */}
+              <div>
+                <label htmlFor="ai-base-url" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
+                  Base URL
+                </label>
+                <input
+                  id="ai-base-url"
+                  type="text"
+                  value={aiBaseUrl}
+                  onChange={(e) => setAiBaseUrl(e.target.value)}
+                  maxLength={512}
+                  placeholder="https://api.openai.com/v1"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="ai-base-url-input"
+                />
+              </div>
+
+              {/* Model */}
+              <div>
+                <label htmlFor="ai-model" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
+                  Model
+                </label>
+                <input
+                  id="ai-model"
+                  type="text"
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  maxLength={256}
+                  placeholder="gpt-4o"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="ai-model-input"
+                />
+              </div>
+
+              {/* API Key */}
+              <div>
+                <label htmlFor="ai-api-key" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
+                  API Key
+                </label>
+                <input
+                  id="ai-api-key"
+                  type="password"
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  maxLength={512}
+                  placeholder="••••••••••••••••"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="ai-api-key-input"
+                />
+              </div>
+
+              {/* Submit error */}
+              {aiSubmitError && (
+                <p style={{ color: '#dc2626', fontSize: '0.875rem', margin: 0 }} role="alert" data-testid="ai-submit-error">
+                  {aiSubmitError}
+                </p>
+              )}
+
+              {/* Validate & Save button */}
+              <button
+                type="submit"
+                disabled={aiSubmitting || !aiBaseUrl.trim() || !aiModel.trim() || !aiApiKey.trim()}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: (aiSubmitting || !aiBaseUrl.trim() || !aiModel.trim() || !aiApiKey.trim()) ? '#93c5fd' : '#2563eb',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: (aiSubmitting || !aiBaseUrl.trim() || !aiModel.trim() || !aiApiKey.trim()) ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                }}
+                data-testid="ai-submit-button"
+              >
+                {aiSubmitting && (
+                  <div style={{
+                    width: '0.875rem',
+                    height: '0.875rem',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#fff',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }} aria-label="Validating AI credentials" />
+                )}
+                {aiSubmitting ? 'Validating…' : 'Validate & Save'}
+              </button>
+            </div>
+          </form>
         )}
       </section>
     </div>

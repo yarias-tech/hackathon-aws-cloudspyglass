@@ -36,3 +36,12 @@ export type {
 } from "./settings";
 
 export type { ErrorResponse } from "./errors";
+
+export type {
+  Pillar,
+  Severity,
+  Suggestion,
+  AdvisorResponse,
+  AdvisorStatus,
+  AnalyzeRequest,
+} from "./advisor";

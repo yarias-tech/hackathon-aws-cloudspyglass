@@ -46,6 +46,12 @@ export function NavHeader() {
           Diagram
         </NavLink>
         <NavLink
+          to="/advisor"
+          style={({ isActive }) => linkStyle(isActive)}
+        >
+          Advisor
+        </NavLink>
+        <NavLink
           to="/settings"
           style={({ isActive }) => linkStyle(isActive)}
         >

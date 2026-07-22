@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .exceptions import CloudSpyglassError, cloudspyglass_error_handler
+from .routes.advisor import router as advisor_router
+from .routes.ai_credentials import router as ai_credentials_router
 from .routes.credentials import router as credentials_router
 from .routes.diagrams import router as diagrams_router
 from .routes.export import router as export_router
@@ -36,6 +38,8 @@ app.add_middleware(
 app.add_exception_handler(CloudSpyglassError, cloudspyglass_error_handler)
 
 # Register routers
+app.include_router(advisor_router)
+app.include_router(ai_credentials_router)
 app.include_router(credentials_router)
 app.include_router(scan_router)
 app.include_router(filters_router)
