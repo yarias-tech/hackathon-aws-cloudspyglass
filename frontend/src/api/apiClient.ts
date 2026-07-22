@@ -109,4 +109,26 @@ export const apiClient = {
     }
     return response.json() as Promise<T>;
   },
+
+  /**
+   * Download a file from the API and trigger a browser save dialog.
+   * Fetches the response as a blob, creates an object URL, and clicks
+   * a temporary anchor element to initiate the download.
+   */
+  async download(path: string, filename: string): Promise<void> {
+    const response = await fetch(`${BASE_URL}${path}`);
+    if (!response.ok) {
+      const errorResponse = await parseErrorResponse(response);
+      throw new ApiError(response.status, errorResponse);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  },
 };
