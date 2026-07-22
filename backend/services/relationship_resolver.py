@@ -54,17 +54,25 @@ class RelationshipResolver:
     def _resolve_network_relationships(
         self, resources: list[Resource]
     ) -> list[Relationship]:
-        """Resolve network relationships: SG attachments, VPC memberships, LB targets.
+        """Resolve network relationships between all scanned resource types.
 
         Detects:
-        - EC2 → Security Group (from SecurityGroups[].GroupId)
-        - EC2 → VPC (from VpcId)
-        - EC2 → Subnet (from SubnetId)
-        - RDS → VPC (from DBSubnetGroup.VpcId)
-        - Lambda → VPC (from VpcConfig.VpcId)
-        - Lambda → Subnet (from VpcConfig.SubnetIds[])
-        - ALB/NLB → VPC (from VpcId)
-        - ALB/NLB → Target (from TargetGroups[].Targets[])
+        - EC2 → Security Group, VPC, Subnet
+        - EBS → EC2 (attached volume)
+        - Elastic IP → EC2 (associated instance)
+        - Elastic IP → Network Interface
+        - Lambda → VPC, Subnet, Security Group
+        - RDS → VPC, Security Group
+        - ALB/NLB → VPC, Targets
+        - NAT Gateway → VPC, Subnet
+        - VPN Gateway → VPC
+        - EKS → VPC
+        - ElastiCache → VPC (inferred from subnet group)
+        - OpenSearch → VPC
+        - Redshift → VPC
+        - Security Group → VPC
+        - Subnet → VPC
+        - Transit Gateway attachments
         """
         relationships: list[Relationship] = []
 
@@ -104,6 +112,65 @@ class RelationshipResolver:
                         derived_from="SubnetId",
                     ))
 
+            elif resource.resource_type == "ebs":
+                # EBS → EC2 (volume attached to instance)
+                instance_id = attrs.get("attached_to")
+                if instance_id:
+                    instance_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:instance/{instance_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=instance_arn,
+                        category="network",
+                        derived_from="Attachments[].InstanceId",
+                    ))
+
+            elif resource.resource_type == "elastic_ip":
+                # Elastic IP → EC2 (EIP associated with instance)
+                instance_id = attrs.get("instance_id")
+                if instance_id:
+                    instance_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:instance/{instance_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=instance_arn,
+                        category="network",
+                        derived_from="InstanceId",
+                    ))
+
+                # Elastic IP → Network Interface
+                eni_id = attrs.get("network_interface_id")
+                if eni_id:
+                    eni_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:network-interface/{eni_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=eni_arn,
+                        category="network",
+                        derived_from="NetworkInterfaceId",
+                    ))
+
+            elif resource.resource_type == "security_group":
+                # Security Group → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcId",
+                    ))
+
+            elif resource.resource_type == "subnet":
+                # Subnet → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcId",
+                    ))
+
             elif resource.resource_type == "lambda":
                 # Lambda → VPC
                 vpc_id = attrs.get("vpc_id")
@@ -126,6 +193,16 @@ class RelationshipResolver:
                         derived_from="VpcConfig.SubnetIds[]",
                     ))
 
+                # Lambda → Security Groups
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="VpcConfig.SecurityGroupIds[]",
+                    ))
+
             elif resource.resource_type == "rds":
                 # RDS → VPC
                 vpc_id = attrs.get("vpc_id")
@@ -136,6 +213,16 @@ class RelationshipResolver:
                         target_arn=vpc_arn,
                         category="network",
                         derived_from="DBSubnetGroup.VpcId",
+                    ))
+
+                # RDS → Security Groups (if stored)
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="VpcSecurityGroups[].VpcSecurityGroupId",
                     ))
 
             elif resource.resource_type in ("alb", "nlb"):
@@ -150,12 +237,29 @@ class RelationshipResolver:
                         derived_from="VpcId",
                     ))
 
-                # ALB/NLB → Targets (from target_arns attribute if available)
+                # ALB/NLB → Security Groups
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="SecurityGroups[]",
+                    ))
+
+                # ALB/NLB → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="network",
+                        derived_from="AvailabilityZones[].SubnetId",
+                    ))
+
+                # ALB/NLB → Targets
                 target_arns = attrs.get("target_arns", [])
                 for target_arn in target_arns:
-                    if self._classify_external(target_arn):
-                        # Mark external but still record
-                        pass
                     relationships.append(Relationship(
                         source_arn=resource.arn,
                         target_arn=target_arn,
@@ -163,50 +267,233 @@ class RelationshipResolver:
                         derived_from="TargetGroups[].Targets[]",
                     ))
 
+            elif resource.resource_type == "nat_gateway":
+                # NAT Gateway → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcId",
+                    ))
+
+                # NAT Gateway → Subnet
+                subnet_id = attrs.get("subnet_id")
+                if subnet_id:
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="network",
+                        derived_from="SubnetId",
+                    ))
+
+            elif resource.resource_type == "vpn_gateway":
+                # VPN Gateway → VPC
+                vpc_id = attrs.get("attached_vpc")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcAttachments[].VpcId",
+                    ))
+
+            elif resource.resource_type == "eks":
+                # EKS → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="resourcesVpcConfig.vpcId",
+                    ))
+
+                # EKS → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="network",
+                        derived_from="resourcesVpcConfig.subnetIds[]",
+                    ))
+
+                # EKS → Security Groups
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="resourcesVpcConfig.securityGroupIds[]",
+                    ))
+
+            elif resource.resource_type == "elasticache":
+                # ElastiCache → VPC (inferred from subnet group or direct attribute)
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="CacheSubnetGroup.VpcId",
+                    ))
+
+                # ElastiCache → Security Groups
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="SecurityGroups[].SecurityGroupId",
+                    ))
+
+            elif resource.resource_type == "opensearch":
+                # OpenSearch → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VPCOptions.VPCId",
+                    ))
+
+                # OpenSearch → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="network",
+                        derived_from="VPCOptions.SubnetIds[]",
+                    ))
+
+                # OpenSearch → Security Groups
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="VPCOptions.SecurityGroupIds[]",
+                    ))
+
+            elif resource.resource_type == "redshift":
+                # Redshift → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcId",
+                    ))
+
+                # Redshift → Security Groups
+                for sg_id in attrs.get("security_group_ids", []):
+                    sg_arn = self._build_sg_arn(sg_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=sg_arn,
+                        category="network",
+                        derived_from="VpcSecurityGroups[].VpcSecurityGroupId",
+                    ))
+
+            elif resource.resource_type == "api_gateway":
+                # API Gateway → VPC Link (if VPC-integrated)
+                vpc_link_id = attrs.get("vpc_link_id")
+                if vpc_link_id:
+                    vpc_link_arn = f"arn:aws:apigateway:{resource.region}::/vpclinks/{vpc_link_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_link_arn,
+                        category="network",
+                        derived_from="VpcLinkId",
+                    ))
+
+            elif resource.resource_type == "cloudfront":
+                # CloudFront → S3 (origin buckets)
+                for origin_arn in attrs.get("origin_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=origin_arn,
+                        category="network",
+                        derived_from="Origins[].DomainName",
+                    ))
+
+                # CloudFront → ALB (origin load balancers)
+                for origin_arn in attrs.get("origin_lb_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=origin_arn,
+                        category="network",
+                        derived_from="Origins[].DomainName",
+                    ))
+
         return relationships
 
     def _resolve_iam_relationships(
         self, resources: list[Resource]
     ) -> list[Relationship]:
-        """Resolve IAM relationships: role associations for Lambda, EC2, ECS.
+        """Resolve IAM relationships: role associations for all services.
 
         Detects:
         - EC2 → IAM Role (from IamInstanceProfile.Arn)
         - Lambda → IAM Role (from Role)
         - ECS → IAM Role (from TaskDefinition.TaskRoleArn)
+        - EKS → IAM Role (from roleArn)
+        - Step Functions → IAM Role (from roleArn)
+        - Glue → IAM Role (from Role)
+        - Kinesis → IAM Role (if configured)
+        - CodePipeline → IAM Role (if configured)
         """
         relationships: list[Relationship] = []
 
         for resource in resources:
-            if resource.resource_type == "ec2":
-                # EC2 → IAM Role
-                if resource.iam_role:
-                    relationships.append(Relationship(
-                        source_arn=resource.arn,
-                        target_arn=resource.iam_role,
-                        category="iam",
-                        derived_from="IamInstanceProfile.Arn",
-                    ))
+            # Generic iam_role field — covers EC2, Lambda, ECS, EKS, Step Functions, Glue
+            if resource.iam_role:
+                if resource.resource_type == "ec2":
+                    derived = "IamInstanceProfile.Arn"
+                elif resource.resource_type == "lambda":
+                    derived = "Role"
+                elif resource.resource_type == "ecs":
+                    derived = "TaskDefinition.TaskRoleArn"
+                elif resource.resource_type == "eks":
+                    derived = "Cluster.RoleArn"
+                elif resource.resource_type == "step_functions":
+                    derived = "StateMachine.RoleArn"
+                elif resource.resource_type == "glue":
+                    derived = "Job.Role"
+                else:
+                    derived = "IamRole"
 
-            elif resource.resource_type == "lambda":
-                # Lambda → IAM Role
-                if resource.iam_role:
-                    relationships.append(Relationship(
-                        source_arn=resource.arn,
-                        target_arn=resource.iam_role,
-                        category="iam",
-                        derived_from="Role",
-                    ))
+                relationships.append(Relationship(
+                    source_arn=resource.arn,
+                    target_arn=resource.iam_role,
+                    category="iam",
+                    derived_from=derived,
+                ))
 
-            elif resource.resource_type == "ecs":
-                # ECS → IAM Role (task role stored in iam_role or attributes)
-                task_role = resource.iam_role or resource.attributes.get("task_role_arn")
-                if task_role:
+            # ECS task execution role (separate from task role)
+            if resource.resource_type == "ecs":
+                exec_role = resource.attributes.get("execution_role_arn")
+                if exec_role:
                     relationships.append(Relationship(
                         source_arn=resource.arn,
-                        target_arn=task_role,
+                        target_arn=exec_role,
                         category="iam",
-                        derived_from="TaskDefinition.TaskRoleArn",
+                        derived_from="TaskDefinition.ExecutionRoleArn",
                     ))
 
         return relationships
@@ -214,12 +501,17 @@ class RelationshipResolver:
     def _resolve_event_relationships(
         self, resources: list[Resource]
     ) -> list[Relationship]:
-        """Resolve event relationships: event source mappings, S3 notifications.
+        """Resolve event-driven relationships between services.
 
         Detects:
-        - SQS → Lambda (from EventSourceMappings[].EventSourceArn)
-        - SNS → Lambda (from Subscriptions[].Endpoint)
+        - SQS → Lambda (from EventSourceMappings)
+        - SNS → Lambda/SQS/HTTP (from Subscriptions)
         - S3 → Lambda/SQS/SNS (from NotificationConfiguration)
+        - Kinesis → Lambda (from EventSourceMappings)
+        - DynamoDB → Lambda (from DynamoDB Streams)
+        - API Gateway → Lambda (from integrations)
+        - CloudFront → Lambda@Edge (from function associations)
+        - Step Functions → Lambda/ECS/SNS/SQS (from state definitions)
         """
         relationships: list[Relationship] = []
 
@@ -227,20 +519,28 @@ class RelationshipResolver:
             attrs = resource.attributes
 
             if resource.resource_type == "sqs":
-                # SQS → Lambda (event source mappings stored in attributes)
-                event_source_targets = attrs.get("event_source_targets", [])
-                for target_arn in event_source_targets:
+                # SQS → Lambda (event source mappings)
+                for target_arn in attrs.get("event_source_targets", []):
                     relationships.append(Relationship(
                         source_arn=resource.arn,
                         target_arn=target_arn,
                         category="event",
-                        derived_from="EventSourceMappings[].EventSourceArn",
+                        derived_from="EventSourceMappings[].FunctionArn",
+                    ))
+
+                # SQS dead letter queue → source SQS
+                dlq_arn = attrs.get("dead_letter_target_arn")
+                if dlq_arn:
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=dlq_arn,
+                        category="event",
+                        derived_from="RedrivePolicy.deadLetterTargetArn",
                     ))
 
             elif resource.resource_type == "sns":
-                # SNS → Lambda (subscriptions stored in attributes)
-                subscription_endpoints = attrs.get("subscription_endpoints", [])
-                for endpoint_arn in subscription_endpoints:
+                # SNS → subscribers (Lambda, SQS, HTTP endpoints)
+                for endpoint_arn in attrs.get("subscription_endpoints", []):
                     relationships.append(Relationship(
                         source_arn=resource.arn,
                         target_arn=endpoint_arn,
@@ -249,9 +549,8 @@ class RelationshipResolver:
                     ))
 
             elif resource.resource_type == "s3":
-                # S3 → Lambda/SQS/SNS (notifications stored in attributes)
-                notification_targets = attrs.get("notification_targets", [])
-                for target_arn in notification_targets:
+                # S3 → Lambda/SQS/SNS (event notifications)
+                for target_arn in attrs.get("notification_targets", []):
                     relationships.append(Relationship(
                         source_arn=resource.arn,
                         target_arn=target_arn,
@@ -259,30 +558,197 @@ class RelationshipResolver:
                         derived_from="NotificationConfiguration",
                     ))
 
+            elif resource.resource_type == "kinesis":
+                # Kinesis → Lambda (event source mappings)
+                for target_arn in attrs.get("event_source_targets", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="event",
+                        derived_from="EventSourceMappings[].FunctionArn",
+                    ))
+
+            elif resource.resource_type == "dynamodb":
+                # DynamoDB → Lambda (streams)
+                for target_arn in attrs.get("stream_targets", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="event",
+                        derived_from="StreamSpecification.StreamArn",
+                    ))
+
+            elif resource.resource_type == "api_gateway":
+                # API Gateway → Lambda/HTTP integrations
+                for target_arn in attrs.get("integration_targets", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="event",
+                        derived_from="Integrations[].Uri",
+                    ))
+
+            elif resource.resource_type == "step_functions":
+                # Step Functions → referenced services (Lambda, ECS, SNS, SQS, DynamoDB)
+                for target_arn in attrs.get("referenced_resources", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="event",
+                        derived_from="States[].Resource",
+                    ))
+
+            elif resource.resource_type == "lambda":
+                # Lambda → event source mappings (the sources that trigger it)
+                for source_arn in attrs.get("event_source_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=source_arn,
+                        target_arn=resource.arn,
+                        category="event",
+                        derived_from="EventSourceMapping.EventSourceArn",
+                    ))
+
         return relationships
 
     def _resolve_data_relationships(
         self, resources: list[Resource]
     ) -> list[Relationship]:
-        """Resolve data relationships: RDS subnet group memberships.
+        """Resolve data-layer relationships between services.
 
         Detects:
-        - RDS → Subnet (from DBSubnetGroup.Subnets[].SubnetIdentifier)
+        - RDS → Subnet (from DBSubnetGroup)
+        - ElastiCache → Subnet (from CacheSubnetGroup)
+        - Redshift → Subnet (from ClusterSubnetGroup)
+        - OpenSearch → Subnet (from VPCOptions)
+        - S3 → S3 (replication targets)
+        - DynamoDB → S3 (export targets)
+        - DynamoDB → KMS (encryption key)
+        - RDS → KMS (encryption key)
+        - EBS → KMS (encryption key)
+        - Secrets Manager → KMS (encryption key)
+        - ECR → KMS (encryption key)
+        - Lambda → DynamoDB/S3/SQS/SNS (environment variable references)
         """
         relationships: list[Relationship] = []
 
         for resource in resources:
+            attrs = resource.attributes
+
             if resource.resource_type == "rds":
-                attrs = resource.attributes
-                # RDS → Subnets (subnet identifiers from the subnet group)
-                subnet_ids = attrs.get("subnet_ids", [])
-                for subnet_id in subnet_ids:
+                # RDS → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
                     subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
                     relationships.append(Relationship(
                         source_arn=resource.arn,
                         target_arn=subnet_arn,
                         category="data",
                         derived_from="DBSubnetGroup.Subnets[].SubnetIdentifier",
+                    ))
+
+                # RDS → KMS encryption key
+                kms_key = attrs.get("kms_key_id")
+                if kms_key:
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=kms_key,
+                        category="data",
+                        derived_from="KmsKeyId",
+                    ))
+
+            elif resource.resource_type == "elasticache":
+                # ElastiCache → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="data",
+                        derived_from="CacheSubnetGroup.Subnets[]",
+                    ))
+
+            elif resource.resource_type == "redshift":
+                # Redshift → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="data",
+                        derived_from="ClusterSubnetGroup.Subnets[]",
+                    ))
+
+                # Redshift → KMS
+                kms_key = attrs.get("kms_key_id")
+                if kms_key:
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=kms_key,
+                        category="data",
+                        derived_from="KmsKeyId",
+                    ))
+
+            elif resource.resource_type == "opensearch":
+                # OpenSearch → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="data",
+                        derived_from="VPCOptions.SubnetIds[]",
+                    ))
+
+            elif resource.resource_type == "ebs":
+                # EBS → KMS (if encrypted)
+                kms_key = attrs.get("kms_key_id")
+                if kms_key:
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=kms_key,
+                        category="data",
+                        derived_from="KmsKeyId",
+                    ))
+
+            elif resource.resource_type == "secrets_manager":
+                # Secrets Manager → KMS
+                kms_key = attrs.get("kms_key_id")
+                if kms_key:
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=kms_key,
+                        category="data",
+                        derived_from="KmsKeyId",
+                    ))
+
+            elif resource.resource_type == "s3":
+                # S3 → replication target buckets
+                for target_arn in attrs.get("replication_targets", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="data",
+                        derived_from="ReplicationConfiguration.Rules[].Destination.Bucket",
+                    ))
+
+            elif resource.resource_type == "lambda":
+                # Lambda → referenced resources from environment variables
+                for ref_arn in attrs.get("environment_resource_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=ref_arn,
+                        category="data",
+                        derived_from="Environment.Variables",
+                    ))
+
+            elif resource.resource_type == "ecr":
+                # ECR → KMS
+                kms_key = attrs.get("kms_key_arn")
+                if kms_key:
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=kms_key,
+                        category="data",
+                        derived_from="encryptionConfiguration.kmsKey",
                     ))
 
         return relationships
