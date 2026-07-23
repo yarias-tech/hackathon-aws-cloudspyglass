@@ -794,6 +794,50 @@ class Scanner:
                 # Security groups
                 security_group_ids = lb.get("SecurityGroups", [])
 
+                # Get load balancer attributes (access logs, etc.)
+                access_logs_bucket: str | None = None
+                access_logs_prefix: str | None = None
+                try:
+                    attrs_resp = elbv2.describe_load_balancer_attributes(
+                        LoadBalancerArn=lb_arn
+                    )
+                    lb_attrs = {
+                        a["Key"]: a["Value"]
+                        for a in attrs_resp.get("Attributes", [])
+                    }
+                    if lb_attrs.get("access_logs.s3.enabled") == "true":
+                        access_logs_bucket = lb_attrs.get("access_logs.s3.bucket")
+                        access_logs_prefix = lb_attrs.get("access_logs.s3.prefix")
+                except ClientError:
+                    pass
+
+                # Get target group targets (EC2 instances, IPs, Lambda ARNs)
+                target_arns: list[str] = []
+                try:
+                    tg_paginator = elbv2.get_paginator("describe_target_groups")
+                    for tg_page in tg_paginator.paginate(LoadBalancerArn=lb_arn):
+                        for tg in tg_page.get("TargetGroups", []):
+                            tg_arn = tg["TargetGroupArn"]
+                            target_type = tg.get("TargetType", "instance")
+                            try:
+                                th_resp = elbv2.describe_target_health(
+                                    TargetGroupArn=tg_arn
+                                )
+                                for thd in th_resp.get("TargetHealthDescriptions", []):
+                                    target_id = thd["Target"]["Id"]
+                                    if target_type == "instance":
+                                        t_arn = f"arn:aws:ec2:{region}:{account_id}:instance/{target_id}"
+                                    elif target_type == "lambda":
+                                        t_arn = target_id  # Already an ARN
+                                    else:
+                                        continue  # Skip IP targets
+                                    if t_arn not in target_arns:
+                                        target_arns.append(t_arn)
+                            except ClientError:
+                                pass
+                except ClientError:
+                    pass
+
                 resources.append(Resource(
                     arn=lb_arn,
                     resource_type="alb",
@@ -810,6 +854,9 @@ class Scanner:
                         "type": "application",
                         "security_group_ids": security_group_ids,
                         "subnet_ids": subnet_ids,
+                        "target_arns": target_arns,
+                        "access_logs_bucket": access_logs_bucket,
+                        "access_logs_prefix": access_logs_prefix,
                     },
                 ))
 
@@ -849,6 +896,50 @@ class Scanner:
                 # NLBs may have security groups (newer feature)
                 security_group_ids = lb.get("SecurityGroups", [])
 
+                # Get load balancer attributes (access logs, etc.)
+                access_logs_bucket: str | None = None
+                access_logs_prefix: str | None = None
+                try:
+                    attrs_resp = elbv2.describe_load_balancer_attributes(
+                        LoadBalancerArn=lb_arn
+                    )
+                    lb_attrs = {
+                        a["Key"]: a["Value"]
+                        for a in attrs_resp.get("Attributes", [])
+                    }
+                    if lb_attrs.get("access_logs.s3.enabled") == "true":
+                        access_logs_bucket = lb_attrs.get("access_logs.s3.bucket")
+                        access_logs_prefix = lb_attrs.get("access_logs.s3.prefix")
+                except ClientError:
+                    pass
+
+                # Get target group targets (EC2 instances, IPs)
+                target_arns: list[str] = []
+                try:
+                    tg_paginator = elbv2.get_paginator("describe_target_groups")
+                    for tg_page in tg_paginator.paginate(LoadBalancerArn=lb_arn):
+                        for tg in tg_page.get("TargetGroups", []):
+                            tg_arn = tg["TargetGroupArn"]
+                            target_type = tg.get("TargetType", "instance")
+                            try:
+                                th_resp = elbv2.describe_target_health(
+                                    TargetGroupArn=tg_arn
+                                )
+                                for thd in th_resp.get("TargetHealthDescriptions", []):
+                                    target_id = thd["Target"]["Id"]
+                                    if target_type == "instance":
+                                        t_arn = f"arn:aws:ec2:{region}:{account_id}:instance/{target_id}"
+                                    elif target_type == "lambda":
+                                        t_arn = target_id
+                                    else:
+                                        continue
+                                    if t_arn not in target_arns:
+                                        target_arns.append(t_arn)
+                            except ClientError:
+                                pass
+                except ClientError:
+                    pass
+
                 resources.append(Resource(
                     arn=lb_arn,
                     resource_type="nlb",
@@ -865,6 +956,9 @@ class Scanner:
                         "type": "network",
                         "security_group_ids": security_group_ids,
                         "subnet_ids": subnet_ids,
+                        "target_arns": target_arns,
+                        "access_logs_bucket": access_logs_bucket,
+                        "access_logs_prefix": access_logs_prefix,
                     },
                 ))
 
@@ -897,6 +991,46 @@ class Scanner:
                 cluster_name = cluster["clusterName"]
                 tags = self._extract_tags(cluster.get("tags"))
 
+                # Fetch services in this cluster to capture LB associations
+                service_lb_target_groups: list[str] = []
+                service_lb_arns: list[str] = []
+                try:
+                    svc_arns: list[str] = []
+                    svc_paginator = ecs.get_paginator("list_services")
+                    for svc_page in svc_paginator.paginate(cluster=cluster_arn):
+                        svc_arns.extend(svc_page.get("serviceArns", []))
+
+                    # Describe services in batches of 10
+                    for j in range(0, len(svc_arns), 10):
+                        svc_batch = svc_arns[j:j + 10]
+                        svc_resp = ecs.describe_services(
+                            cluster=cluster_arn, services=svc_batch
+                        )
+                        for svc in svc_resp.get("services", []):
+                            for lb_conf in svc.get("loadBalancers", []):
+                                tg_arn = lb_conf.get("targetGroupArn")
+                                if tg_arn and tg_arn not in service_lb_target_groups:
+                                    service_lb_target_groups.append(tg_arn)
+                except ClientError:
+                    pass
+
+                # Resolve target group ARNs to load balancer ARNs
+                if service_lb_target_groups:
+                    try:
+                        elbv2 = session.client("elbv2", region_name=region)
+                        # describe_target_groups accepts up to 20 ARNs at a time
+                        for j in range(0, len(service_lb_target_groups), 20):
+                            tg_batch = service_lb_target_groups[j:j + 20]
+                            tg_resp = elbv2.describe_target_groups(
+                                TargetGroupArns=tg_batch
+                            )
+                            for tg in tg_resp.get("TargetGroups", []):
+                                for lb_arn in tg.get("LoadBalancerArns", []):
+                                    if lb_arn not in service_lb_arns:
+                                        service_lb_arns.append(lb_arn)
+                    except ClientError:
+                        pass
+
                 resources.append(Resource(
                     arn=cluster_arn,
                     resource_type="ecs",
@@ -907,6 +1041,7 @@ class Scanner:
                         "status": cluster.get("status"),
                         "running_tasks_count": cluster.get("runningTasksCount", 0),
                         "active_services_count": cluster.get("activeServicesCount", 0),
+                        "load_balancer_arns": service_lb_arns,
                     },
                 ))
 
@@ -1127,6 +1262,31 @@ class Scanner:
                 except ClientError:
                     pass
 
+                # Extract origin details (S3 buckets, ALB/NLB, custom origins)
+                origin_arns: list[str] = []
+                origin_lb_arns: list[str] = []
+                origins = dist.get("Origins", {}).get("Items", [])
+                for origin in origins:
+                    origin_domain = origin.get("DomainName", "")
+                    # S3 bucket origins: <bucket>.s3.amazonaws.com or <bucket>.s3.<region>.amazonaws.com
+                    if ".s3." in origin_domain or origin_domain.endswith(".s3.amazonaws.com"):
+                        bucket_name = origin_domain.split(".s3")[0]
+                        origin_arns.append(f"arn:aws:s3:::{bucket_name}")
+                    # ALB/NLB origins: <name>-<id>.<region>.elb.amazonaws.com
+                    elif ".elb.amazonaws.com" in origin_domain:
+                        origin_lb_arns.append(origin_domain)
+
+                # Extract logging bucket if configured
+                logging_bucket: str | None = None
+                logging_config = dist.get("ViewerCertificate", {})
+                # Logging is in the distribution config
+                dist_logging = dist.get("Logging", {})
+                if dist_logging and dist_logging.get("Enabled"):
+                    log_bucket_domain = dist_logging.get("Bucket", "")
+                    if log_bucket_domain:
+                        # Format: <bucket>.s3.amazonaws.com
+                        logging_bucket = log_bucket_domain.split(".s3")[0]
+
                 resources.append(Resource(
                     arn=dist_arn,
                     resource_type="cloudfront",
@@ -1140,6 +1300,9 @@ class Scanner:
                         "status": dist.get("Status"),
                         "enabled": dist.get("Enabled", False),
                         "price_class": dist.get("PriceClass"),
+                        "origin_arns": origin_arns,
+                        "origin_lb_arns": origin_lb_arns,
+                        "logging_bucket": logging_bucket,
                     },
                 ))
 
@@ -1169,6 +1332,20 @@ class Scanner:
                 except ClientError:
                     pass
 
+                # Collect alias targets (ALBs, CloudFront, S3, etc.)
+                alias_targets: list[str] = []
+                try:
+                    rrs_paginator = route53.get_paginator("list_resource_record_sets")
+                    for rrs_page in rrs_paginator.paginate(HostedZoneId=zone_id):
+                        for rr in rrs_page.get("ResourceRecordSets", []):
+                            alias = rr.get("AliasTarget")
+                            if alias:
+                                dns_name = alias.get("DNSName", "")
+                                if dns_name and dns_name not in alias_targets:
+                                    alias_targets.append(dns_name.rstrip("."))
+                except ClientError:
+                    pass
+
                 resources.append(Resource(
                     arn=f"arn:aws:route53:::hostedzone/{zone_id}",
                     resource_type="route53",
@@ -1181,6 +1358,7 @@ class Scanner:
                             "PrivateZone", False
                         ),
                         "comment": zone.get("Config", {}).get("Comment", ""),
+                        "alias_targets": alias_targets,
                     },
                 ))
 
@@ -1471,6 +1649,11 @@ class Scanner:
                         "vpc_id": ngw.get("VpcId"),
                         "subnet_id": ngw.get("SubnetId"),
                         "connectivity_type": ngw.get("ConnectivityType"),
+                        "elastic_ip_allocation_ids": [
+                            addr["AllocationId"]
+                            for addr in ngw.get("NatGatewayAddresses", [])
+                            if addr.get("AllocationId")
+                        ],
                     },
                 ))
 
