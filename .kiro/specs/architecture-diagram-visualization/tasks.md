@@ -242,7 +242,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert edges reroute to container node; total logical relationship count unchanged
     - **Validates: Requirements 8.9**
 
-  - [ ]* 9.4 Write unit tests for DiagramCanvas interactive behaviors (`frontend/src/components/DiagramCanvas.test.tsx`)
+  - [x] 9.4 Write unit tests for DiagramCanvas interactive behaviors (`frontend/src/components/DiagramCanvas.test.tsx`)
     - Test fit view on load
     - Test hover highlight/dim behavior
     - Test click emits selection event

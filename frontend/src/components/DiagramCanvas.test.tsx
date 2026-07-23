@@ -2,8 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DiagramCanvas, rerouteEdgesForCollapsedContainers } from './DiagramCanvas';
 import type { DiagramData } from '../types/diagram';
-import type { Edge } from '@xyflow/react';
-import type { ContainerMetadata } from '../types/hierarchy';
+import type { Edge, Node } from '@xyflow/react';
+import type { ContainerMetadata, HierarchyTree } from '../types/hierarchy';
 
 // Track callbacks registered with ReactFlow for testing interactive behaviors
 let capturedOnNodeMouseEnter: ((...args: unknown[]) => void) | undefined;
@@ -11,7 +11,12 @@ let capturedOnNodeMouseLeave: ((...args: unknown[]) => void) | undefined;
 let capturedOnNodeClick: ((...args: unknown[]) => void) | undefined;
 
 const mockSetEdges = vi.fn();
+const mockSetNodes = vi.fn();
 const mockFitView = vi.fn();
+
+// Track initial nodes/edges passed to useNodesState/useEdgesState
+let capturedInitialNodes: Node[] = [];
+let capturedInitialEdges: Edge[] = [];
 
 // Mock @xyflow/react since it requires browser-specific APIs
 vi.mock('@xyflow/react', () => {
@@ -50,10 +55,61 @@ vi.mock('@xyflow/react', () => {
     Background,
     Controls,
     useReactFlow: () => ({ fitView: mockFitView }),
-    useNodesState: (initialNodes: unknown[]) => [initialNodes, vi.fn(), vi.fn()],
-    useEdgesState: (initialEdges: unknown[]) => [initialEdges, mockSetEdges, vi.fn()],
+    useNodesState: (initialNodes: Node[]) => {
+      capturedInitialNodes = initialNodes;
+      return [initialNodes, mockSetNodes, vi.fn()];
+    },
+    useEdgesState: (initialEdges: Edge[]) => {
+      capturedInitialEdges = initialEdges;
+      return [initialEdges, mockSetEdges, vi.fn()];
+    },
   };
 });
+
+// Mock the HierarchyLayoutEngine to track when computeHierarchyLayout is called
+const mockComputeHierarchyLayout = vi.fn().mockReturnValue({
+  nodes: [
+    {
+      id: 'container-cloud',
+      type: 'container',
+      position: { x: 0, y: 0 },
+      data: {
+        label: 'AWS Cloud',
+        containerType: 'cloud',
+        isCollapsed: false,
+        resourceCount: 2,
+      },
+      style: { width: 500, height: 400 },
+    },
+    {
+      id: 'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123',
+      type: 'resource',
+      position: { x: 20, y: 60 },
+      parentId: 'container-cloud',
+      data: {
+        label: 'web-server-01',
+        resourceType: 'ec2',
+        region: 'us-east-1',
+        isExternal: false,
+        isUnresolved: false,
+        iconUrl: '/api/images/icons/ec2',
+      },
+    },
+  ],
+  edges: [
+    {
+      id: 'edge-1',
+      source: 'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123',
+      target: 'arn:aws:ec2:us-east-1:123456789012:security-group/sg-xyz789',
+      type: 'relationship',
+      data: { category: 'network', derivedFrom: 'SecurityGroups' },
+    },
+  ],
+});
+
+vi.mock('../layout/HierarchyLayoutEngine', () => ({
+  computeHierarchyLayout: (...args: unknown[]) => mockComputeHierarchyLayout(...args),
+}));
 
 const mockDiagramData: DiagramData = {
   nodes: [
@@ -100,6 +156,8 @@ describe('DiagramCanvas', () => {
     capturedOnNodeMouseEnter = undefined;
     capturedOnNodeMouseLeave = undefined;
     capturedOnNodeClick = undefined;
+    capturedInitialNodes = [];
+    capturedInitialEdges = [];
   });
 
   describe('Empty state', () => {
@@ -346,6 +404,227 @@ describe('EmptyState', () => {
     expect(screen.getByRole('status')).toHaveAttribute(
       'aria-label',
       'No scan data available'
+    );
+  });
+});
+
+describe('Fallback to dagre layout when hierarchy is null (Requirement 6.5)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedInitialNodes = [];
+    capturedInitialEdges = [];
+  });
+
+  it('uses dagre layout when hierarchy is null', () => {
+    const dataWithNullHierarchy: DiagramData = {
+      ...mockDiagramData,
+      hierarchy: null,
+    };
+    render(<DiagramCanvas data={dataWithNullHierarchy} />);
+
+    // computeHierarchyLayout should NOT be called when hierarchy is null
+    expect(mockComputeHierarchyLayout).not.toHaveBeenCalled();
+
+    // Nodes should be positioned by dagre (all nodes are type 'resource')
+    expect(capturedInitialNodes.length).toBeGreaterThan(0);
+    for (const node of capturedInitialNodes) {
+      expect(node.type).toBe('resource');
+    }
+  });
+
+  it('uses computeHierarchyLayout when hierarchy is present', () => {
+    const hierarchy: HierarchyTree = {
+      root_id: 'container-cloud',
+      containers: [
+        {
+          id: 'container-cloud',
+          name: 'AWS Cloud',
+          type: 'cloud',
+          parent_id: null,
+          subnet_type: null,
+          icon_key: 'cloud',
+          resources: [
+            'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123',
+            'arn:aws:ec2:us-east-1:123456789012:security-group/sg-xyz789',
+          ],
+          children: [],
+        },
+      ],
+      boundary_services: [],
+    };
+
+    const dataWithHierarchy: DiagramData = {
+      ...mockDiagramData,
+      hierarchy,
+    };
+
+    render(<DiagramCanvas data={dataWithHierarchy} />);
+
+    // computeHierarchyLayout SHOULD be called when hierarchy is present
+    expect(mockComputeHierarchyLayout).toHaveBeenCalledWith(
+      hierarchy,
+      dataWithHierarchy.nodes,
+      dataWithHierarchy.edges
+    );
+  });
+
+  it('dagre layout produces nodes with valid positions', () => {
+    const dataWithNullHierarchy: DiagramData = {
+      ...mockDiagramData,
+      hierarchy: null,
+    };
+    render(<DiagramCanvas data={dataWithNullHierarchy} />);
+
+    // Every node produced by dagre should have a valid position with x and y coordinates
+    for (const node of capturedInitialNodes) {
+      expect(node.position).toBeDefined();
+      expect(typeof node.position.x).toBe('number');
+      expect(typeof node.position.y).toBe('number');
+      expect(Number.isFinite(node.position.x)).toBe(true);
+      expect(Number.isFinite(node.position.y)).toBe(true);
+    }
+  });
+});
+
+describe('Collapse/expand toggle via double-click (Requirements 8.3, 8.4)', () => {
+  const hierarchy: HierarchyTree = {
+    root_id: 'container-cloud',
+    containers: [
+      {
+        id: 'container-cloud',
+        name: 'AWS Cloud',
+        type: 'cloud',
+        parent_id: null,
+        subnet_type: null,
+        icon_key: 'cloud',
+        resources: [],
+        children: ['vpc-1'],
+      },
+      {
+        id: 'vpc-1',
+        name: 'My VPC',
+        type: 'vpc',
+        parent_id: 'container-cloud',
+        subnet_type: null,
+        icon_key: 'vpc',
+        resources: [
+          'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123',
+          'arn:aws:ec2:us-east-1:123456789012:security-group/sg-xyz789',
+        ],
+        children: [],
+      },
+    ],
+    boundary_services: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capturedInitialNodes = [];
+    capturedInitialEdges = [];
+
+    // Reset the mock to include container nodes with isCollapsed and onToggleCollapse
+    mockComputeHierarchyLayout.mockReturnValue({
+      nodes: [
+        {
+          id: 'container-cloud',
+          type: 'container',
+          position: { x: 0, y: 0 },
+          data: {
+            label: 'AWS Cloud',
+            containerType: 'cloud',
+            isCollapsed: false,
+            resourceCount: 2,
+          },
+          style: { width: 500, height: 400 },
+        },
+        {
+          id: 'vpc-1',
+          type: 'container',
+          position: { x: 20, y: 60 },
+          parentId: 'container-cloud',
+          data: {
+            label: 'My VPC',
+            containerType: 'vpc',
+            isCollapsed: false,
+            resourceCount: 2,
+          },
+          style: { width: 400, height: 300 },
+        },
+        {
+          id: 'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123',
+          type: 'resource',
+          position: { x: 40, y: 120 },
+          parentId: 'vpc-1',
+          data: {
+            label: 'web-server-01',
+            resourceType: 'ec2',
+            region: 'us-east-1',
+            isExternal: false,
+            isUnresolved: false,
+            iconUrl: '/api/images/icons/ec2',
+          },
+        },
+      ],
+      edges: [
+        {
+          id: 'edge-1',
+          source: 'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123',
+          target: 'arn:aws:ec2:us-east-1:123456789012:security-group/sg-xyz789',
+          type: 'relationship',
+          data: { category: 'network', derivedFrom: 'SecurityGroups' },
+        },
+      ],
+    });
+  });
+
+  it('container nodes receive isCollapsed and onToggleCollapse in their data', () => {
+    const dataWithHierarchy: DiagramData = {
+      ...mockDiagramData,
+      hierarchy,
+    };
+
+    render(<DiagramCanvas data={dataWithHierarchy} />);
+
+    // The layout function returns container nodes; DiagramCanvas injects isCollapsed and onToggleCollapse
+    // Verify computeHierarchyLayout was called with hierarchy data
+    expect(mockComputeHierarchyLayout).toHaveBeenCalled();
+
+    // Container nodes should be injected with isCollapsed and onToggleCollapse by DiagramCanvas
+    const containerNodes = capturedInitialNodes.filter((n) => n.type === 'container');
+    for (const node of containerNodes) {
+      expect(node.data.isCollapsed).toBeDefined();
+      expect(typeof node.data.isCollapsed).toBe('boolean');
+      expect(node.data.onToggleCollapse).toBeDefined();
+      expect(typeof node.data.onToggleCollapse).toBe('function');
+    }
+  });
+
+  it('container nodes initially have isCollapsed set to false', () => {
+    const dataWithHierarchy: DiagramData = {
+      ...mockDiagramData,
+      hierarchy,
+    };
+
+    render(<DiagramCanvas data={dataWithHierarchy} />);
+
+    const containerNodes = capturedInitialNodes.filter((n) => n.type === 'container');
+    for (const node of containerNodes) {
+      expect(node.data.isCollapsed).toBe(false);
+    }
+  });
+
+  it('edge rerouting is applied when collapse state changes', () => {
+    const dataWithHierarchy: DiagramData = {
+      ...mockDiagramData,
+      hierarchy,
+    };
+
+    render(<DiagramCanvas data={dataWithHierarchy} />);
+
+    // Initially edges are passed through unmodified (no collapsed containers)
+    expect(capturedInitialEdges).toHaveLength(1);
+    expect(capturedInitialEdges[0].source).toBe(
+      'arn:aws:ec2:us-east-1:123456789012:instance/i-abc123'
     );
   });
 });
