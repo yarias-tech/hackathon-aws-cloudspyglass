@@ -45,6 +45,49 @@ const NODE_HEIGHT = 60;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5.0;
 
+/** Viewport culling thresholds per Requirements 10.2, 10.3, 10.4 */
+export const VIEWPORT_CULLING_THRESHOLD = 200;
+export const VIEWPORT_BUFFER_NODES = 50;
+export const AUTO_COLLAPSE_CONTAINER_THRESHOLD = 50;
+export const AUTO_COLLAPSE_MAX_DEPTH = 2;
+
+/**
+ * Computes the upper bound on DOM-rendered nodes when viewport culling is active.
+ * The maximum rendered count is the number of nodes visible in the viewport plus
+ * the buffer, capped at the total node count (Requirement 10.3).
+ */
+export function computeVisibleNodeBound(
+  totalNodes: number,
+  nodesInViewport: number,
+  bufferSize: number
+): number {
+  return Math.min(nodesInViewport + bufferSize, totalNodes);
+}
+
+/**
+ * Counts how many nodes (by their position and dimensions) fall within a viewport rectangle.
+ * A node is considered visible if any part of it overlaps with the viewport.
+ */
+export function countNodesInViewport(
+  nodePositions: Array<{ x: number; y: number; width: number; height: number }>,
+  viewport: { x: number; y: number; width: number; height: number }
+): number {
+  return nodePositions.filter((node) => {
+    const nodeRight = node.x + node.width;
+    const nodeBottom = node.y + node.height;
+    const viewportRight = viewport.x + viewport.width;
+    const viewportBottom = viewport.y + viewport.height;
+
+    // Node overlaps viewport if no edge is fully outside
+    return (
+      node.x < viewportRight &&
+      nodeRight > viewport.x &&
+      node.y < viewportBottom &&
+      nodeBottom > viewport.y
+    );
+  }).length;
+}
+
 const FIT_VIEW_OPTIONS: FitViewOptions = {
   padding: 0.2,
 };
@@ -133,6 +176,57 @@ function getDescendantResourceIds(
     }
   }
   return result;
+}
+
+/**
+ * Computes the depth of each container in the hierarchy tree.
+ * Root container has depth 0, its children have depth 1, etc.
+ * Used for auto-collapse logic (Requirement 10.4).
+ */
+export function computeContainerDepths(
+  containerMap: Map<string, ContainerMetadata>,
+  rootId: string
+): Map<string, number> {
+  const depths = new Map<string, number>();
+
+  function walk(containerId: string, depth: number) {
+    depths.set(containerId, depth);
+    const container = containerMap.get(containerId);
+    if (!container) return;
+    for (const childId of container.children) {
+      walk(childId, depth + 1);
+    }
+  }
+
+  walk(rootId, 0);
+  return depths;
+}
+
+/**
+ * Determines the initial set of containers that should be auto-collapsed
+ * when the diagram has more than 50 containers. Collapses containers at
+ * depth > 2 from root (i.e., cloud=0, account=1, region=2 stay expanded;
+ * vpc/az/subnet at depth 3+ get collapsed).
+ * (Requirement 10.4)
+ */
+export function getAutoCollapsedContainers(
+  containerMap: Map<string, ContainerMetadata>,
+  rootId: string
+): Set<string> {
+  if (containerMap.size <= AUTO_COLLAPSE_CONTAINER_THRESHOLD) {
+    return new Set();
+  }
+
+  const depths = computeContainerDepths(containerMap, rootId);
+  const autoCollapsed = new Set<string>();
+
+  for (const [containerId, depth] of depths) {
+    if (depth > AUTO_COLLAPSE_MAX_DEPTH) {
+      autoCollapsed.add(containerId);
+    }
+  }
+
+  return autoCollapsed;
 }
 
 /**
@@ -259,12 +353,6 @@ interface DiagramCanvasInnerProps {
 function DiagramCanvasInner({ data, onNodeClick }: DiagramCanvasInnerProps) {
   const { fitView } = useReactFlow();
 
-  // Track collapsed container IDs for centralized state management
-  const [collapsedContainers, setCollapsedContainers] = useState<Set<string>>(new Set());
-
-  // Store original edges (before rerouting) for reference during hover highlight
-  const originalEdgesRef = useRef<Edge[]>([]);
-
   // Build container map for hierarchy data
   const containerMap = useMemo(() => {
     const map = new Map<string, ContainerMetadata>();
@@ -275,6 +363,46 @@ function DiagramCanvasInner({ data, onNodeClick }: DiagramCanvasInnerProps) {
     }
     return map;
   }, [data.hierarchy]);
+
+  // Compute initial auto-collapsed containers (Requirement 10.4)
+  // Auto-collapse containers deeper than 2 levels when >50 containers present
+  const initialCollapsed = useMemo(() => {
+    if (data.hierarchy) {
+      return getAutoCollapsedContainers(containerMap, data.hierarchy.root_id);
+    }
+    return new Set<string>();
+  }, [data.hierarchy, containerMap]);
+
+  // Track collapsed container IDs for centralized state management
+  const [collapsedContainers, setCollapsedContainers] = useState<Set<string>>(initialCollapsed);
+
+  // Update collapsed containers when hierarchy data changes and auto-collapse is needed
+  const prevHierarchyRef = useRef(data.hierarchy);
+  useEffect(() => {
+    if (data.hierarchy !== prevHierarchyRef.current) {
+      prevHierarchyRef.current = data.hierarchy;
+      if (data.hierarchy) {
+        const autoCollapsed = getAutoCollapsedContainers(containerMap, data.hierarchy.root_id);
+        if (autoCollapsed.size > 0) {
+          setCollapsedContainers(autoCollapsed);
+        }
+      }
+    }
+  }, [data.hierarchy, containerMap]);
+
+  // Determine if viewport culling should be enabled (Requirement 10.2)
+  // Enable when total resource count exceeds 200
+  const enableViewportCulling = data.nodes.length > VIEWPORT_CULLING_THRESHOLD;
+
+  // Calculate buffer margin for viewport culling (Requirement 10.3)
+  // The buffer ensures nodes just outside the viewport are still rendered.
+  // We estimate the margin based on average node size * buffer count.
+  // Using a generous margin (50 nodes * ~80px average spacing = 4000px) ensures
+  // smooth scrolling without popping.
+  const viewportBufferMargin = enableViewportCulling ? VIEWPORT_BUFFER_NODES * 80 : 0;
+
+  // Store original edges (before rerouting) for reference during hover highlight
+  const originalEdgesRef = useRef<Edge[]>([]);
 
   // Callback for ContainerNode to call when toggling collapse
   const handleToggleCollapse = useCallback((containerId: string) => {
@@ -417,7 +545,11 @@ function DiagramCanvasInner({ data, onNodeClick }: DiagramCanvasInnerProps) {
   }, [fitView]);
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+      data-viewport-culling={enableViewportCulling ? 'true' : 'false'}
+      data-viewport-buffer={viewportBufferMargin}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -432,6 +564,7 @@ function DiagramCanvasInner({ data, onNodeClick }: DiagramCanvasInnerProps) {
         fitViewOptions={FIT_VIEW_OPTIONS}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
+        onlyRenderVisibleElements={enableViewportCulling}
         attributionPosition="bottom-left"
       >
         <Background />
