@@ -87,13 +87,75 @@ describe('ResourceNode', () => {
     });
   });
 
-  describe('Placeholder icon on failure (Requirement 5.9)', () => {
+  describe('Icon rendering at 48x48 (Requirement 2.2)', () => {
+    it('renders icon with width and height of 48', () => {
+      render(<ResourceNode {...(baseProps as any)} />);
+      const img = screen.getByAltText('ec2 icon');
+      expect(img).toHaveAttribute('width', '48');
+      expect(img).toHaveAttribute('height', '48');
+    });
+
+    it('renders icon inside a centered icon container above the label', () => {
+      const { container } = render(<ResourceNode {...(baseProps as any)} />);
+      const node = container.querySelector('.resource-node');
+      const icon = container.querySelector('.resource-node__icon');
+      const info = container.querySelector('.resource-node__info');
+      // Icon should appear before info in DOM order (above in vertical layout)
+      expect(node?.children[0]).toBe(icon);
+      expect(node?.children[1]).toBe(info);
+    });
+  });
+
+  describe('Placeholder icon when no mapping exists (Requirement 2.3)', () => {
+    it('shows placeholder when iconUrl is empty string', () => {
+      const noIconProps = {
+        ...baseProps,
+        data: { ...baseProps.data, iconUrl: '' },
+      };
+      render(<ResourceNode {...(noIconProps as any)} />);
+      const placeholder = screen.getByLabelText('ec2 icon placeholder');
+      expect(placeholder).toBeInTheDocument();
+      expect(placeholder).toHaveTextContent('?');
+    });
+
+    it('shows placeholder when iconUrl is undefined', () => {
+      const noIconProps = {
+        ...baseProps,
+        data: { ...baseProps.data, iconUrl: undefined },
+      };
+      render(<ResourceNode {...(noIconProps as any)} />);
+      const placeholder = screen.getByLabelText('ec2 icon placeholder');
+      expect(placeholder).toBeInTheDocument();
+      expect(placeholder).toHaveTextContent('?');
+    });
+
+    it('placeholder is a 48x48 gray square with "?" symbol', () => {
+      const noIconProps = {
+        ...baseProps,
+        data: { ...baseProps.data, iconUrl: '' },
+      };
+      const { container } = render(<ResourceNode {...(noIconProps as any)} />);
+      const placeholder = container.querySelector('.resource-node__icon--placeholder');
+      expect(placeholder).toBeInTheDocument();
+      expect(placeholder).toHaveTextContent('?');
+    });
+  });
+
+  describe('Placeholder icon on load failure (Requirement 2.6)', () => {
     it('shows placeholder icon when image fails to load', () => {
       render(<ResourceNode {...(baseProps as any)} />);
       const img = screen.getByAltText('ec2 icon');
       fireEvent.error(img);
       expect(screen.getByLabelText('ec2 icon placeholder')).toBeInTheDocument();
       expect(screen.queryByAltText('ec2 icon')).not.toBeInTheDocument();
+    });
+
+    it('placeholder displays "?" symbol on load failure', () => {
+      render(<ResourceNode {...(baseProps as any)} />);
+      const img = screen.getByAltText('ec2 icon');
+      fireEvent.error(img);
+      const placeholder = screen.getByLabelText('ec2 icon placeholder');
+      expect(placeholder).toHaveTextContent('?');
     });
   });
 

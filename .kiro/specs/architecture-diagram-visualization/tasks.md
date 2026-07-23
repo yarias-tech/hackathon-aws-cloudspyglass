@@ -187,32 +187,32 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
 - [x] 7. Checkpoint - Components complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Edge rendering and resource node updates
-  - [ ] 8.1 Update edge rendering with category-based styling (`frontend/src/components/RelationshipEdge.tsx`)
+- [x] 8. Edge rendering and resource node updates
+  - [x] 8.1 Update edge rendering with category-based styling (`frontend/src/components/RelationshipEdge.tsx`)
     - Apply color and line style based on relationship category (network→blue/solid, iam→red/dashed, event→orange/dotted, data→purple/solid, other→gray/solid)
     - Implement label truncation (40 chars + ellipsis)
     - Implement hover behavior: increase stroke to 3px, show tooltip with derived_from or category+names
     - Route edges around container boundaries
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 9.3_
 
-  - [ ] 8.2 Update ResourceNode rendering (`frontend/src/components/ResourceNode.tsx`)
+  - [x] 8.2 Update ResourceNode rendering (`frontend/src/components/ResourceNode.tsx`)
     - Render AWS icon at 48x48 centered above resource name label
     - Fall back to generic placeholder icon (gray square with "?") on load failure
     - _Requirements: 2.2, 2.3, 2.6_
 
-  - [ ]* 8.3 Write property test: Edge Category-to-Style Mapping (`frontend/src/components/RelationshipEdge.property.test.ts`)
+  - [x] 8.3 Write property test: Edge Category-to-Style Mapping (`frontend/src/components/RelationshipEdge.property.test.ts`)
     - **Property 7: Edge Category-to-Style Mapping**
     - Generate edges with all category values (network, iam, event, data, unknown)
     - Assert rendered style matches category deterministically
     - **Validates: Requirements 4.2, 4.3, 4.4, 4.5, 4.9**
 
-  - [ ]* 8.4 Write property test: Edge Label Truncation (`frontend/src/components/RelationshipEdge.property.test.ts`)
+  - [x] 8.4 Write property test: Edge Label Truncation (`frontend/src/components/RelationshipEdge.property.test.ts`)
     - **Property 8: Edge Label Truncation**
     - Generate edge labels of varying lengths (0 to 200 chars)
     - Assert labels >40 chars display first 40 + "…"; labels ≤40 chars display unmodified
     - **Validates: Requirements 4.6**
 
-  - [ ]* 8.5 Write property test: Edge Count Matches Relationships (`frontend/src/components/RelationshipEdge.property.test.ts`)
+  - [x] 8.5 Write property test: Edge Count Matches Relationships (`frontend/src/components/RelationshipEdge.property.test.ts`)
     - **Property 9: Edge Count Matches Relationships**
     - Generate relationship sets of varying sizes
     - Assert rendered edge count equals relationship count with matching source/target
