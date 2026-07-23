@@ -206,7 +206,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert rendered style matches category deterministically
     - **Validates: Requirements 4.2, 4.3, 4.4, 4.5, 4.9**
 
-  - [ ]* 8.4 Write property test: Edge Label Truncation (`frontend/src/components/RelationshipEdge.property.test.ts`)
+  - [x] 8.4 Write property test: Edge Label Truncation (`frontend/src/components/RelationshipEdge.property.test.ts`)
     - **Property 8: Edge Label Truncation**
     - Generate edge labels of varying lengths (0 to 200 chars)
     - Assert labels >40 chars display first 40 + "…"; labels ≤40 chars display unmodified
