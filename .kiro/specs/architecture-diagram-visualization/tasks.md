@@ -226,7 +226,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Fall back to dagre layout when `hierarchy` is null (backward compat)
     - _Requirements: 1.1, 6.5_
 
-  - [ ] 9.2 Implement interactive behaviors in DiagramCanvas
+  - [x] 9.2 Implement interactive behaviors in DiagramCanvas
     - Pan and zoom with range 0.1x to 5.0x
     - Fit view on initial load (all nodes visible in viewport)
     - "Fit view" button to reset viewport

@@ -10,6 +10,8 @@ export interface ContainerNodeData {
   iconUrl: string;
   isCollapsed: boolean;
   resourceCount: number;
+  /** Callback from DiagramCanvas to toggle collapse state centrally (Requirement 8.9) */
+  onToggleCollapse?: (containerId: string) => void;
   [key: string]: unknown;
 }
 
@@ -37,23 +39,27 @@ function getContainerStyleClass(
  * - Supports collapsed state: shows only header + resource count badge
  * - Double-click toggles collapse/expand (Requirement 8.3)
  * - Resource count badge shows total recursive resource count (Requirement 8.4)
+ * - Collapse state is managed by parent DiagramCanvas for edge rerouting (Requirement 8.9)
  */
-export const ContainerNode = memo(function ContainerNode({ data }: NodeProps) {
+export const ContainerNode = memo(function ContainerNode({ id, data }: NodeProps) {
   const {
     label,
     containerType,
     subnetType,
     iconUrl,
-    isCollapsed: initialCollapsed,
+    isCollapsed,
     resourceCount,
+    onToggleCollapse,
   } = data as unknown as ContainerNodeData;
 
-  const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
   const [iconError, setIconError] = useState(false);
 
   const handleDoubleClick = useCallback(() => {
-    setIsCollapsed((prev) => !prev);
-  }, []);
+    if (onToggleCollapse) {
+      // Delegate collapse to parent DiagramCanvas (centralized state for edge rerouting)
+      onToggleCollapse(id);
+    }
+  }, [onToggleCollapse, id]);
 
   const handleIconError = useCallback(() => {
     setIconError(true);
