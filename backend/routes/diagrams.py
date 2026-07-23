@@ -48,6 +48,10 @@ async def get_filtered_diagram(
         default=None,
         description="Comma-separated list of resource types to include",
     ),
+    tag_filter_operator: str = Query(
+        default="AND",
+        description='Logic operator for tag filters: "AND" (match all) or "OR" (match any)',
+    ),
 ) -> FilteredResult:
     """Return filtered diagram data based on tag and/or type criteria.
 
@@ -113,6 +117,7 @@ async def get_filtered_diagram(
         scan_result,
         tag_filters=parsed_tag_filters if parsed_tag_filters else None,
         type_filters=parsed_type_filters if parsed_type_filters else None,
+        tag_filter_operator=tag_filter_operator.upper() if tag_filter_operator else "AND",
     )
 
 

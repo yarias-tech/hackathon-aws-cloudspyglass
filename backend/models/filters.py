@@ -1,5 +1,8 @@
 """Pydantic models for tag and resource-type filtering."""
 
+from enum import Enum
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from .diagram import DiagramData
@@ -17,6 +20,7 @@ class FilterCriteria(BaseModel):
 
     tag_filters: list[TagFilter] = Field(default_factory=list, max_length=10)
     type_filters: list[str] = []
+    tag_filter_operator: Literal["AND", "OR"] = "AND"
 
 
 class FilteredResult(BaseModel):

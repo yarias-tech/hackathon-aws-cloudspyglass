@@ -8,6 +8,7 @@ export interface TagFilter {
 export interface FilterCriteria {
   tag_filters: TagFilter[];
   type_filters: string[];
+  tag_filter_operator: "AND" | "OR";
 }
 
 export interface FilteredResult {
