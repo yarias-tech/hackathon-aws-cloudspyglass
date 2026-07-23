@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { DiagramData } from '../types/diagram';
 import type { FilterCriteria, TagFilter } from '../types/filters';
 import { TagFilterInput } from './TagFilterInput';
@@ -17,10 +17,76 @@ interface FilterBarProps {
   totalCount: number;
 }
 
+/** Reusable collapsible section header */
+function SectionHeader({
+  label,
+  collapsed,
+  onToggle,
+  badge,
+}: {
+  label: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  badge?: number;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        padding: '0.4rem 0',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
+      onClick={onToggle}
+      role="button"
+      tabIndex={0}
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+    >
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>
+        {label}
+      </span>
+      <span
+        style={{
+          display: 'inline-block',
+          fontSize: '0.6rem',
+          transition: 'transform 0.2s ease',
+          transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+          color: '#6b7280',
+        }}
+      >
+        ▼
+      </span>
+      {collapsed && badge !== undefined && badge > 0 && (
+        <span
+          style={{
+            fontSize: '0.6rem',
+            backgroundColor: '#2563eb',
+            color: '#fff',
+            borderRadius: '9999px',
+            padding: '0.05rem 0.35rem',
+            fontWeight: 600,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /**
  * FilterBar orchestrates tag and resource-type filter controls.
  *
- * - Combines TagFilterInput and TypeFilterSelect components
+ * - Two independently collapsible sections: Tag Filters and Resource Types
  * - Provides AND/OR operator toggle for tag filters
  * - Displays filtered count vs total count when filters are active (Requirement 7.4)
  * - Shows empty state message when no resources match filters (Requirement 7.5)
@@ -33,6 +99,9 @@ export function FilterBar({
   filteredCount,
   totalCount,
 }: FilterBarProps) {
+  const [tagsCollapsed, setTagsCollapsed] = useState(false);
+  const [typesCollapsed, setTypesCollapsed] = useState(false);
+
   const handleTagFiltersChange = useCallback(
     (tagFilters: TagFilter[]) => {
       onFiltersChange({
@@ -71,21 +140,17 @@ export function FilterBar({
     <div
       className="filter-bar"
       style={{
-        padding: '0.75rem',
         borderBottom: '1px solid #e5e7eb',
         backgroundColor: '#fafafa',
+        padding: '0.5rem 0.75rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.75rem',
+        gap: '0.25rem',
       }}
     >
-      {/* Filter status bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827' }}>
-          Filters
-        </span>
+      {/* Top bar with count and clear */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Filtered count display (Requirement 7.4) */}
           {hasActiveFilters && filteredCount !== null && (
             <span
               aria-label="Filter results count"
@@ -114,47 +179,65 @@ export function FilterBar({
         </div>
       </div>
 
-      {/* Tag filters */}
-      <TagFilterInput
-        filters={filters.tag_filters}
-        onFiltersChange={handleTagFiltersChange}
+      {/* --- Tag Filters section --- */}
+      <SectionHeader
+        label="Tag Filters"
+        collapsed={tagsCollapsed}
+        onToggle={() => setTagsCollapsed((p) => !p)}
+        badge={filters.tag_filters.length}
       />
-
-      {/* Tag filter operator toggle — only show when multiple tag filters exist */}
-      {filters.tag_filters.length > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Tag logic:</span>
-          <button
-            type="button"
-            onClick={handleOperatorToggle}
-            aria-label={`Tag filter operator: ${filters.tag_filter_operator}. Click to switch.`}
-            style={{
-              padding: '0.2rem 0.5rem',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              border: '1px solid #d1d5db',
-              borderRadius: '0.25rem',
-              cursor: 'pointer',
-              backgroundColor: filters.tag_filter_operator === 'AND' ? '#dbeafe' : '#fef3c7',
-              color: filters.tag_filter_operator === 'AND' ? '#1e40af' : '#92400e',
-            }}
-          >
-            {filters.tag_filter_operator}
-          </button>
-          <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
-            {filters.tag_filter_operator === 'AND'
-              ? 'Resource must match all tags'
-              : 'Resource must match any tag'}
-          </span>
+      {!tagsCollapsed && (
+        <div style={{ paddingLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <TagFilterInput
+            filters={filters.tag_filters}
+            onFiltersChange={handleTagFiltersChange}
+          />
+          {filters.tag_filters.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Tag logic:</span>
+              <button
+                type="button"
+                onClick={handleOperatorToggle}
+                aria-label={`Tag filter operator: ${filters.tag_filter_operator}. Click to switch.`}
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.25rem',
+                  cursor: 'pointer',
+                  backgroundColor: filters.tag_filter_operator === 'AND' ? '#dbeafe' : '#fef3c7',
+                  color: filters.tag_filter_operator === 'AND' ? '#1e40af' : '#92400e',
+                }}
+              >
+                {filters.tag_filter_operator}
+              </button>
+              <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
+                {filters.tag_filter_operator === 'AND'
+                  ? 'Resource must match all tags'
+                  : 'Resource must match any tag'}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Type filters */}
-      <TypeFilterSelect
-        diagramData={diagramData}
-        selectedTypes={filters.type_filters}
-        onTypesChange={handleTypeFiltersChange}
+      {/* --- Resource Types section --- */}
+      <SectionHeader
+        label="Resource Types"
+        collapsed={typesCollapsed}
+        onToggle={() => setTypesCollapsed((p) => !p)}
+        badge={filters.type_filters.length}
       />
+      {!typesCollapsed && (
+        <div style={{ paddingLeft: '1rem' }}>
+          <TypeFilterSelect
+            diagramData={diagramData}
+            selectedTypes={filters.type_filters}
+            onTypesChange={handleTypeFiltersChange}
+          />
+        </div>
+      )}
 
       {/* Empty state message (Requirement 7.5) */}
       {hasActiveFilters && filteredCount === 0 && (
@@ -168,6 +251,7 @@ export function FilterBar({
             textAlign: 'center',
             fontSize: '0.8rem',
             color: '#92400e',
+            marginTop: '0.5rem',
           }}
         >
           No resources match the current filters
