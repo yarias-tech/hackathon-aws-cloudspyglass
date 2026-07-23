@@ -1,0 +1,145 @@
+.container-node {
+  position: relative;
+  border-radius: 4px;
+  min-width: 100px;
+  min-height: 60px;
+  width: 100%;
+  height: 100%;
+}
+
+/* Header bar */
+.container-node__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  user-select: none;
+}
+
+.container-node__icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container-node__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.container-node__icon--placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.container-node__label {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.container-node__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: #6b7280;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Container type styles */
+
+/* AWS Cloud: 2px dashed #232F3E, background rgba(240, 240, 240, 0.5) */
+.container-node--cloud {
+  border: 2px dashed #232F3E;
+  background: rgba(240, 240, 240, 0.5);
+}
+
+.container-node--cloud .container-node__label {
+  color: #232F3E;
+}
+
+/* Account: 2px dashed #DF3312, transparent background */
+.container-node--account {
+  border: 2px dashed #DF3312;
+  background: transparent;
+}
+
+.container-node--account .container-node__label {
+  color: #DF3312;
+}
+
+/* Region: 2px dashed #147EB4, background rgba(20, 126, 180, 0.05) */
+.container-node--region {
+  border: 2px dashed #147EB4;
+  background: rgba(20, 126, 180, 0.05);
+}
+
+.container-node--region .container-node__label {
+  color: #147EB4;
+}
+
+/* VPC: 2px solid #1B660F, background rgba(27, 102, 15, 0.05) */
+.container-node--vpc {
+  border: 2px solid #1B660F;
+  background: rgba(27, 102, 15, 0.05);
+}
+
+.container-node--vpc .container-node__label {
+  color: #1B660F;
+}
+
+/* AZ: 1px dashed #5A6B7B, transparent background */
+.container-node--az {
+  border: 1px dashed #5A6B7B;
+  background: transparent;
+}
+
+.container-node--az .container-node__label {
+  color: #5A6B7B;
+}
+
+/* Public Subnet: 2px solid #1B660F, background rgba(27, 102, 15, 0.15) */
+.container-node--subnet-public {
+  border: 2px solid #1B660F;
+  background: rgba(27, 102, 15, 0.15);
+}
+
+.container-node--subnet-public .container-node__label {
+  color: #1B660F;
+}
+
+/* Private Subnet: 2px solid #147EB4, background rgba(20, 126, 180, 0.15) */
+.container-node--subnet-private {
+  border: 2px solid #147EB4;
+  background: rgba(20, 126, 180, 0.15);
+}
+
+.container-node--subnet-private .container-node__label {
+  color: #147EB4;
+}
+
+/* Collapsed state */
+.container-node--collapsed {
+  min-height: auto;
+}

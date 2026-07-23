@@ -27,6 +27,9 @@ function buildFilterParams(filters: FilterCriteria): string {
   if (filters.type_filters.length > 0) {
     params.set('type_filters', JSON.stringify(filters.type_filters));
   }
+  if (filters.tag_filter_operator && filters.tag_filter_operator !== 'AND') {
+    params.set('tag_filter_operator', filters.tag_filter_operator);
+  }
   return params.toString();
 }
 
@@ -59,6 +62,7 @@ export function DiagramPage() {
   const [filters, setFilters] = useState<FilterCriteria>({
     tag_filters: [],
     type_filters: [],
+    tag_filter_operator: 'AND',
   });
   const [filteredCount, setFilteredCount] = useState<number | null>(null);
 

@@ -257,7 +257,7 @@ class RelationshipResolver:
                         derived_from="AvailabilityZones[].SubnetId",
                     ))
 
-                # ALB/NLB → Targets
+                # ALB/NLB → Targets (EC2 instances, Lambda functions)
                 target_arns = attrs.get("target_arns", [])
                 for target_arn in target_arns:
                     relationships.append(Relationship(
@@ -265,6 +265,17 @@ class RelationshipResolver:
                         target_arn=target_arn,
                         category="network",
                         derived_from="TargetGroups[].Targets[]",
+                    ))
+
+                # ALB/NLB → S3 (access logs bucket)
+                access_logs_bucket = attrs.get("access_logs_bucket")
+                if access_logs_bucket:
+                    bucket_arn = f"arn:aws:s3:::{access_logs_bucket}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=bucket_arn,
+                        category="data",
+                        derived_from="AccessLogs.S3Bucket",
                     ))
 
             elif resource.resource_type == "nat_gateway":
@@ -288,6 +299,16 @@ class RelationshipResolver:
                         target_arn=subnet_arn,
                         category="network",
                         derived_from="SubnetId",
+                    ))
+
+                # NAT Gateway → Elastic IPs
+                for alloc_id in attrs.get("elastic_ip_allocation_ids", []):
+                    eip_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:elastic-ip/{alloc_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=eip_arn,
+                        category="network",
+                        derived_from="NatGatewayAddresses[].AllocationId",
                     ))
 
             elif resource.resource_type == "vpn_gateway":
@@ -332,6 +353,16 @@ class RelationshipResolver:
                         target_arn=sg_arn,
                         category="network",
                         derived_from="resourcesVpcConfig.securityGroupIds[]",
+                    ))
+
+            elif resource.resource_type == "ecs":
+                # ECS → ALB/NLB (services with load balancer configuration)
+                for lb_arn in attrs.get("load_balancer_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=lb_arn,
+                        category="network",
+                        derived_from="Services[].LoadBalancers[].TargetGroupArn",
                     ))
 
             elif resource.resource_type == "elasticache":
@@ -432,13 +463,106 @@ class RelationshipResolver:
                         derived_from="Origins[].DomainName",
                     ))
 
-                # CloudFront → ALB (origin load balancers)
-                for origin_arn in attrs.get("origin_lb_arns", []):
+                # CloudFront → ALB/NLB (origin load balancers by DNS name)
+                for origin_dns in attrs.get("origin_lb_arns", []):
+                    # Resolve DNS name to a load balancer ARN in our index
+                    resolved_arn = self._resolve_lb_by_dns(origin_dns)
+                    if resolved_arn:
+                        relationships.append(Relationship(
+                            source_arn=resource.arn,
+                            target_arn=resolved_arn,
+                            category="network",
+                            derived_from="Origins[].DomainName",
+                        ))
+
+                # CloudFront → S3 (logging bucket)
+                logging_bucket = attrs.get("logging_bucket")
+                if logging_bucket:
+                    bucket_arn = f"arn:aws:s3:::{logging_bucket}"
                     relationships.append(Relationship(
                         source_arn=resource.arn,
-                        target_arn=origin_arn,
+                        target_arn=bucket_arn,
+                        category="data",
+                        derived_from="Logging.Bucket",
+                    ))
+
+            elif resource.resource_type == "route53":
+                # Route53 → ALB/NLB/CloudFront/S3 (alias targets by DNS name)
+                for alias_dns in attrs.get("alias_targets", []):
+                    resolved_arn = self._resolve_by_dns(alias_dns)
+                    if resolved_arn:
+                        relationships.append(Relationship(
+                            source_arn=resource.arn,
+                            target_arn=resolved_arn,
+                            category="network",
+                            derived_from="AliasTarget.DNSName",
+                        ))
+
+            elif resource.resource_type == "asg":
+                # ASG → EC2 instances
+                for instance_id in attrs.get("instance_ids", []):
+                    instance_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:instance/{instance_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=instance_arn,
                         category="network",
-                        derived_from="Origins[].DomainName",
+                        derived_from="Instances[].InstanceId",
+                    ))
+
+                # ASG → Target Groups
+                for tg_arn in attrs.get("target_group_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=tg_arn,
+                        category="network",
+                        derived_from="TargetGroupARNs[]",
+                    ))
+
+                # ASG → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="network",
+                        derived_from="VPCZoneIdentifier",
+                    ))
+
+            elif resource.resource_type == "target_group":
+                # Target Group → ALB/NLB (load balancers it's attached to)
+                for lb_arn in attrs.get("load_balancer_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=lb_arn,
+                        category="network",
+                        derived_from="LoadBalancerArns[]",
+                    ))
+
+                # Target Group → EC2 instances / Lambda (registered targets)
+                target_type = attrs.get("target_type", "instance")
+                for target_id in attrs.get("target_ids", []):
+                    if target_type == "instance":
+                        target_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:instance/{target_id}"
+                    elif target_type == "lambda":
+                        target_arn = target_id  # Already an ARN
+                    else:
+                        continue  # Skip IP targets
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="network",
+                        derived_from="Targets[].Id",
+                    ))
+
+                # Target Group → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcId",
                     ))
 
         return relationships
@@ -780,6 +904,58 @@ class RelationshipResolver:
 
         return False
 
+    def _resolve_lb_by_dns(self, dns_name: str) -> str | None:
+        """Resolve a load balancer DNS name to its ARN from the scan index.
+
+        Args:
+            dns_name: ELB DNS name (e.g., 'my-lb-123456.us-east-1.elb.amazonaws.com')
+
+        Returns:
+            The ARN of the matching load balancer, or None if not found.
+        """
+        dns_lower = dns_name.lower().rstrip(".")
+        for arn, resource in self._arn_index.items():
+            if resource.resource_type in ("alb", "nlb"):
+                res_dns = resource.attributes.get("dns_name", "")
+                if res_dns and res_dns.lower().rstrip(".") == dns_lower:
+                    return arn
+        return None
+
+    def _resolve_by_dns(self, dns_name: str) -> str | None:
+        """Resolve a DNS name to the ARN of a matching resource in the scan index.
+
+        Handles ALB/NLB DNS names, CloudFront domain names, and S3 website endpoints.
+
+        Args:
+            dns_name: DNS name to resolve.
+
+        Returns:
+            The ARN of the matching resource, or None if not found.
+        """
+        dns_lower = dns_name.lower().rstrip(".")
+
+        # Try load balancers first
+        lb_arn = self._resolve_lb_by_dns(dns_name)
+        if lb_arn:
+            return lb_arn
+
+        # Try CloudFront distributions
+        for arn, resource in self._arn_index.items():
+            if resource.resource_type == "cloudfront":
+                cf_domain = resource.attributes.get("domain_name", "")
+                if cf_domain and cf_domain.lower().rstrip(".") == dns_lower:
+                    return arn
+
+        # Try S3 website endpoints: <bucket>.s3-website-<region>.amazonaws.com
+        # or <bucket>.s3.amazonaws.com
+        if ".s3" in dns_lower and ".amazonaws.com" in dns_lower:
+            bucket_name = dns_lower.split(".s3")[0]
+            bucket_arn = f"arn:aws:s3:::{bucket_name}"
+            if bucket_arn in self._arn_index:
+                return bucket_arn
+
+        return None
+
     def _collect_unresolved_targets(
         self, relationships: list[Relationship]
     ) -> list[Resource]:
@@ -844,6 +1020,8 @@ class RelationshipResolver:
             "sns": "sns",
             "sqs": "sqs",
             "dynamodb": "dynamodb",
+            "autoscaling": "asg",
+            "elasticache": "elasticache",
         }
 
         # Parse service from ARN: arn:aws:SERVICE:region:account:...
@@ -854,6 +1032,8 @@ class RelationshipResolver:
             if service == "elasticloadbalancing":
                 if "loadbalancer/net/" in arn:
                     return "nlb"
+                if "targetgroup/" in arn:
+                    return "target_group"
                 return "alb"
             # Refine EC2 subtypes
             if service == "ec2":
@@ -863,6 +1043,10 @@ class RelationshipResolver:
                     return "vpc"
                 if "subnet/" in arn:
                     return "subnet"
+                if "elastic-ip/" in arn:
+                    return "elastic_ip"
+                if "natgateway/" in arn:
+                    return "nat_gateway"
                 return "ec2"
             return type_mapping.get(service, "unknown")
 

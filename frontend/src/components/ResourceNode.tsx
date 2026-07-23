@@ -16,10 +16,11 @@ export interface ResourceNodeData {
 /**
  * ResourceNode renders an AWS resource as a custom React Flow node.
  *
- * - Displays the official AWS SVG icon loaded from /api/images/icons/{service_type}
- * - Shows the resource name and type
+ * - Displays the official AWS SVG icon at 48x48 centered above the resource name
+ * - Shows the resource name and type below the icon
  * - Uses a dashed border for external components (Requirement 5.6)
- * - Falls back to a placeholder icon on load failure (Requirement 5.9)
+ * - Falls back to a generic placeholder icon (gray square with "?") on load failure (Requirement 2.6)
+ * - Shows placeholder when no icon mapping exists (Requirement 2.3)
  */
 export const ResourceNode = memo(function ResourceNode({
   data,
@@ -41,22 +42,26 @@ export const ResourceNode = memo(function ResourceNode({
     .filter(Boolean)
     .join(' ');
 
+  const showPlaceholder = iconError || !iconUrl;
+
   return (
     <>
       <Handle type="target" position={Position.Top} />
       <div className={classNames}>
         <div className="resource-node__icon">
-          {iconError ? (
+          {showPlaceholder ? (
             <div
               className="resource-node__icon--placeholder"
               aria-label={`${resourceType} icon placeholder`}
             >
-              ☁
+              ?
             </div>
           ) : (
             <img
               src={iconUrl}
               alt={`${resourceType} icon`}
+              width={48}
+              height={48}
               onError={handleIconError}
             />
           )}

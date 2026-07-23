@@ -36,3 +36,13 @@ export type {
 } from "./settings";
 
 export type { ErrorResponse } from "./errors";
+
+export type {
+  ContainerType,
+  SubnetType,
+  BoundaryType,
+  EdgePosition,
+  ContainerMetadata,
+  BoundaryServicePlacement,
+  HierarchyTree,
+} from "./hierarchy";
