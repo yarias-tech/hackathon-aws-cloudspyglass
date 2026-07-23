@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -106,6 +106,10 @@ function applyDagreLayout(
 
 interface DiagramCanvasProps {
   data: DiagramData | null;
+  /** Whether filters are currently active — affects empty state messaging */
+  isFiltered?: boolean;
+  /** Callback when a node is clicked — receives the node ID (resource ARN) */
+  onNodeClick?: (nodeId: string) => void;
 }
 
 /**
@@ -114,7 +118,7 @@ interface DiagramCanvasProps {
  * - Supports pan and zoom within 0.25x to 4.0x range, fitView on load (Requirement 5.5)
  * - Shows EmptyState when no scan data exists (Requirement 5.7)
  */
-export function DiagramCanvas({ data }: DiagramCanvasProps) {
+export function DiagramCanvas({ data, isFiltered = false, onNodeClick }: DiagramCanvasProps) {
   const hasData = data !== null && data.nodes.length > 0;
 
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
@@ -125,15 +129,53 @@ export function DiagramCanvas({ data }: DiagramCanvasProps) {
     [data, hasData]
   );
 
-  const [nodes, , onNodesChange] = useNodesState(layoutNodes);
-  const [edges, , onEdgesChange] = useEdgesState(layoutEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(layoutNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(layoutEdges);
+
+  // Sync nodes/edges when layout data changes (e.g. after filter or scan)
+  useEffect(() => {
+    setNodes(layoutNodes);
+    setEdges(layoutEdges);
+  }, [layoutNodes, layoutEdges, setNodes, setEdges]);
 
   const onInit = useCallback(() => {
     // fitView is handled declaratively via the fitView prop
   }, []);
 
+  const handleNodeClick = useCallback((_event: unknown, node: Node) => {
+    if (onNodeClick) {
+      onNodeClick(node.id);
+    }
+  }, [onNodeClick]);
+
   // Show empty state if no data or no nodes
   if (!hasData) {
+    if (isFiltered) {
+      // Filters are active but produced no results
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            padding: '2rem',
+            textAlign: 'center',
+            color: '#6b7280',
+          }}
+          role="status"
+          aria-label="No resources match filters"
+        >
+          <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.25rem', color: '#374151' }}>
+            No Resources Match Current Filters
+          </h2>
+          <p style={{ margin: 0, maxWidth: '400px', lineHeight: 1.6 }}>
+            Try adjusting or removing your filters to see resources.
+          </p>
+        </div>
+      );
+    }
     return <EmptyState />;
   }
 
@@ -146,6 +188,7 @@ export function DiagramCanvas({ data }: DiagramCanvasProps) {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
         onInit={onInit}
         fitView
         fitViewOptions={FIT_VIEW_OPTIONS}

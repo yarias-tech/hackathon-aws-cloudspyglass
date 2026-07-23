@@ -307,8 +307,8 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Test that each relationship category maps to correct color/style/animation
     - **Validates: Requirements 5.3**
 
-- [ ] 13. Frontend detail panel
-  - [ ] 13.1 Implement DetailPanel component
+- [x] 13. Frontend detail panel
+  - [x] 13.1 Implement DetailPanel component
     - Create `src/components/DetailPanel.tsx` as a slide-in overlay from the right
     - Display: resource type, ARN, region, tags, creation_date, iam_role, service-specific attributes
     - Omit sections for non-applicable metadata fields
@@ -318,13 +318,13 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Replace content when different node is clicked while panel is open
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ]* 13.2 Write property tests for detail panel metadata completeness (Property 13)
+  - [x] 13.2 Write property tests for detail panel metadata completeness (Property 13)
     - **Property 13: Detail panel metadata completeness**
     - Test that all applicable fields are shown and non-applicable fields are omitted per resource type
     - **Validates: Requirements 6.1**
 
-- [ ] 14. Frontend filter components
-  - [ ] 14.1 Implement FilterBar, TagFilterInput, and TypeFilterSelect
+- [x] 14. Frontend filter components
+  - [x] 14.1 Implement FilterBar, TagFilterInput, and TypeFilterSelect
     - Create `src/components/FilterBar.tsx` containing tag and type filter controls
     - Create `src/components/TagFilterInput.tsx` with autocomplete (fetches from /api/tags/suggestions)
     - Create `src/components/TypeFilterSelect.tsx` as multi-select of resource types from scan data
@@ -332,7 +332,7 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Show empty state when no resources match filters
     - _Requirements: 7.1, 7.2, 7.4, 7.5, 8.1, 8.3_
 
-  - [ ]* 14.2 Write frontend property tests for filter logic (Properties 14, 16, 17, 18, 19)
+  - [x] 14.2 Write frontend property tests for filter logic (Properties 14, 16, 17, 18, 19)
     - **Property 14: Tag filter AND logic with edge filtering**
     - **Property 16: Filter removal round-trip**
     - **Property 17: Resource type filter available options**
@@ -341,20 +341,20 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Create `src/__tests__/properties/filter.property.test.ts`
     - **Validates: Requirements 7.1, 7.3, 7.4, 7.6, 8.1, 8.2, 8.5**
 
-  - [ ]* 14.3 Write frontend property tests for tag suggestions (Property 15)
+  - [x] 14.3 Write frontend property tests for tag suggestions (Property 15)
     - **Property 15: Tag autocomplete frequency ordering**
     - Create `src/__tests__/properties/tag-suggestions.property.test.ts`
     - **Validates: Requirements 7.2**
 
-- [ ] 15. Frontend pages and navigation
-  - [ ] 15.1 Implement DiagramPage
+- [x] 15. Frontend pages and navigation
+  - [x] 15.1 Implement DiagramPage
     - Create `src/pages/DiagramPage.tsx` as main route (/)
     - Integrate DiagramCanvas, FilterBar, ExportMenu, ScanControls, DetailPanel
     - Fetch diagram data from GET /api/diagrams/latest
     - Apply client-side filter state management
     - _Requirements: 5.1, 7.1, 8.1_
 
-  - [ ] 15.2 Implement SettingsPage
+  - [x] 15.2 Implement SettingsPage
     - Create `src/pages/SettingsPage.tsx` at route /settings
     - Include CredentialForm, RegionSelector, auto-refresh interval selector
     - Display credential status (Connected/Disconnected/Expired), Account_ID, expiry
@@ -362,14 +362,14 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Disconnect button with credential clearing
     - _Requirements: 1.1, 2.2, 2.5, 2.6, 3.1, 12.1, 12.3, 12.4, 12.5_
 
-  - [ ] 15.3 Implement NavHeader, AppLogo, and routing
+  - [x] 15.3 Implement NavHeader, AppLogo, and routing
     - Create `src/components/NavHeader.tsx` with logo and navigation links
     - Create `src/components/AppLogo.tsx` loading logo from /api/images/logo
     - Configure react-router-dom routes: / (DiagramPage), /settings (SettingsPage)
     - _Requirements: 13.4, 13.5_
 
-- [ ] 16. Frontend scan controls and auto-refresh
-  - [ ] 16.1 Implement ScanControls and auto-refresh logic
+- [x] 16. Frontend scan controls and auto-refresh
+  - [x] 16.1 Implement ScanControls and auto-refresh logic
     - Create `src/components/ScanControls.tsx` with manual refresh button
     - Implement auto-refresh timer based on AppSettings.auto_refresh_interval
     - Skip scheduled scan if one is already in progress
@@ -378,48 +378,48 @@ CloudSpyglass is implemented as a two-tier application: a Python/FastAPI backend
     - Retain current diagram on refresh failure, show error
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-  - [ ]* 16.2 Write property tests for diagram state preservation on refresh failure (Property 20)
+  - [x] 16.2 Write property tests for diagram state preservation on refresh failure (Property 20)
     - **Property 20: Diagram state preservation on refresh failure**
     - Test that failed auto-refresh leaves diagram data unchanged
     - **Validates: Requirements 9.4**
 
-- [ ] 17. Frontend export
-  - [ ] 17.1 Implement ExportMenu component
+- [x] 17. Frontend export
+  - [x] 17.1 Implement ExportMenu component
     - Create `src/components/ExportMenu.tsx` with PDF, PNG, SVG format selection
     - Trigger POST /api/export with format and current filter criteria
     - Handle export errors and display appropriate messages
     - _Requirements: 11.1, 11.2_
 
-- [ ] 18. Checkpoint — Frontend complete
+- [x] 18. Checkpoint — Frontend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 19. Integration wiring and end-to-end
-  - [ ] 19.1 Wire backend FastAPI application
+- [x] 19. Integration wiring and end-to-end
+  - [x] 19.1 Wire backend FastAPI application
     - Create `backend/main.py` with all route registrations, CORS middleware, exception handlers
     - Register all routers: credentials, scan, diagrams, filters, export, settings, images
     - Inject service dependencies (CredentialManager, Scanner, ScanStorage, FilterEngine, ExportService, RelationshipResolver)
     - _Requirements: All backend_
 
-  - [ ] 19.2 Wire frontend App entry point
+  - [x] 19.2 Wire frontend App entry point
     - Create `src/App.tsx` with router configuration and global error boundary
     - Create `src/components/ErrorBanner.tsx` for global error display
     - Create `src/components/LoadingSpinner.tsx` shared loading indicator
     - Ensure all pages and components are integrated
     - _Requirements: All frontend_
 
-  - [ ]* 19.3 Write backend integration tests
+  - [x] 19.3 Write backend integration tests
     - Test full scan flow with moto (credential submission → scan → relationship resolution → storage)
     - Test API endpoint contracts with httpx TestClient
     - Test file atomicity under concurrent writes
     - _Requirements: 3.2, 4.1, 10.2_
 
-  - [ ]* 19.4 Write frontend integration tests
+  - [x] 19.4 Write frontend integration tests
     - Test page-level flows with MSW (mock service worker)
     - Test credential submission → scan → diagram rendering flow
     - Test filter interaction flow
     - _Requirements: 5.1, 7.1, 8.1_
 
-- [ ] 20. Final checkpoint — All tests pass
+- [x] 20. Final checkpoint — All tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

@@ -7,7 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from moto import mock_aws
 
 from backend.main import app
-from backend.routes.credentials import _credential_manager
+from backend.dependencies import credential_manager as _credential_manager
 
 
 @pytest.fixture

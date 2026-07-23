@@ -38,7 +38,23 @@ KNOWN_RESOURCE_TYPES: set[str] = {
     "cloudfront",
     "route53",
     "apigateway",
+    "api_gateway",
     "iam_role",
+    "eks",
+    "elasticache",
+    "ebs",
+    "elastic_ip",
+    "nat_gateway",
+    "transit_gateway",
+    "vpn_gateway",
+    "step_functions",
+    "kinesis",
+    "secrets_manager",
+    "ecr",
+    "redshift",
+    "opensearch",
+    "codepipeline",
+    "glue",
 }
 
 # Mapping of service_type → relative SVG file path from project root
@@ -116,6 +132,99 @@ ICON_PATH_MAP: dict[str, Path] = {
         / "Arch_Security-Identity-Compliance"
         / "48"
         / "Arch_AWS-Network-Firewall_48.svg"
+    ),
+    "eks": (
+        _ARCH_ICONS
+        / "Arch_Containers"
+        / "48"
+        / "Arch_Amazon-EKS-Cloud_48.svg"
+    ),
+    "elasticache": (
+        _ARCH_ICONS
+        / "Arch_Database"
+        / "48"
+        / "Arch_Amazon-ElastiCache_48.svg"
+    ),
+    "ebs": (
+        _ARCH_ICONS
+        / "Arch_Storage"
+        / "48"
+        / "Arch_Amazon-Elastic-Block-Store_48.svg"
+    ),
+    "elastic_ip": (
+        _RES_ICONS
+        / "Res_Compute"
+        / "Res_Amazon-EC2_Elastic-IP-Address_48.svg"
+    ),
+    "nat_gateway": (
+        _RES_ICONS
+        / "Res_Networking-Content-Delivery"
+        / "Res_Amazon-VPC_NAT-Gateway_48.svg"
+    ),
+    "transit_gateway": (
+        _ARCH_ICONS
+        / "Arch_Networking-Content-Delivery"
+        / "48"
+        / "Arch_AWS-Transit-Gateway_48.svg"
+    ),
+    "vpn_gateway": (
+        _RES_ICONS
+        / "Res_Networking-Content-Delivery"
+        / "Res_Amazon-VPC_VPN-Gateway_48.svg"
+    ),
+    "step_functions": (
+        _ARCH_ICONS
+        / "Arch_App-Integration"
+        / "48"
+        / "Arch_AWS-Step-Functions_48.svg"
+    ),
+    "kinesis": (
+        _ARCH_ICONS
+        / "Arch_Analytics"
+        / "48"
+        / "Arch_Amazon-Kinesis_48.svg"
+    ),
+    "secrets_manager": (
+        _ARCH_ICONS
+        / "Arch_Security-Identity-Compliance"
+        / "48"
+        / "Arch_AWS-Secrets-Manager_48.svg"
+    ),
+    "ecr": (
+        _ARCH_ICONS
+        / "Arch_Containers"
+        / "48"
+        / "Arch_Amazon-Elastic-Container-Registry_48.svg"
+    ),
+    "redshift": (
+        _ARCH_ICONS
+        / "Arch_Analytics"
+        / "48"
+        / "Arch_Amazon-Redshift_48.svg"
+    ),
+    "opensearch": (
+        _ARCH_ICONS
+        / "Arch_Analytics"
+        / "48"
+        / "Arch_Amazon-OpenSearch-Service_48.svg"
+    ),
+    "codepipeline": (
+        _ARCH_ICONS
+        / "Arch_Developer-Tools"
+        / "48"
+        / "Arch_AWS-CodePipeline_48.svg"
+    ),
+    "glue": (
+        _ARCH_ICONS
+        / "Arch_Analytics"
+        / "48"
+        / "Arch_AWS-Glue_48.svg"
+    ),
+    "api_gateway": (
+        _ARCH_ICONS
+        / "Arch_Networking-Content-Delivery"
+        / "48"
+        / "Arch_Amazon-API-Gateway_48.svg"
     ),
 }
 

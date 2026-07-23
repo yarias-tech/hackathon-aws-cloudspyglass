@@ -6,13 +6,16 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter
 from pydantic import BaseModel
 
+from ..dependencies import (
+    get_relationship_resolver,
+    scan_storage,
+    scanner,
+)
 from ..exceptions import CloudSpyglassError
 from ..models.scan import ScanRequest, ScanResult
-from ..services.credential_manager import CredentialManager
-from ..services.scanner import Scanner
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +48,14 @@ class ScanProgress(BaseModel):
     total_failures: int | None = None
 
 
-# Module-level singletons (matching pattern from credentials.py)
-_credential_manager = CredentialManager()
-_scanner = Scanner(_credential_manager)
-
 # Module-level scan state
 _scan_status: ScanStatus = ScanStatus.idle
 _scan_started_at: str | None = None
 _scan_completed_at: str | None = None
 _scan_error_message: str | None = None
 _last_scan_result: ScanResult | None = None
+_scan_task: asyncio.Task | None = None
+_scan_generation: int = 0  # Increments with each scan to prevent stale task interference
 
 
 # ---------------------------------------------------------------------------
@@ -62,26 +63,62 @@ _last_scan_result: ScanResult | None = None
 # ---------------------------------------------------------------------------
 
 
-async def _run_scan(regions: list[str] | None) -> None:
+async def _run_scan(regions: list[str] | None, generation: int) -> None:
     """Execute the scan in the background, updating module-level state."""
     global _scan_status, _scan_started_at, _scan_completed_at
-    global _scan_error_message, _last_scan_result
+    global _scan_error_message, _last_scan_result, _scan_generation
 
     try:
-        result = await _scanner.scan(regions=regions)
+        result = await scanner.scan(regions=regions)
+
+        # Check if this scan is still the current one (not cancelled/superseded)
+        if generation != _scan_generation:
+            return
+
+        # Resolve relationships using the account_id from the scan result
+        account_id = result.account_id
+        if account_id and result.resources:
+            try:
+                resolver = get_relationship_resolver(account_id)
+                relationships, unresolved = resolver.resolve(result.resources)
+                result.relationships = relationships
+                result.resources.extend(unresolved)
+            except Exception as rel_exc:
+                logger.warning("Relationship resolution failed: %s", rel_exc)
+
+        # Check again after relationship resolution
+        if generation != _scan_generation:
+            return
+
         _last_scan_result = result
         _scan_status = ScanStatus.completed
         _scan_completed_at = datetime.now(timezone.utc).isoformat()
         _scan_error_message = None
+
+        # Persist scan result to storage
+        if account_id:
+            try:
+                await scan_storage.save(account_id, result)
+            except Exception as storage_exc:
+                logger.warning("Failed to persist scan result: %s", storage_exc)
+
         logger.info(
             "Scan completed: %d resources across %d regions",
             len(result.resources),
             len(result.scanned_regions),
         )
+    except asyncio.CancelledError:
+        # Only update state if this is still the current scan
+        if generation == _scan_generation:
+            _scan_status = ScanStatus.idle
+            _scan_completed_at = datetime.now(timezone.utc).isoformat()
+            _scan_error_message = "Scan cancelled by user"
+        logger.info("Scan generation %d cancelled", generation)
     except Exception as exc:
-        _scan_status = ScanStatus.failed
-        _scan_completed_at = datetime.now(timezone.utc).isoformat()
-        _scan_error_message = str(exc)
+        if generation == _scan_generation:
+            _scan_status = ScanStatus.failed
+            _scan_completed_at = datetime.now(timezone.utc).isoformat()
+            _scan_error_message = str(exc)
         logger.exception("Scan failed: %s", exc)
 
 
@@ -96,7 +133,7 @@ def get_last_scan_result() -> ScanResult | None:
 
 
 @router.post("")
-async def trigger_scan(request: ScanRequest) -> dict[str, Any]:
+async def trigger_scan(request: ScanRequest | None = None) -> dict[str, Any]:
     """Trigger a new infrastructure scan.
 
     Rejects the request if a scan is already in progress (409 Conflict).
@@ -104,6 +141,10 @@ async def trigger_scan(request: ScanRequest) -> dict[str, Any]:
     Requirements: 3.1, 3.2
     """
     global _scan_status, _scan_started_at, _scan_completed_at, _scan_error_message
+    global _scan_generation, _scan_task
+
+    if request is None:
+        request = ScanRequest()
 
     if _scan_status == ScanStatus.in_progress:
         raise CloudSpyglassError(
@@ -119,15 +160,54 @@ async def trigger_scan(request: ScanRequest) -> dict[str, Any]:
     _scan_started_at = datetime.now(timezone.utc).isoformat()
     _scan_completed_at = None
     _scan_error_message = None
+    _scan_generation += 1
+
+    # Cancel any previous task that might still be running
+    if _scan_task and not _scan_task.done():
+        _scan_task.cancel()
 
     # Launch scan as a background coroutine
-    asyncio.create_task(_run_scan(request.regions))
+    _scan_task = asyncio.create_task(_run_scan(request.regions, _scan_generation))
 
     return {
         "status": "accepted",
         "message": "Scan initiated",
         "started_at": _scan_started_at,
         "regions": request.regions,
+    }
+
+
+@router.post("/cancel")
+async def cancel_scan() -> dict[str, str]:
+    """Cancel a running scan.
+
+    Returns the scan to idle state, preserving any previously completed results.
+    """
+    global _scan_status, _scan_completed_at, _scan_error_message
+    global _scan_task, _scan_generation
+
+    if _scan_status != ScanStatus.in_progress:
+        raise CloudSpyglassError(
+            error_code="NO_SCAN_IN_PROGRESS",
+            message="No scan is currently in progress to cancel.",
+            recoverable=False,
+            status_code=400,
+        )
+
+    # Increment generation so the old task stops updating state
+    _scan_generation += 1
+
+    # Cancel the background task
+    if _scan_task and not _scan_task.done():
+        _scan_task.cancel()
+
+    _scan_status = ScanStatus.idle
+    _scan_completed_at = datetime.now(timezone.utc).isoformat()
+    _scan_error_message = "Scan cancelled by user"
+
+    return {
+        "status": "cancelled",
+        "message": "Scan has been cancelled",
     }
 
 

@@ -2,13 +2,10 @@
 
 from fastapi import APIRouter
 
+from ..dependencies import credential_manager
 from ..models.credentials import CredentialStatus, CredentialSubmission
-from ..services.credential_manager import CredentialManager
 
 router = APIRouter(prefix="/api/credentials", tags=["credentials"])
-
-# Module-level singleton (no DI container yet)
-_credential_manager = CredentialManager()
 
 
 @router.post("", response_model=CredentialStatus)
@@ -20,7 +17,7 @@ async def submit_credentials(submission: CredentialSubmission) -> CredentialStat
 
     Requirements: 1.2, 2.1
     """
-    return await _credential_manager.set_credentials(submission)
+    return await credential_manager.set_credentials(submission)
 
 
 @router.get("/status", response_model=CredentialStatus)
@@ -29,7 +26,7 @@ async def get_credential_status() -> CredentialStatus:
 
     Requirements: 2.5
     """
-    return _credential_manager.get_status()
+    return credential_manager.get_status()
 
 
 @router.delete("", response_model=CredentialStatus)
@@ -38,5 +35,5 @@ async def clear_credentials() -> CredentialStatus:
 
     Requirements: 2.4, 2.5
     """
-    await _credential_manager.clear_credentials()
-    return _credential_manager.get_status()
+    await credential_manager.clear_credentials()
+    return credential_manager.get_status()

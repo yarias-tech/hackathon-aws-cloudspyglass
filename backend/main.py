@@ -1,6 +1,7 @@
 """CloudSpyglass FastAPI application entry point."""
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .exceptions import CloudSpyglassError, cloudspyglass_error_handler
 from .routes.credentials import router as credentials_router
@@ -15,6 +16,20 @@ app = FastAPI(
     title="CloudSpyglass",
     description="AWS Infrastructure Visualization API",
     version="0.1.0",
+)
+
+# CORS middleware — allow frontend origins in dev and production
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Register custom exception handler
