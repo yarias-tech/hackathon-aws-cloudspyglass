@@ -94,7 +94,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test backward compatibility: existing fields unchanged
     - _Requirements: 6.5_
 
-- [ ] 4. Checkpoint - Backend complete
+- [x] 4. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Frontend types and layout engine
