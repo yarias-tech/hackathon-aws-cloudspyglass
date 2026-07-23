@@ -353,6 +353,23 @@ interface DiagramCanvasInnerProps {
 function DiagramCanvasInner({ data, onNodeClick }: DiagramCanvasInnerProps) {
   const { fitView } = useReactFlow();
 
+  // Re-fit view when the container resizes (e.g. filter panel collapses)
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const observer = new ResizeObserver(() => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => fitView({ padding: 0.05, duration: 200 }), 150);
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [fitView]);
+
   // Build container map for hierarchy data
   const containerMap = useMemo(() => {
     const map = new Map<string, ContainerMetadata>();
@@ -546,6 +563,7 @@ function DiagramCanvasInner({ data, onNodeClick }: DiagramCanvasInnerProps) {
 
   return (
     <div
+      ref={containerRef}
       style={{ width: '100%', height: '100%', position: 'relative' }}
       data-viewport-culling={enableViewportCulling ? 'true' : 'false'}
       data-viewport-buffer={viewportBufferMargin}
