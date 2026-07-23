@@ -187,7 +187,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
 - [x] 7. Checkpoint - Components complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Edge rendering and resource node updates
+- [x] 8. Edge rendering and resource node updates
   - [x] 8.1 Update edge rendering with category-based styling (`frontend/src/components/RelationshipEdge.tsx`)
     - Apply color and line style based on relationship category (network→blue/solid, iam→red/dashed, event→orange/dotted, data→purple/solid, other→gray/solid)
     - Implement label truncation (40 chars + ellipsis)
@@ -195,7 +195,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Route edges around container boundaries
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 9.3_
 
-  - [ ] 8.2 Update ResourceNode rendering (`frontend/src/components/ResourceNode.tsx`)
+  - [x] 8.2 Update ResourceNode rendering (`frontend/src/components/ResourceNode.tsx`)
     - Render AWS icon at 48x48 centered above resource name label
     - Fall back to generic placeholder icon (gray square with "?") on load failure
     - _Requirements: 2.2, 2.3, 2.6_
