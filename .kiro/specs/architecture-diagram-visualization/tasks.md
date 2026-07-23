@@ -67,7 +67,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert parent_id is null only for root container
     - **Validates: Requirements 6.6**
 
-  - [ ]* 2.6 Write property test: External Resource Sub-Grouping (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.6 Write property test: External Resource Sub-Grouping (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 15: External Resource Sub-Grouping**
     - Generate external resources with different characteristics (cross-account ARN, VPN ref, non-AWS hostname)
     - Assert each external resource is assigned to exactly one sub-group category

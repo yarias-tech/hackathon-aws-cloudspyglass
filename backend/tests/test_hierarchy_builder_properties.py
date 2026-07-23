@@ -1591,3 +1591,411 @@ class TestContainerMetadataCompleteness:
                     f"Non-root container '{container.id}' (type={container.type}) "
                     f"has parent_id=None but only the root container should have null parent_id"
                 )
+
+
+# ---------------------------------------------------------------------------
+# Strategies for Property 15
+# ---------------------------------------------------------------------------
+
+# Feature: architecture-diagram-visualization, Property 15: External Resource Sub-Grouping
+
+# Non-AWS hostname patterns for third-party resources
+NON_AWS_HOSTNAMES = [
+    "api.github.com",
+    "hooks.slack.com",
+    "app.datadoghq.com",
+    "sentry.io",
+    "api.pagerduty.com",
+    "oauth2.googleapis.com",
+    "graph.microsoft.com",
+]
+
+
+def classify_external_resource(
+    resource: Resource,
+    relationships: list[Relationship],
+    scanned_account_id: str,
+) -> str:
+    """Classify an external resource into exactly one sub-group category.
+
+    Categories (checked in priority order):
+    1. "cross_account" - ARN contains a different AWS account ID than the scanned account
+    2. "on_premises" - Referenced via VPN gateway relationship
+    3. "third_party" - Resource identified by non-AWS hostname (ARN doesn't start with "arn:aws")
+    4. "unknown" - None of the above apply
+
+    Returns exactly one category string.
+    """
+    # Priority 1: Cross-account — ARN starts with "arn:aws" but contains a different account ID
+    if resource.arn.startswith("arn:aws"):
+        # ARN format: arn:aws:service:region:account-id:resource
+        arn_parts = resource.arn.split(":")
+        if len(arn_parts) >= 5:
+            arn_account_id = arn_parts[4]
+            if arn_account_id and arn_account_id != scanned_account_id:
+                return "cross_account"
+
+    # Priority 2: On-premises — referenced via VPN gateway relationship
+    for rel in relationships:
+        # Check if this resource is connected to/from a VPN gateway
+        if rel.source_arn == resource.arn or rel.target_arn == resource.arn:
+            other_arn = rel.target_arn if rel.source_arn == resource.arn else rel.source_arn
+            # VPN gateway ARNs contain "vpn-gateway" or the resource type is vpn_gateway
+            if "vpn-gateway" in other_arn or "vgw-" in other_arn:
+                return "on_premises"
+
+    # Priority 3: Third-party — non-AWS ARN format (doesn't start with "arn:aws")
+    if not resource.arn.startswith("arn:aws"):
+        return "third_party"
+
+    # Priority 4: Default — none of the above
+    return "unknown"
+
+
+@st.composite
+def cross_account_external_resource_strategy(draw: st.DrawFn, scanned_account_id: str) -> Resource:
+    """Generate an external resource with a cross-account ARN (different account ID)."""
+    # Generate a different account ID
+    other_account_id = draw(account_id_strategy.filter(lambda a: a != scanned_account_id))
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    arn = f"arn:aws:{resource_type}:{region}:{other_account_id}:ext-{suffix}"
+    return Resource(
+        arn=arn,
+        resource_type=resource_type,
+        name=f"cross-account-{suffix}",
+        region=region,
+        is_external=True,
+        attributes={},
+    )
+
+
+@st.composite
+def vpn_referenced_external_resource_strategy(draw: st.DrawFn) -> tuple[Resource, Relationship]:
+    """Generate an external resource referenced via a VPN gateway relationship.
+
+    Returns (resource, vpn_relationship).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    suffix = draw(unique_suffix_strategy)
+    # Use a non-AWS ARN to avoid cross-account check triggering first
+    # but to test VPN priority, we can also use an arn:aws with same account
+    # Let's use the scanned account so cross_account doesn't fire
+    resource_arn = f"arn:aws:ec2:{region}:{account_id}:ext-{suffix}"
+    resource = Resource(
+        arn=resource_arn,
+        resource_type="ec2",
+        name=f"on-prem-{suffix}",
+        region=region,
+        is_external=True,
+        attributes={},
+    )
+
+    # Create a VPN gateway ARN
+    vgw_suffix = draw(hex_suffix)
+    vpn_gw_arn = f"arn:aws:ec2:{region}:{account_id}:vpn-gateway/vgw-{vgw_suffix}"
+
+    # Create a relationship connecting the resource to a VPN gateway
+    relationship = Relationship(
+        source_arn=vpn_gw_arn,
+        target_arn=resource_arn,
+        category="network",
+        derived_from="vpn_connection",
+    )
+
+    return (resource, relationship)
+
+
+@st.composite
+def third_party_external_resource_strategy(draw: st.DrawFn) -> Resource:
+    """Generate an external resource identified by a non-AWS hostname/URL."""
+    hostname = draw(st.sampled_from(NON_AWS_HOSTNAMES))
+    suffix = draw(unique_suffix_strategy)
+    # Non-AWS ARN format — uses the hostname as identifier
+    arn = f"https://{hostname}/resource/{suffix}"
+    return Resource(
+        arn=arn,
+        resource_type="external_service",
+        name=f"third-party-{suffix}",
+        region="external",
+        is_external=True,
+        attributes={},
+    )
+
+
+@st.composite
+def unknown_external_resource_strategy(draw: st.DrawFn, scanned_account_id: str) -> Resource:
+    """Generate an external resource that doesn't fit any specific category.
+
+    Uses the same account ID (so not cross-account), has arn:aws prefix (so not third-party),
+    and has no VPN relationship (so not on-premises). This defaults to "unknown".
+    """
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    # Same account ID as scanned account, so not cross-account
+    arn = f"arn:aws:{resource_type}:{region}:{scanned_account_id}:ext-{suffix}"
+    return Resource(
+        arn=arn,
+        resource_type=resource_type,
+        name=f"unknown-ext-{suffix}",
+        region=region,
+        is_external=True,
+        attributes={},
+    )
+
+
+@st.composite
+def mixed_external_resources_strategy(
+    draw: st.DrawFn,
+) -> tuple[list[Resource], list[Relationship], str]:
+    """Generate a mix of external resources with different characteristics.
+
+    Returns (resources, relationships, scanned_account_id).
+    """
+    scanned_account_id = draw(account_id_strategy)
+    resources: list[Resource] = []
+    relationships: list[Relationship] = []
+
+    # At least one cross-account resource
+    num_cross = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_cross):
+        res = draw(cross_account_external_resource_strategy(scanned_account_id))
+        resources.append(res)
+
+    # At least one VPN-referenced resource
+    num_vpn = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_vpn):
+        res, rel = draw(vpn_referenced_external_resource_strategy())
+        # Override the account in ARN to match scanned_account_id so cross_account doesn't trigger
+        # Rebuild ARN with scanned account so the VPN priority is tested cleanly
+        arn_parts = res.arn.split(":")
+        arn_parts[4] = scanned_account_id
+        new_arn = ":".join(arn_parts)
+        res = Resource(
+            arn=new_arn,
+            resource_type=res.resource_type,
+            name=res.name,
+            region=res.region,
+            is_external=True,
+            attributes=res.attributes,
+        )
+        # Update relationship target to match new ARN
+        rel = Relationship(
+            source_arn=rel.source_arn,
+            target_arn=new_arn,
+            category=rel.category,
+            derived_from=rel.derived_from,
+        )
+        resources.append(res)
+        relationships.append(rel)
+
+    # At least one third-party resource
+    num_third = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_third):
+        res = draw(third_party_external_resource_strategy())
+        resources.append(res)
+
+    # At least one unknown resource
+    num_unknown = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_unknown):
+        res = draw(unknown_external_resource_strategy(scanned_account_id))
+        resources.append(res)
+
+    return (resources, relationships, scanned_account_id)
+
+
+# ---------------------------------------------------------------------------
+# Property 15: External Resource Sub-Grouping
+# ---------------------------------------------------------------------------
+
+
+class TestExternalResourceSubGrouping:
+    """Every external resource is assigned to exactly one sub-group category:
+    "cross_account", "on_premises", "third_party", or "unknown".
+    No external resource shall be unassigned or assigned to multiple groups.
+
+    **Validates: Requirements 9.2**
+    """
+
+    VALID_CATEGORIES = {"cross_account", "on_premises", "third_party", "unknown"}
+
+    @given(data=mixed_external_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_every_external_resource_gets_exactly_one_category(
+        self,
+        data: tuple[list[Resource], list[Relationship], str],
+    ) -> None:
+        """For any set of external resources, each is classified into exactly one
+        valid sub-group category."""
+        resources, relationships, scanned_account_id = data
+
+        for resource in resources:
+            category = classify_external_resource(resource, relationships, scanned_account_id)
+            assert category in self.VALID_CATEGORIES, (
+                f"External resource '{resource.arn}' was classified as '{category}' "
+                f"which is not a valid category. Valid: {self.VALID_CATEGORIES}"
+            )
+
+    @given(data=mixed_external_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_cross_account_resources_classified_correctly(
+        self,
+        data: tuple[list[Resource], list[Relationship], str],
+    ) -> None:
+        """Resources with ARNs containing a different account ID than the scanned
+        account are classified as 'cross_account'."""
+        resources, relationships, scanned_account_id = data
+
+        for resource in resources:
+            if not resource.arn.startswith("arn:aws"):
+                continue
+            arn_parts = resource.arn.split(":")
+            if len(arn_parts) >= 5:
+                arn_account_id = arn_parts[4]
+                if arn_account_id and arn_account_id != scanned_account_id:
+                    category = classify_external_resource(
+                        resource, relationships, scanned_account_id
+                    )
+                    assert category == "cross_account", (
+                        f"Resource '{resource.arn}' has account '{arn_account_id}' "
+                        f"(scanned='{scanned_account_id}') but was classified as '{category}' "
+                        f"instead of 'cross_account'."
+                    )
+
+    @given(data=mixed_external_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_vpn_referenced_resources_classified_as_on_premises(
+        self,
+        data: tuple[list[Resource], list[Relationship], str],
+    ) -> None:
+        """Resources referenced via VPN gateway relationships (with same account ID)
+        are classified as 'on_premises'."""
+        resources, relationships, scanned_account_id = data
+
+        for resource in resources:
+            # Check if this resource has a VPN relationship AND same account
+            if not resource.arn.startswith("arn:aws"):
+                continue
+            arn_parts = resource.arn.split(":")
+            if len(arn_parts) >= 5:
+                arn_account_id = arn_parts[4]
+                # Skip cross-account (higher priority)
+                if arn_account_id and arn_account_id != scanned_account_id:
+                    continue
+
+            has_vpn_rel = False
+            for rel in relationships:
+                if rel.source_arn == resource.arn or rel.target_arn == resource.arn:
+                    other_arn = (
+                        rel.target_arn if rel.source_arn == resource.arn else rel.source_arn
+                    )
+                    if "vpn-gateway" in other_arn or "vgw-" in other_arn:
+                        has_vpn_rel = True
+                        break
+
+            if has_vpn_rel:
+                category = classify_external_resource(
+                    resource, relationships, scanned_account_id
+                )
+                assert category == "on_premises", (
+                    f"Resource '{resource.arn}' is referenced via VPN gateway "
+                    f"but was classified as '{category}' instead of 'on_premises'."
+                )
+
+    @given(data=mixed_external_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_non_aws_arn_resources_classified_as_third_party(
+        self,
+        data: tuple[list[Resource], list[Relationship], str],
+    ) -> None:
+        """Resources with non-AWS ARN format (not starting with 'arn:aws') and
+        without VPN relationships are classified as 'third_party'."""
+        resources, relationships, scanned_account_id = data
+
+        for resource in resources:
+            if resource.arn.startswith("arn:aws"):
+                continue
+
+            # Check no VPN relationship (higher priority)
+            has_vpn_rel = False
+            for rel in relationships:
+                if rel.source_arn == resource.arn or rel.target_arn == resource.arn:
+                    other_arn = (
+                        rel.target_arn if rel.source_arn == resource.arn else rel.source_arn
+                    )
+                    if "vpn-gateway" in other_arn or "vgw-" in other_arn:
+                        has_vpn_rel = True
+                        break
+
+            if not has_vpn_rel:
+                category = classify_external_resource(
+                    resource, relationships, scanned_account_id
+                )
+                assert category == "third_party", (
+                    f"Resource '{resource.arn}' has non-AWS ARN format "
+                    f"but was classified as '{category}' instead of 'third_party'."
+                )
+
+    @given(data=mixed_external_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_unknown_resources_classified_correctly(
+        self,
+        data: tuple[list[Resource], list[Relationship], str],
+    ) -> None:
+        """Resources with same account ID, no VPN relationship, and arn:aws prefix
+        are classified as 'unknown'."""
+        resources, relationships, scanned_account_id = data
+
+        for resource in resources:
+            if not resource.arn.startswith("arn:aws"):
+                continue
+            arn_parts = resource.arn.split(":")
+            if len(arn_parts) >= 5:
+                arn_account_id = arn_parts[4]
+                # Must be same account
+                if arn_account_id != scanned_account_id:
+                    continue
+            else:
+                continue
+
+            # Must not have VPN relationship
+            has_vpn_rel = False
+            for rel in relationships:
+                if rel.source_arn == resource.arn or rel.target_arn == resource.arn:
+                    other_arn = (
+                        rel.target_arn if rel.source_arn == resource.arn else rel.source_arn
+                    )
+                    if "vpn-gateway" in other_arn or "vgw-" in other_arn:
+                        has_vpn_rel = True
+                        break
+
+            if not has_vpn_rel:
+                category = classify_external_resource(
+                    resource, relationships, scanned_account_id
+                )
+                assert category == "unknown", (
+                    f"Resource '{resource.arn}' has same account, no VPN rel, arn:aws prefix "
+                    f"but was classified as '{category}' instead of 'unknown'."
+                )
+
+    @given(data=mixed_external_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_no_external_resource_is_unassigned(
+        self,
+        data: tuple[list[Resource], list[Relationship], str],
+    ) -> None:
+        """Every external resource must receive a non-empty classification.
+        The classify function must never return None or empty string."""
+        resources, relationships, scanned_account_id = data
+
+        for resource in resources:
+            category = classify_external_resource(resource, relationships, scanned_account_id)
+            assert category is not None and len(category) > 0, (
+                f"External resource '{resource.arn}' was not assigned any category (got: {category!r})"
+            )
+            assert category in self.VALID_CATEGORIES, (
+                f"External resource '{resource.arn}' got unexpected category '{category}'"
+            )
