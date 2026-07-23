@@ -173,7 +173,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test double-click toggles expand/collapse
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 8.3, 8.4_
 
-  - [ ]* 6.5 Write unit tests for BoundaryServiceNode (`frontend/src/components/BoundaryServiceNode.test.tsx`)
+  - [x] 6.5 Write unit tests for BoundaryServiceNode (`frontend/src/components/BoundaryServiceNode.test.tsx`)
     - Test renders icon and label correctly
     - Test each boundary type renders appropriately
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
