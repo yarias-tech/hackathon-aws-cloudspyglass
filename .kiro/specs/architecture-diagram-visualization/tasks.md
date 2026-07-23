@@ -188,7 +188,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Edge rendering and resource node updates
-  - [ ] 8.1 Update edge rendering with category-based styling (`frontend/src/components/RelationshipEdge.tsx`)
+  - [x] 8.1 Update edge rendering with category-based styling (`frontend/src/components/RelationshipEdge.tsx`)
     - Apply color and line style based on relationship category (network→blue/solid, iam→red/dashed, event→orange/dotted, data→purple/solid, other→gray/solid)
     - Implement label truncation (40 chars + ellipsis)
     - Implement hover behavior: increase stroke to 3px, show tooltip with derived_from or category+names
