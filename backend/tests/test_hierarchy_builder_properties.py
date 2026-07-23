@@ -1428,3 +1428,166 @@ class TestResourcePlacementPriority:
                     f"appears in {len(containers_for_resource)} containers: "
                     f"{containers_for_resource}. Should be exactly 1."
                 )
+
+
+# ---------------------------------------------------------------------------
+# Property 12: Container Metadata Completeness
+# ---------------------------------------------------------------------------
+
+# Feature: architecture-diagram-visualization, Property 12: Container Metadata Completeness
+
+VALID_CONTAINER_TYPES = {"cloud", "account", "region", "vpc", "az", "subnet"}
+
+
+class TestContainerMetadataCompleteness:
+    """Every container produced by HierarchyBuilder has all required fields populated:
+    non-empty id, non-empty name, valid type, icon_key, resources array, and
+    parent_id is None only for the root container.
+
+    **Validates: Requirements 6.6**
+    """
+
+    @given(data=scan_data_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_every_container_has_non_empty_id(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Every container must have a non-empty id."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for container in tree.containers:
+            assert container.id is not None and len(container.id) > 0, (
+                f"Container has empty or None id: {container}"
+            )
+
+    @given(data=scan_data_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_every_container_has_non_empty_name(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Every container must have a non-empty name."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for container in tree.containers:
+            assert container.name is not None and len(container.name) > 0, (
+                f"Container '{container.id}' has empty or None name"
+            )
+
+    @given(data=scan_data_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_every_container_has_valid_type(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Every container must have a type from the valid set."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for container in tree.containers:
+            assert container.type in VALID_CONTAINER_TYPES, (
+                f"Container '{container.id}' has invalid type '{container.type}'. "
+                f"Expected one of: {VALID_CONTAINER_TYPES}"
+            )
+
+    @given(data=scan_data_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_every_container_has_non_empty_icon_key(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Every container must have a non-empty icon_key."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for container in tree.containers:
+            assert container.icon_key is not None and len(container.icon_key) > 0, (
+                f"Container '{container.id}' (type={container.type}) has empty or None icon_key"
+            )
+
+    @given(data=scan_data_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_every_container_has_resources_list(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Every container must have a resources attribute that is a list (not None)."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for container in tree.containers:
+            assert container.resources is not None, (
+                f"Container '{container.id}' (type={container.type}) has None resources"
+            )
+            assert isinstance(container.resources, list), (
+                f"Container '{container.id}' (type={container.type}) has resources "
+                f"of type {type(container.resources).__name__}, expected list"
+            )
+
+    @given(data=scan_data_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_parent_id_null_only_for_root_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """parent_id must be None ONLY for the root container (whose id == tree.root_id).
+        All non-root containers must have a non-None parent_id."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for container in tree.containers:
+            if container.id == tree.root_id:
+                assert container.parent_id is None, (
+                    f"Root container '{container.id}' should have parent_id=None "
+                    f"but has parent_id='{container.parent_id}'"
+                )
+            else:
+                assert container.parent_id is not None, (
+                    f"Non-root container '{container.id}' (type={container.type}) "
+                    f"has parent_id=None but only the root container should have null parent_id"
+                )

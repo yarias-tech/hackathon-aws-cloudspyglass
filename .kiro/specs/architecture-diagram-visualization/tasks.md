@@ -60,7 +60,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert no resource is unassigned and no resource appears in multiple containers
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 6.2, 6.7**
 
-  - [ ]* 2.5 Write property test: Container Metadata Completeness (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.5 Write property test: Container Metadata Completeness (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 12: Container Metadata Completeness**
     - Generate scan data and build hierarchy
     - Assert every container has non-empty id, non-empty name, valid type, icon_key, and resources array
