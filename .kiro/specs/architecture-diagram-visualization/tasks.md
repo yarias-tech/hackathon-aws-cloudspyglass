@@ -31,8 +31,8 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test unknown resource type returns placeholder path
     - _Requirements: 2.1, 2.4, 2.3_
 
-- [ ] 2. Backend HierarchyBuilder service
-  - [ ] 2.1 Implement HierarchyBuilder core (`backend/services/hierarchy_builder.py`)
+- [x] 2. Backend HierarchyBuilder service
+  - [x] 2.1 Implement HierarchyBuilder core (`backend/services/hierarchy_builder.py`)
     - Implement `build()` method: construct tree cloud → account → region → vpc → az → subnet
     - Implement `_classify_subnet_type()`: check route tables for IGW route to determine public/private
     - Implement `_assign_resource_to_container()`: priority-based placement (external → global → subnet → az → vpc → region)
@@ -41,39 +41,39 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Detect and populate boundary service placements (IGW, NAT, WAF, VPN)
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.7, 5.1, 5.2, 5.3, 5.4_
 
-  - [ ]* 2.2 Write property test: Hierarchy Nesting Order (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.2 Write property test: Hierarchy Nesting Order (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 1: Hierarchy Nesting Order**
     - Generate random scan data with resources across accounts, regions, VPCs, AZs, subnets
     - Assert every container's parent type follows strict ordering: cloud → account → region → vpc → az → subnet
     - **Validates: Requirements 1.2, 1.3, 1.4, 1.5, 1.6, 6.1**
 
-  - [ ]* 2.3 Write property test: Subnet Classification Correctness (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.3 Write property test: Subnet Classification Correctness (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 2: Subnet Classification Correctness**
     - Generate subnets with varying route table configurations
     - Assert public classification iff route table has 0.0.0.0/0 → IGW; private otherwise
     - **Validates: Requirements 1.7, 1.8, 6.3**
 
-  - [ ]* 2.4 Write property test: Resource Placement Priority (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.4 Write property test: Resource Placement Priority (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 3: Resource Placement Priority**
     - Generate resources with various combinations of is_external, global type, subnet_id, vpc_id, az
     - Assert each resource is assigned to exactly one container per priority rules
     - Assert no resource is unassigned and no resource appears in multiple containers
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 6.2, 6.7**
 
-  - [ ]* 2.5 Write property test: Container Metadata Completeness (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.5 Write property test: Container Metadata Completeness (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 12: Container Metadata Completeness**
     - Generate scan data and build hierarchy
     - Assert every container has non-empty id, non-empty name, valid type, icon_key, and resources array
     - Assert parent_id is null only for root container
     - **Validates: Requirements 6.6**
 
-  - [ ]* 2.6 Write property test: External Resource Sub-Grouping (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.6 Write property test: External Resource Sub-Grouping (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 15: External Resource Sub-Grouping**
     - Generate external resources with different characteristics (cross-account ARN, VPN ref, non-AWS hostname)
     - Assert each external resource is assigned to exactly one sub-group category
     - **Validates: Requirements 9.2**
 
-  - [ ]* 2.7 Write unit tests for HierarchyBuilder (`backend/tests/test_hierarchy_builder.py`)
+  - [x] 2.7 Write unit tests for HierarchyBuilder (`backend/tests/test_hierarchy_builder.py`)
     - Test tree construction with a typical multi-VPC, multi-AZ scan
     - Test placeholder container creation for unknown VPC
     - Test default private classification when no route table exists
