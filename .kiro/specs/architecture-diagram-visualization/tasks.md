@@ -148,43 +148,43 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert horizontal distance between adjacent nodes ≥ 20px
     - **Validates: Requirements 5.7**
 
-- [ ] 6. Frontend container and node components
-  - [ ] 6.1 Implement ContainerNode component (`frontend/src/components/ContainerNode.tsx`)
+- [x] 6. Frontend container and node components
+  - [x] 6.1 Implement ContainerNode component (`frontend/src/components/ContainerNode.tsx`)
     - Render styled container with header bar (icon badge 32x32 + label 14px/600 weight)
     - Apply styling per container type (colors, borders, backgrounds from design spec)
     - Support collapsed state: show only label + resource count badge
     - Handle double-click to toggle collapse/expand
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 8.3, 8.4_
 
-  - [ ] 6.2 Implement BoundaryServiceNode component (`frontend/src/components/BoundaryServiceNode.tsx`)
+  - [x] 6.2 Implement BoundaryServiceNode component (`frontend/src/components/BoundaryServiceNode.tsx`)
     - Render resource icon (48x48) with label
     - Visual styling to indicate boundary positioning
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 6.3 Implement ExternalResourcesContainer (`frontend/src/components/ExternalResourcesContainer.tsx`)
+  - [x] 6.3 Implement ExternalResourcesContainer (`frontend/src/components/ExternalResourcesContainer.tsx`)
     - Render dedicated external resources area
     - Sub-group by category: Cross-Account AWS, On-Premises, Third-Party, Unknown External
     - Style external nodes with 50% opacity and dashed border
     - _Requirements: 9.1, 9.2, 9.4, 9.5_
 
-  - [ ]* 6.4 Write unit tests for ContainerNode (`frontend/src/components/ContainerNode.test.tsx`)
+  - [x] 6.4 Write unit tests for ContainerNode (`frontend/src/components/ContainerNode.test.tsx`)
     - Test correct styles for each container type (7 types)
     - Test collapsed state shows resource count badge
     - Test double-click toggles expand/collapse
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 8.3, 8.4_
 
-  - [ ]* 6.5 Write unit tests for BoundaryServiceNode (`frontend/src/components/BoundaryServiceNode.test.tsx`)
+  - [x] 6.5 Write unit tests for BoundaryServiceNode (`frontend/src/components/BoundaryServiceNode.test.tsx`)
     - Test renders icon and label correctly
     - Test each boundary type renders appropriately
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ]* 6.6 Write property test: Collapsed Container Badge Count (`frontend/src/components/ContainerNode.property.test.ts`)
+  - [x] 6.6 Write property test: Collapsed Container Badge Count (`frontend/src/components/ContainerNode.property.test.ts`)
     - **Property 13: Collapsed Container Badge Count**
     - Generate containers with nested sub-containers and resources
     - Assert badge count equals total recursive resource count
     - **Validates: Requirements 8.4**
 
-- [ ] 7. Checkpoint - Components complete
+- [x] 7. Checkpoint - Components complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Edge rendering and resource node updates

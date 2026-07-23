@@ -1,0 +1,154 @@
+/* External Resources Container: dedicated area for resources outside the AWS Cloud */
+.external-resources-container {
+  position: relative;
+  border: 2px dashed #6b7280;
+  border-radius: 6px;
+  background: rgba(107, 114, 128, 0.05);
+  min-width: 200px;
+  min-height: 100px;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+}
+
+/* Header */
+.external-resources-container__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.external-resources-container__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Sub-group containers */
+.external-resources-container__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.external-resources-container__group {
+  border: 1px dashed #9ca3af;
+  border-radius: 4px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.external-resources-container__group-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Cross-Account AWS */
+.external-resources-container__group--cross_account {
+  border-color: #df3312;
+}
+
+.external-resources-container__group--cross_account .external-resources-container__group-header {
+  color: #df3312;
+}
+
+/* On-Premises */
+.external-resources-container__group--on_premises {
+  border-color: #7c3aed;
+}
+
+.external-resources-container__group--on_premises .external-resources-container__group-header {
+  color: #7c3aed;
+}
+
+/* Third-Party */
+.external-resources-container__group--third_party {
+  border-color: #ea580c;
+}
+
+.external-resources-container__group--third_party .external-resources-container__group-header {
+  color: #ea580c;
+}
+
+/* Unknown External */
+.external-resources-container__group--unknown {
+  border-color: #6b7280;
+}
+
+.external-resources-container__group--unknown .external-resources-container__group-header {
+  color: #6b7280;
+}
+
+/* Resource nodes list within a sub-group */
+.external-resources-container__resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* External resource node styling: 50% opacity + dashed border (Req 9.4) */
+.external-resources-container__resource-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border: 2px dashed #9ca3af;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.8);
+  opacity: 0.5;
+  min-width: 64px;
+  transition: opacity 0.15s ease;
+}
+
+.external-resources-container__resource-node:hover {
+  opacity: 0.8;
+}
+
+/* External resource icon */
+.external-resources-container__resource-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.external-resources-container__resource-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.external-resources-container__resource-icon--placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* External resource label */
+.external-resources-container__resource-label {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+  color: #374151;
+}
