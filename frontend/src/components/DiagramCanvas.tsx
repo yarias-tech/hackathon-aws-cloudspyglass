@@ -51,6 +51,43 @@ export const VIEWPORT_BUFFER_NODES = 50;
 export const AUTO_COLLAPSE_CONTAINER_THRESHOLD = 50;
 export const AUTO_COLLAPSE_MAX_DEPTH = 2;
 
+/**
+ * Computes the upper bound on DOM-rendered nodes when viewport culling is active.
+ * The maximum rendered count is the number of nodes visible in the viewport plus
+ * the buffer, capped at the total node count (Requirement 10.3).
+ */
+export function computeVisibleNodeBound(
+  totalNodes: number,
+  nodesInViewport: number,
+  bufferSize: number
+): number {
+  return Math.min(nodesInViewport + bufferSize, totalNodes);
+}
+
+/**
+ * Counts how many nodes (by their position and dimensions) fall within a viewport rectangle.
+ * A node is considered visible if any part of it overlaps with the viewport.
+ */
+export function countNodesInViewport(
+  nodePositions: Array<{ x: number; y: number; width: number; height: number }>,
+  viewport: { x: number; y: number; width: number; height: number }
+): number {
+  return nodePositions.filter((node) => {
+    const nodeRight = node.x + node.width;
+    const nodeBottom = node.y + node.height;
+    const viewportRight = viewport.x + viewport.width;
+    const viewportBottom = viewport.y + viewport.height;
+
+    // Node overlaps viewport if no edge is fully outside
+    return (
+      node.x < viewportRight &&
+      nodeRight > viewport.x &&
+      node.y < viewportBottom &&
+      nodeBottom > viewport.y
+    );
+  }).length;
+}
+
 const FIT_VIEW_OPTIONS: FitViewOptions = {
   padding: 0.2,
 };

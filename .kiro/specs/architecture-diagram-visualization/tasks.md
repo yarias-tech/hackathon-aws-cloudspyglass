@@ -250,7 +250,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test fallback to dagre when hierarchy is null
     - _Requirements: 8.1, 8.2, 8.5, 8.6, 8.7, 8.8_
 
-- [ ] 10. Performance optimizations
+- [x] 10. Performance optimizations
   - [x] 10.1 Implement viewport culling (`frontend/src/components/DiagramCanvas.tsx`)
     - Enable viewport culling when resource count exceeds 200
     - Render only visible nodes + 50-node buffer
@@ -263,7 +263,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - On cancel: restore last rendered state or show empty canvas
     - _Requirements: 10.5_
 
-  - [ ]* 10.3 Write property test: Viewport Culling Node Bound (`frontend/src/components/DiagramCanvas.property.test.ts`)
+  - [x]* 10.3 Write property test: Viewport Culling Node Bound (`frontend/src/components/DiagramCanvas.property.test.ts`)
     - **Property 16: Viewport Culling Node Bound**
     - Generate diagrams with >200 resources and a defined viewport
     - Assert DOM-rendered node count ≤ visible nodes + 50 buffer
