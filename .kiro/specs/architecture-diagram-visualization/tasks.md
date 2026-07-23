@@ -97,7 +97,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
 - [x] 4. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Frontend types and layout engine
+- [x] 5. Frontend types and layout engine
   - [x] 5.1 Create hierarchy TypeScript types (`frontend/src/types/hierarchy.ts`)
     - Define `ContainerType`, `SubnetType`, `BoundaryType`, `EdgePosition` type aliases
     - Define `ContainerMetadata`, `BoundaryServicePlacement`, `HierarchyTree` interfaces
@@ -108,7 +108,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Import `HierarchyTree` from `./hierarchy`
     - _Requirements: 6.5_
 
-  - [ ] 5.3 Implement HierarchyLayoutEngine (`frontend/src/layout/HierarchyLayoutEngine.ts`)
+  - [x] 5.3 Implement HierarchyLayoutEngine (`frontend/src/layout/HierarchyLayoutEngine.ts`)
     - Implement `computeHierarchyLayout()` function
     - Recursive container sizing: parent sizes based on children + padding (20px min)
     - Grid/flow sub-layout for resource nodes within containers (16px spacing)
