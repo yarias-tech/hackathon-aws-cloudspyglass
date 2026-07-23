@@ -149,7 +149,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - **Validates: Requirements 5.7**
 
 - [ ] 6. Frontend container and node components
-  - [ ] 6.1 Implement ContainerNode component (`frontend/src/components/ContainerNode.tsx`)
+  - [x] 6.1 Implement ContainerNode component (`frontend/src/components/ContainerNode.tsx`)
     - Render styled container with header bar (icon badge 32x32 + label 14px/600 weight)
     - Apply styling per container type (colors, borders, backgrounds from design spec)
     - Support collapsed state: show only label + resource count badge
