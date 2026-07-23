@@ -167,7 +167,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Style external nodes with 50% opacity and dashed border
     - _Requirements: 9.1, 9.2, 9.4, 9.5_
 
-  - [ ]* 6.4 Write unit tests for ContainerNode (`frontend/src/components/ContainerNode.test.tsx`)
+  - [x] 6.4 Write unit tests for ContainerNode (`frontend/src/components/ContainerNode.test.tsx`)
     - Test correct styles for each container type (7 types)
     - Test collapsed state shows resource count badge
     - Test double-click toggles expand/collapse
