@@ -33,13 +33,16 @@ class FilterEngine:
         scan_result: ScanResult,
         tag_filters: list[TagFilter] | None = None,
         type_filters: list[str] | None = None,
+        tag_filter_operator: str = "AND",
     ) -> FilteredResult:
         """Apply tag and/or resource-type filters to a scan result.
 
         Args:
             scan_result: The full scan result containing resources and relationships.
-            tag_filters: Optional list of tag key-value pairs (AND logic).
+            tag_filters: Optional list of tag key-value pairs.
             type_filters: Optional list of resource type strings (OR logic).
+            tag_filter_operator: "AND" (resource must match ALL tags) or
+                "OR" (resource must match ANY tag). Defaults to "AND".
 
         Returns:
             FilteredResult containing the filtered diagram data, counts, and
@@ -59,15 +62,15 @@ class FilterEngine:
         if has_tag_filters and has_type_filters:
             # Combined: intersection of tag AND type filters
             filtered_arns = self._apply_combined_filters(
-                resources, tag_filters, type_filters
+                resources, tag_filters, type_filters, tag_filter_operator
             )
             # Combined uses tag-filter edge logic: both endpoints must match
             filtered_edges = self._filter_edges_both_endpoints(
                 relationships, filtered_arns
             )
         elif has_tag_filters:
-            # Tag-only: AND logic, edges require both endpoints
-            filtered_arns = self._apply_tag_filters(resources, tag_filters)
+            # Tag-only: operator-based logic, edges require both endpoints
+            filtered_arns = self._apply_tag_filters(resources, tag_filters, tag_filter_operator)
             filtered_edges = self._filter_edges_both_endpoints(
                 relationships, filtered_arns
             )
@@ -105,6 +108,7 @@ class FilterEngine:
         active_filters = FilterCriteria(
             tag_filters=tag_filters,
             type_filters=type_filters,
+            tag_filter_operator=tag_filter_operator,
         )
 
         return FilteredResult(
@@ -165,18 +169,22 @@ class FilterEngine:
     # ------------------------------------------------------------------
 
     def _apply_tag_filters(
-        self, resources: list, tag_filters: list[TagFilter]
+        self, resources: list, tag_filters: list[TagFilter], operator: str = "AND"
     ) -> set[str]:
-        """Apply AND logic: resource must match ALL tag filters.
+        """Apply tag filters with specified operator logic.
 
-        A resource matches a tag filter if it has a tag with the exact key
-        and the exact value specified in the filter.
+        AND: resource must match ALL tag filters.
+        OR: resource must match ANY tag filter.
         """
         filtered_arns: set[str] = set()
 
         for resource in resources:
-            if self._resource_matches_all_tags(resource, tag_filters):
-                filtered_arns.add(resource.arn)
+            if operator == "OR":
+                if self._resource_matches_any_tag(resource, tag_filters):
+                    filtered_arns.add(resource.arn)
+            else:
+                if self._resource_matches_all_tags(resource, tag_filters):
+                    filtered_arns.add(resource.arn)
 
         return filtered_arns
 
@@ -192,17 +200,21 @@ class FilterEngine:
         resources: list,
         tag_filters: list[TagFilter],
         type_filters: list[str],
+        tag_filter_operator: str = "AND",
     ) -> set[str]:
-        """Apply intersection: must match ALL tags AND at least one type."""
+        """Apply intersection: must match tags (per operator) AND at least one type."""
         type_set = set(type_filters)
         filtered_arns: set[str] = set()
 
         for resource in resources:
-            if (
-                resource.resource_type in type_set
-                and self._resource_matches_all_tags(resource, tag_filters)
-            ):
-                filtered_arns.add(resource.arn)
+            if resource.resource_type not in type_set:
+                continue
+            if tag_filter_operator == "OR":
+                if self._resource_matches_any_tag(resource, tag_filters):
+                    filtered_arns.add(resource.arn)
+            else:
+                if self._resource_matches_all_tags(resource, tag_filters):
+                    filtered_arns.add(resource.arn)
 
         return filtered_arns
 
@@ -214,6 +226,15 @@ class FilterEngine:
             if resource.tags.get(tf.key) != tf.value:
                 return False
         return True
+
+    def _resource_matches_any_tag(
+        self, resource, tag_filters: list[TagFilter]
+    ) -> bool:
+        """Check if a resource matches at least one tag filter criterion (OR logic)."""
+        for tf in tag_filters:
+            if resource.tags.get(tf.key) == tf.value:
+                return True
+        return False
 
     # ------------------------------------------------------------------
     # Edge filtering methods

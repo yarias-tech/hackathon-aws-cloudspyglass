@@ -21,6 +21,7 @@ interface FilterBarProps {
  * FilterBar orchestrates tag and resource-type filter controls.
  *
  * - Combines TagFilterInput and TypeFilterSelect components
+ * - Provides AND/OR operator toggle for tag filters
  * - Displays filtered count vs total count when filters are active (Requirement 7.4)
  * - Shows empty state message when no resources match filters (Requirement 7.5)
  * - Exposes combined FilterCriteria to parent component
@@ -52,11 +53,18 @@ export function FilterBar({
     [filters, onFiltersChange]
   );
 
+  const handleOperatorToggle = useCallback(() => {
+    onFiltersChange({
+      ...filters,
+      tag_filter_operator: filters.tag_filter_operator === 'AND' ? 'OR' : 'AND',
+    });
+  }, [filters, onFiltersChange]);
+
   const hasActiveFilters =
     filters.tag_filters.length > 0 || filters.type_filters.length > 0;
 
   const handleClearAll = useCallback(() => {
-    onFiltersChange({ tag_filters: [], type_filters: [] });
+    onFiltersChange({ tag_filters: [], type_filters: [], tag_filter_operator: 'AND' });
   }, [onFiltersChange]);
 
   return (
@@ -111,6 +119,35 @@ export function FilterBar({
         filters={filters.tag_filters}
         onFiltersChange={handleTagFiltersChange}
       />
+
+      {/* Tag filter operator toggle — only show when multiple tag filters exist */}
+      {filters.tag_filters.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Tag logic:</span>
+          <button
+            type="button"
+            onClick={handleOperatorToggle}
+            aria-label={`Tag filter operator: ${filters.tag_filter_operator}. Click to switch.`}
+            style={{
+              padding: '0.2rem 0.5rem',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              border: '1px solid #d1d5db',
+              borderRadius: '0.25rem',
+              cursor: 'pointer',
+              backgroundColor: filters.tag_filter_operator === 'AND' ? '#dbeafe' : '#fef3c7',
+              color: filters.tag_filter_operator === 'AND' ? '#1e40af' : '#92400e',
+            }}
+          >
+            {filters.tag_filter_operator}
+          </button>
+          <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
+            {filters.tag_filter_operator === 'AND'
+              ? 'Resource must match all tags'
+              : 'Resource must match any tag'}
+          </span>
+        </div>
+      )}
 
       {/* Type filters */}
       <TypeFilterSelect
