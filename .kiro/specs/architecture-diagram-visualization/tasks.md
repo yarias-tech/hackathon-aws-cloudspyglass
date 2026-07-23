@@ -25,7 +25,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Return placeholder path when no mapping exists
     - _Requirements: 2.1, 2.4_
 
-  - [ ]* 1.4 Write unit tests for ArchitectureIconResolver (`backend/tests/test_icon_resolver.py`)
+  - [x] 1.4 Write unit tests for ArchitectureIconResolver (`backend/tests/test_icon_resolver.py`)
     - Test each supported resource type maps to correct SVG path
     - Test each container type maps to correct group icon path
     - Test unknown resource type returns placeholder path
