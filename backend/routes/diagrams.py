@@ -192,18 +192,22 @@ def _prune_hierarchy(
         if not container:
             return False
 
+        has_resources = False
+
         # Check direct resources
         if any(r in filtered_resource_ids for r in container.resources):
-            containers_with_resources.add(container_id)
-            return True
+            has_resources = True
 
-        # Check children recursively
+        # ALWAYS check children (don't short-circuit) so that deeper containers
+        # with resources are also marked as kept
         for child_id in container.children:
             if _has_filtered_resources(child_id):
-                containers_with_resources.add(container_id)
-                return True
+                has_resources = True
 
-        return False
+        if has_resources:
+            containers_with_resources.add(container_id)
+
+        return has_resources
 
     # Start from root
     _has_filtered_resources(hierarchy.root_id)
