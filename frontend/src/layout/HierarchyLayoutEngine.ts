@@ -386,13 +386,13 @@ export function computeHierarchyLayout(
         resultNodes.push(resourceNode);
       }
 
-      const resourceLayout = computeGridLayout(
-        resourceIds.length,
-        NODE_WIDTH,
-        NODE_HEIGHT,
-        spacing
-      );
-      cursorY += resourceLayout.height + spacing;
+      // Advance cursorY using the same column logic as getGridPositions
+      // to ensure child containers are positioned below all resource rows
+      const availWidth = size.width - padding * 2;
+      const cols = Math.max(1, Math.floor((availWidth + spacing) / (NODE_WIDTH + spacing)));
+      const rows = Math.ceil(resourceIds.length / cols);
+      const actualResourceHeight = rows * NODE_HEIGHT + (rows - 1) * spacing;
+      cursorY += actualResourceHeight + spacing;
     }
 
     // Position child containers (flow layout)
