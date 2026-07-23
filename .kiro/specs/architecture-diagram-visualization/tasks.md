@@ -212,7 +212,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert labels >40 chars display first 40 + "…"; labels ≤40 chars display unmodified
     - **Validates: Requirements 4.6**
 
-  - [ ]* 8.5 Write property test: Edge Count Matches Relationships (`frontend/src/components/RelationshipEdge.property.test.ts`)
+  - [x] 8.5 Write property test: Edge Count Matches Relationships (`frontend/src/components/RelationshipEdge.property.test.ts`)
     - **Property 9: Edge Count Matches Relationships**
     - Generate relationship sets of varying sizes
     - Assert rendered edge count equals relationship count with matching source/target

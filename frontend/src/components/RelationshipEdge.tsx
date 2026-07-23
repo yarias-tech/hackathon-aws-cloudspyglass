@@ -77,6 +77,40 @@ export function getEdgeStyle(category: string): EdgeStyleConfig {
 }
 
 /**
+ * Converts an array of DiagramEdge objects to React Flow Edge objects.
+ * Maintains a 1:1 mapping — every input relationship produces exactly one output edge
+ * with the same source and target, type 'relationship', and category/derivedFrom data.
+ * (Property 9: Edge Count Matches Relationships — Requirement 4.1)
+ */
+export function createEdgesFromRelationships(
+  diagramEdges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    category: string;
+    derived_from: string;
+    label: string | null;
+  }>
+): Array<{
+  id: string;
+  source: string;
+  target: string;
+  type: string;
+  data: { category: string; derivedFrom: string };
+}> {
+  return diagramEdges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    type: 'relationship',
+    data: {
+      category: edge.category,
+      derivedFrom: edge.derived_from,
+    },
+  }));
+}
+
+/**
  * Extracts a short readable name from an ARN or returns the value as-is.
  * e.g., "arn:aws:ec2:us-east-1:123456789012:instance/i-abc123" → "i-abc123"
  */

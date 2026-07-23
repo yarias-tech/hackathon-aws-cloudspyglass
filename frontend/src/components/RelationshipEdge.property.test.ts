@@ -5,6 +5,7 @@ import {
   DEFAULT_EDGE_STYLE,
   getEdgeStyle,
   truncateLabel,
+  createEdgesFromRelationships,
 } from './RelationshipEdge';
 
 /**
@@ -198,5 +199,114 @@ describe('Property 8: Edge Label Truncation', () => {
       }),
       { numRuns: 100 }
     );
+  });
+});
+
+/**
+ * // Feature: architecture-diagram-visualization, Property 9: Edge Count Matches Relationships
+ *
+ * **Validates: Requirements 4.1**
+ *
+ * For any set of relationships provided to the diagram, the rendered edge set SHALL
+ * contain exactly one directed edge per relationship, with source and target matching
+ * the relationship's source and target respectively.
+ */
+describe('Property 9: Edge Count Matches Relationships', () => {
+  /** Arbitrary for a valid edge category */
+  const categoryArb = fc.constantFrom(
+    'network' as const,
+    'iam' as const,
+    'event' as const,
+    'data' as const
+  );
+
+  /** Arbitrary for a single DiagramEdge-like object */
+  const diagramEdgeArb = fc.record({
+    id: fc.uuid(),
+    source: fc.string({ minLength: 1, maxLength: 100 }),
+    target: fc.string({ minLength: 1, maxLength: 100 }),
+    category: categoryArb,
+    derived_from: fc.string({ minLength: 0, maxLength: 100 }),
+    label: fc.oneof(fc.constant(null), fc.string({ minLength: 0, maxLength: 100 })),
+  });
+
+  /** Arbitrary for a set of DiagramEdges of varying sizes (0 to 50) */
+  const diagramEdgesArb = fc.array(diagramEdgeArb, { minLength: 0, maxLength: 50 });
+
+  it('output edge count equals input relationship count', () => {
+    fc.assert(
+      fc.property(diagramEdgesArb, (edges) => {
+        const result = createEdgesFromRelationships(edges);
+        expect(result.length).toBe(edges.length);
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('each output edge source matches input relationship source', () => {
+    fc.assert(
+      fc.property(diagramEdgesArb, (edges) => {
+        const result = createEdgesFromRelationships(edges);
+        for (let i = 0; i < edges.length; i++) {
+          expect(result[i].source).toBe(edges[i].source);
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('each output edge target matches input relationship target', () => {
+    fc.assert(
+      fc.property(diagramEdgesArb, (edges) => {
+        const result = createEdgesFromRelationships(edges);
+        for (let i = 0; i < edges.length; i++) {
+          expect(result[i].target).toBe(edges[i].target);
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('each output edge has type "relationship"', () => {
+    fc.assert(
+      fc.property(diagramEdgesArb, (edges) => {
+        const result = createEdgesFromRelationships(edges);
+        for (const edge of result) {
+          expect(edge.type).toBe('relationship');
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('each output edge preserves the id from the input relationship', () => {
+    fc.assert(
+      fc.property(diagramEdgesArb, (edges) => {
+        const result = createEdgesFromRelationships(edges);
+        for (let i = 0; i < edges.length; i++) {
+          expect(result[i].id).toBe(edges[i].id);
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('each output edge data contains category and derivedFrom from input', () => {
+    fc.assert(
+      fc.property(diagramEdgesArb, (edges) => {
+        const result = createEdgesFromRelationships(edges);
+        for (let i = 0; i < edges.length; i++) {
+          expect(result[i].data.category).toBe(edges[i].category);
+          expect(result[i].data.derivedFrom).toBe(edges[i].derived_from);
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  it('empty input produces empty output', () => {
+    const result = createEdgesFromRelationships([]);
+    expect(result).toEqual([]);
+    expect(result.length).toBe(0);
   });
 });
