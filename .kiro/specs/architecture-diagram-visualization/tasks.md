@@ -73,7 +73,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert each external resource is assigned to exactly one sub-group category
     - **Validates: Requirements 9.2**
 
-  - [ ]* 2.7 Write unit tests for HierarchyBuilder (`backend/tests/test_hierarchy_builder.py`)
+  - [x] 2.7 Write unit tests for HierarchyBuilder (`backend/tests/test_hierarchy_builder.py`)
     - Test tree construction with a typical multi-VPC, multi-AZ scan
     - Test placeholder container creation for unknown VPC
     - Test default private classification when no route table exists
