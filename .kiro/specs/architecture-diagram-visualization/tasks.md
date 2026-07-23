@@ -130,7 +130,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert every child's bounding box is at least 20px from parent border on all sides
     - **Validates: Requirements 1.10**
 
-  - [ ]* 5.6 Write property test: Minimum Container Dimensions (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.6 Write property test: Minimum Container Dimensions (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 6: Minimum Container Dimensions**
     - Generate empty containers (no resources, no sub-containers)
     - Assert width ≥ 100px and height ≥ 60px

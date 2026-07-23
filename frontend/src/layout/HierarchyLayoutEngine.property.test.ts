@@ -307,3 +307,138 @@ describe('Property 5: Minimum Parent Padding', () => {
     );
   });
 });
+
+// Feature: architecture-diagram-visualization, Property 6: Minimum Container Dimensions
+
+/**
+ * **Validates: Requirements 1.11**
+ *
+ * Property 6: Minimum Container Dimensions
+ * For any container in the layout result that has no children (no resources and
+ * no sub-containers), its rendered width SHALL be at least 100 pixels and its
+ * rendered height SHALL be at least 60 pixels.
+ */
+
+// ─── Arbitrary: Hierarchy with empty containers ───────────────────────────────
+
+/**
+ * Generates a HierarchyTree that always includes at least one empty container
+ * (no resources, no sub-containers). The root cloud container has children, but
+ * the leaf containers are left completely empty.
+ */
+const emptyContainerHierarchyArb: fc.Arbitrary<GeneratedHierarchy> = fc
+  .record({
+    numEmptyContainers: fc.integer({ min: 1, max: 4 }),
+    depth: fc.integer({ min: 1, max: 4 }),
+  })
+  .map(({ numEmptyContainers, depth }) => {
+    const containers: ContainerMetadata[] = [];
+    let containerIdCounter = 0;
+
+    // Create root (cloud)
+    const rootId = `container-${containerIdCounter++}`;
+    const rootContainer: ContainerMetadata = {
+      id: rootId,
+      name: 'AWS Cloud',
+      type: 'cloud',
+      parent_id: null,
+      subnet_type: null,
+      icon_key: 'aws-cloud',
+      resources: [],
+      children: [],
+    };
+    containers.push(rootContainer);
+
+    // Build a path of containers down to the target depth
+    let currentParent = rootContainer;
+    for (let d = 1; d < depth; d++) {
+      const containerType = CONTAINER_TYPES_ORDERED[d];
+      const containerId = `container-${containerIdCounter++}`;
+      const container: ContainerMetadata = {
+        id: containerId,
+        name: `${containerType}-${containerId}`,
+        type: containerType,
+        parent_id: currentParent.id,
+        subnet_type: containerType === 'subnet' ? 'public' : null,
+        icon_key: `icon-${containerType}`,
+        resources: [],
+        children: [],
+      };
+      containers.push(container);
+      currentParent.children.push(containerId);
+      currentParent = container;
+    }
+
+    // Add empty leaf containers (no resources, no children) to the current parent
+    const leafType = CONTAINER_TYPES_ORDERED[Math.min(depth, CONTAINER_TYPES_ORDERED.length - 1)];
+    for (let i = 0; i < numEmptyContainers; i++) {
+      const containerId = `container-${containerIdCounter++}`;
+      const container: ContainerMetadata = {
+        id: containerId,
+        name: `empty-${leafType}-${containerId}`,
+        type: leafType,
+        parent_id: currentParent.id,
+        subnet_type: leafType === 'subnet' ? (i % 2 === 0 ? 'public' : 'private') : null,
+        icon_key: `icon-${leafType}`,
+        resources: [],       // No resources
+        children: [],        // No sub-containers
+      };
+      containers.push(container);
+      currentParent.children.push(containerId);
+    }
+
+    const hierarchy: HierarchyTree = {
+      containers,
+      root_id: rootId,
+      boundary_services: [],
+    };
+
+    return {
+      hierarchy,
+      diagramNodes: [] as DiagramNode[],
+      diagramEdges: [] as DiagramEdge[],
+    };
+  });
+
+// ─── Property Test ────────────────────────────────────────────────────────────
+
+describe('Property 6: Minimum Container Dimensions', () => {
+  it('empty containers (no resources, no sub-containers) have width >= 100px and height >= 60px', () => {
+    const MIN_CONTAINER_WIDTH = 100;
+    const MIN_CONTAINER_HEIGHT = 60;
+
+    fc.assert(
+      fc.property(emptyContainerHierarchyArb, ({ hierarchy, diagramNodes, diagramEdges }) => {
+        const result = computeHierarchyLayout(hierarchy, diagramNodes, diagramEdges);
+
+        // Identify empty containers from the hierarchy input
+        const emptyContainerIds = new Set(
+          hierarchy.containers
+            .filter((c) => c.resources.length === 0 && c.children.length === 0)
+            .map((c) => c.id)
+        );
+
+        // Check every container node in the result that corresponds to an empty container
+        for (const node of result.nodes) {
+          if (node.type !== 'container') continue;
+          if (!emptyContainerIds.has(node.id)) continue;
+
+          const style = (node as { style?: Record<string, unknown> }).style;
+          const width = typeof style?.width === 'number' ? style.width : 0;
+          const height = typeof style?.height === 'number' ? style.height : 0;
+
+          expect(
+            width,
+            `Empty container "${node.id}" has width ${width}px, expected >= ${MIN_CONTAINER_WIDTH}px`
+          ).toBeGreaterThanOrEqual(MIN_CONTAINER_WIDTH);
+
+          expect(
+            height,
+            `Empty container "${node.id}" has height ${height}px, expected >= ${MIN_CONTAINER_HEIGHT}px`
+          ).toBeGreaterThanOrEqual(MIN_CONTAINER_HEIGHT);
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+});
