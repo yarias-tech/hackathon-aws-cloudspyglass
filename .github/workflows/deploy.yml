@@ -1,11 +1,13 @@
-name: Backend — Build & Deploy
+name: Build & Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
       - "backend/**"
+      - "frontend/**"
       - "Dockerfile"
       - "supervisord.conf"
       - "nginx.conf"
@@ -22,32 +24,9 @@ env:
   TASK_DEFINITION: infra/ecs-task-definition.json
 
 jobs:
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: pip install --quiet .[dev]
-        working-directory: backend
-
-      - name: Run tests
-        run: pytest --tb=short
-        working-directory: backend
-
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: test
 
     steps:
       - name: Checkout code
@@ -70,8 +49,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT

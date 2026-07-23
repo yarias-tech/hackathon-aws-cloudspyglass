@@ -1,3 +1,11 @@
+# ── ECS Service-Linked Role ───────────────────────────────────────────────────
+# Requerido para que ECS pueda gestionar ENIs, load balancers, etc.
+# AWS normalmente lo crea automáticamente, pero si no existe hay que crearlo.
+
+resource "aws_iam_service_linked_role" "ecs" {
+  aws_service_name = "ecs.amazonaws.com"
+}
+
 # ── IAM Role para ECS Task Execution ─────────────────────────────────────────
 
 data "aws_iam_policy_document" "ecs_task_assume_role" {

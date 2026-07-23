@@ -32,3 +32,5 @@ desired_count = 1
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 log_retention_days = 7
+
+#certificate_arn = "arn:aws:acm:us-east-1:475997945450:certificate/ec335049-238e-4654-b790-b4e43d7daee8"

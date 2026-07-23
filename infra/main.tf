@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.5.0"
+  #required_version = ">= 1.5.0"
 
   required_providers {
     aws = {
@@ -9,11 +9,11 @@ terraform {
   }
 
   # Descomenta esto cuando tengas un bucket S3 para el estado remoto
-  # backend "s3" {
-  #   bucket = "cloudspyglass-terraform-state"
-  #   key    = "infra/terraform.tfstate"
-  #   region = "us-east-1"
-  # }
+  backend "s3" {
+    bucket = "cloudspyglass"
+    key    = "infra/terraform.tfstate"
+    region = "us-east-1"
+  }
 }
 
 provider "aws" {
@@ -21,8 +21,8 @@ provider "aws" {
 
   default_tags {
     tags = {
-      name    = "CloudSpyGlass"
-      Project = var.app_name
+      Application = "CloudSpyGlass"
+      Project     = var.app_name
     }
   }
 }
