@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { ContainerNode, type ContainerNodeData } from './ContainerNode';
@@ -133,29 +133,32 @@ describe('ContainerNode', () => {
   });
 
   describe('double-click toggle', () => {
-    it('collapses on double-click when expanded', () => {
-      const props = makeNodeProps({ isCollapsed: false, resourceCount: 3 });
+    it('calls onToggleCollapse with container ID on double-click', () => {
+      const onToggleCollapse = vi.fn();
+      const props = makeNodeProps({ isCollapsed: false, resourceCount: 3, onToggleCollapse });
       renderWithFlow(<ContainerNode {...props} />);
 
       const node = screen.getByTestId('container-node');
-      expect(screen.queryByLabelText('resource count')).not.toBeInTheDocument();
-
       fireEvent.doubleClick(node);
 
-      expect(screen.getByLabelText('resource count')).toBeInTheDocument();
-      expect(screen.getByLabelText('resource count')).toHaveTextContent('3');
-      expect(node).toHaveClass('container-node--collapsed');
+      expect(onToggleCollapse).toHaveBeenCalledWith('container-1');
     });
 
-    it('expands on double-click when collapsed', () => {
+    it('shows collapsed state when isCollapsed prop is true', () => {
       const props = makeNodeProps({ isCollapsed: true, resourceCount: 7 });
       renderWithFlow(<ContainerNode {...props} />);
 
       const node = screen.getByTestId('container-node');
       expect(screen.getByLabelText('resource count')).toBeInTheDocument();
+      expect(screen.getByLabelText('resource count')).toHaveTextContent('7');
+      expect(node).toHaveClass('container-node--collapsed');
+    });
 
-      fireEvent.doubleClick(node);
+    it('shows expanded state when isCollapsed prop is false', () => {
+      const props = makeNodeProps({ isCollapsed: false, resourceCount: 3 });
+      renderWithFlow(<ContainerNode {...props} />);
 
+      const node = screen.getByTestId('container-node');
       expect(screen.queryByLabelText('resource count')).not.toBeInTheDocument();
       expect(node).not.toHaveClass('container-node--collapsed');
     });

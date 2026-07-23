@@ -218,15 +218,15 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert rendered edge count equals relationship count with matching source/target
     - **Validates: Requirements 4.1**
 
-- [ ] 9. DiagramCanvas integration and interactive behaviors
-  - [ ] 9.1 Update DiagramCanvas to use hierarchical layout (`frontend/src/components/DiagramCanvas.tsx`)
+- [x] 9. DiagramCanvas integration and interactive behaviors
+  - [x] 9.1 Update DiagramCanvas to use hierarchical layout (`frontend/src/components/DiagramCanvas.tsx`)
     - Replace `applyDagreLayout` with `computeHierarchyLayout`
     - Register `ContainerNode`, `BoundaryServiceNode` as custom node types
     - Manage collapsed container state via `useState<Set<string>>`
     - Fall back to dagre layout when `hierarchy` is null (backward compat)
     - _Requirements: 1.1, 6.5_
 
-  - [ ] 9.2 Implement interactive behaviors in DiagramCanvas
+  - [x] 9.2 Implement interactive behaviors in DiagramCanvas
     - Pan and zoom with range 0.1x to 5.0x
     - Fit view on initial load (all nodes visible in viewport)
     - "Fit view" button to reset viewport
@@ -236,13 +236,13 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Reroute edges to collapsed container node when children are hidden
     - _Requirements: 8.1, 8.2, 8.5, 8.6, 8.7, 8.8, 8.9_
 
-  - [ ]* 9.3 Write property test: Edge Rerouting on Collapse (`frontend/src/components/DiagramCanvas.property.test.ts`)
+  - [x] 9.3 Write property test: Edge Rerouting on Collapse (`frontend/src/components/DiagramCanvas.property.test.ts`)
     - **Property 14: Edge Rerouting on Collapse**
     - Generate containers with resources that are edge sources/targets, then collapse
     - Assert edges reroute to container node; total logical relationship count unchanged
     - **Validates: Requirements 8.9**
 
-  - [ ]* 9.4 Write unit tests for DiagramCanvas interactive behaviors (`frontend/src/components/DiagramCanvas.test.tsx`)
+  - [x] 9.4 Write unit tests for DiagramCanvas interactive behaviors (`frontend/src/components/DiagramCanvas.test.tsx`)
     - Test fit view on load
     - Test hover highlight/dim behavior
     - Test click emits selection event
