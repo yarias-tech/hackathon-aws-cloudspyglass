@@ -49,3 +49,15 @@ variable "log_retention_days" {
   type        = number
   default     = 7
 }
+
+variable "domain_name" {
+  description = "Dominio para el certificado HTTPS (ej: app.example.com). Dejar vacío para solo HTTP."
+  type        = string
+  default     = ""
+}
+
+variable "certificate_arn" {
+  description = "ARN de un certificado ACM existente. Si se provee, se usa en vez de crear uno nuevo."
+  type        = string
+  default     = ""
+}
