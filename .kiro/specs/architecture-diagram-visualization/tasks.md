@@ -41,7 +41,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Detect and populate boundary service placements (IGW, NAT, WAF, VPN)
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.7, 5.1, 5.2, 5.3, 5.4_
 
-  - [ ]* 2.2 Write property test: Hierarchy Nesting Order (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.2 Write property test: Hierarchy Nesting Order (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 1: Hierarchy Nesting Order**
     - Generate random scan data with resources across accounts, regions, VPCs, AZs, subnets
     - Assert every container's parent type follows strict ordering: cloud → account → region → vpc → az → subnet
