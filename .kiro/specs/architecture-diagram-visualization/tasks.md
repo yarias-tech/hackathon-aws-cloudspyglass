@@ -142,7 +142,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert node center lies on the container border line
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5**
 
-  - [ ]* 5.8 Write property test: Boundary Service Spacing (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.8 Write property test: Boundary Service Spacing (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 11: Boundary Service Spacing**
     - Generate multiple boundary services on same container edge
     - Assert horizontal distance between adjacent nodes ≥ 20px

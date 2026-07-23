@@ -705,3 +705,218 @@ describe('Property 10: Boundary Service Positioning', () => {
     );
   });
 });
+
+// Feature: architecture-diagram-visualization, Property 11: Boundary Service Spacing
+
+/**
+ * **Validates: Requirements 5.7**
+ *
+ * Property 11: Boundary Service Spacing
+ * For any container edge that has multiple boundary service nodes positioned on it,
+ * the horizontal distance between the edges of adjacent boundary service nodes
+ * SHALL be at least 20 pixels.
+ */
+
+// ─── Arbitrary: Hierarchy with multiple boundary services on same edge ────────
+
+/**
+ * Generates a HierarchyTree with 2-4 boundary services all on the same container edge,
+ * guaranteeing at least 2 for meaningful spacing assertions.
+ */
+const multiBoundaryServiceArb: fc.Arbitrary<BoundaryTestHierarchy> = fc
+  .record({
+    numBoundaryServices: fc.integer({ min: 2, max: 4 }),
+    boundaryTypes: fc.array(
+      fc.constantFrom<BoundaryTypeValue>('igw', 'nat', 'waf', 'vpn'),
+      { minLength: 4, maxLength: 4 }
+    ),
+    edgePosition: fc.constantFrom<EdgePositionValue>('top', 'bottom', 'left', 'right'),
+    numResources: fc.integer({ min: 1, max: 3 }),
+  })
+  .map(({ numBoundaryServices, boundaryTypes, edgePosition, numResources }) => {
+    const containers: ContainerMetadata[] = [];
+    const diagramNodes: DiagramNode[] = [];
+
+    // Build cloud → account → region → vpc hierarchy
+    const cloudId = 'cloud-root';
+    const accountId = 'account-1';
+    const regionId = 'region-us-east-1';
+    const vpcId = 'vpc-spacing-test';
+
+    containers.push({
+      id: cloudId,
+      name: 'AWS Cloud',
+      type: 'cloud',
+      parent_id: null,
+      subnet_type: null,
+      icon_key: 'aws-cloud',
+      resources: [],
+      children: [accountId],
+    });
+
+    containers.push({
+      id: accountId,
+      name: 'Account 123456789012',
+      type: 'account',
+      parent_id: cloudId,
+      subnet_type: null,
+      icon_key: 'aws-account',
+      resources: [],
+      children: [regionId],
+    });
+
+    containers.push({
+      id: regionId,
+      name: 'us-east-1',
+      type: 'region',
+      parent_id: accountId,
+      subnet_type: null,
+      icon_key: 'region',
+      resources: [],
+      children: [vpcId],
+    });
+
+    // VPC container with resources
+    const vpcResources: string[] = [];
+    for (let i = 0; i < numResources; i++) {
+      const resId = `arn:aws:ec2:us-east-1:123456789012:instance/i-spacing-${i}`;
+      vpcResources.push(resId);
+      diagramNodes.push({
+        id: resId,
+        resource_type: 'aws::ec2::instance',
+        name: `Instance ${i}`,
+        region: 'us-east-1',
+        is_external: false,
+        is_unresolved: false,
+        icon_url: '/icons/ec2.svg',
+      });
+    }
+
+    containers.push({
+      id: vpcId,
+      name: 'VPC Spacing Test',
+      type: 'vpc',
+      parent_id: regionId,
+      subnet_type: null,
+      icon_key: 'vpc',
+      resources: vpcResources,
+      children: [],
+    });
+
+    // Create multiple boundary services ALL on the same edge
+    const boundaryServices: import('../types/hierarchy').BoundaryServicePlacement[] = [];
+    const expectedBoundary: BoundaryTestHierarchy['expectedBoundary'] = [];
+
+    for (let i = 0; i < numBoundaryServices; i++) {
+      const bType = boundaryTypes[i % boundaryTypes.length];
+      const resourceArn = `arn:aws:ec2:us-east-1:123456789012:${bType}/bs-spacing-${i}`;
+
+      boundaryServices.push({
+        resource_arn: resourceArn,
+        boundary_type: bType,
+        inner_container_id: vpcId,
+        outer_container_id: regionId,
+        edge_position: edgePosition,
+      });
+
+      diagramNodes.push({
+        id: resourceArn,
+        resource_type: `aws::ec2::${bType}`,
+        name: `${bType}-${i}`,
+        region: 'us-east-1',
+        is_external: false,
+        is_unresolved: false,
+        icon_url: `/icons/${bType}.svg`,
+      });
+
+      expectedBoundary.push({
+        resourceArn,
+        innerContainerId: vpcId,
+        edgePosition,
+      });
+    }
+
+    const hierarchy: HierarchyTree = {
+      containers,
+      root_id: cloudId,
+      boundary_services: boundaryServices,
+    };
+
+    return {
+      hierarchy,
+      diagramNodes,
+      diagramEdges: [] as DiagramEdge[],
+      expectedBoundary,
+    };
+  });
+
+// ─── Property Test ────────────────────────────────────────────────────────────
+
+describe('Property 11: Boundary Service Spacing', () => {
+  it('adjacent boundary service nodes on same edge have at least 20px gap between them', () => {
+    const MIN_GAP = 20;
+
+    fc.assert(
+      fc.property(multiBoundaryServiceArb, ({ hierarchy, diagramNodes, diagramEdges, expectedBoundary }) => {
+        const result = computeHierarchyLayout(hierarchy, diagramNodes, diagramEdges);
+
+        // Collect all boundary nodes from the layout result that match our expected boundary services
+        const boundaryNodes: { node: (typeof result.nodes)[number]; edgePosition: EdgePositionValue }[] = [];
+
+        for (const expected of expectedBoundary) {
+          const boundaryNode = result.nodes.find(
+            (n) => n.id === expected.resourceArn && n.type === 'boundary'
+          );
+
+          if (boundaryNode) {
+            boundaryNodes.push({ node: boundaryNode, edgePosition: expected.edgePosition });
+          }
+        }
+
+        // We need at least 2 boundary nodes on the same edge to test spacing
+        expect(
+          boundaryNodes.length,
+          `Expected at least 2 boundary nodes in result, got ${boundaryNodes.length}`
+        ).toBeGreaterThanOrEqual(2);
+
+        // All boundary nodes share the same edge position (by construction)
+        const edgePosition = boundaryNodes[0].edgePosition;
+
+        if (edgePosition === 'top' || edgePosition === 'bottom') {
+          // For horizontal edges (top/bottom): sort by x position and check horizontal spacing
+          const sorted = [...boundaryNodes].sort((a, b) => a.node.position.x - b.node.position.x);
+
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const currentRightEdge = sorted[i].node.position.x + BOUNDARY_NODE_WIDTH;
+            const nextLeftEdge = sorted[i + 1].node.position.x;
+            const gap = nextLeftEdge - currentRightEdge;
+
+            expect(
+              gap,
+              `Horizontal gap between boundary nodes "${sorted[i].node.id}" and "${sorted[i + 1].node.id}" ` +
+              `is ${gap}px, expected >= ${MIN_GAP}px. ` +
+              `(node[${i}] right edge: ${currentRightEdge}, node[${i + 1}] left edge: ${nextLeftEdge})`
+            ).toBeGreaterThanOrEqual(MIN_GAP);
+          }
+        } else {
+          // For vertical edges (left/right): sort by y position and check vertical spacing
+          const sorted = [...boundaryNodes].sort((a, b) => a.node.position.y - b.node.position.y);
+
+          for (let i = 0; i < sorted.length - 1; i++) {
+            const currentBottomEdge = sorted[i].node.position.y + BOUNDARY_NODE_HEIGHT;
+            const nextTopEdge = sorted[i + 1].node.position.y;
+            const gap = nextTopEdge - currentBottomEdge;
+
+            expect(
+              gap,
+              `Vertical gap between boundary nodes "${sorted[i].node.id}" and "${sorted[i + 1].node.id}" ` +
+              `is ${gap}px, expected >= ${MIN_GAP}px. ` +
+              `(node[${i}] bottom edge: ${currentBottomEdge}, node[${i + 1}] top edge: ${nextTopEdge})`
+            ).toBeGreaterThanOrEqual(MIN_GAP);
+          }
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+});
