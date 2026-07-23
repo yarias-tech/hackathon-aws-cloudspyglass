@@ -148,7 +148,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert horizontal distance between adjacent nodes ≥ 20px
     - **Validates: Requirements 5.7**
 
-- [ ] 6. Frontend container and node components
+- [x] 6. Frontend container and node components
   - [x] 6.1 Implement ContainerNode component (`frontend/src/components/ContainerNode.tsx`)
     - Render styled container with header bar (icon badge 32x32 + label 14px/600 weight)
     - Apply styling per container type (colors, borders, backgrounds from design spec)
@@ -161,7 +161,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Visual styling to indicate boundary positioning
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 6.3 Implement ExternalResourcesContainer (`frontend/src/components/ExternalResourcesContainer.tsx`)
+  - [x] 6.3 Implement ExternalResourcesContainer (`frontend/src/components/ExternalResourcesContainer.tsx`)
     - Render dedicated external resources area
     - Sub-group by category: Cross-Account AWS, On-Premises, Third-Party, Unknown External
     - Style external nodes with 50% opacity and dashed border
