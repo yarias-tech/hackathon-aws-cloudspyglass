@@ -124,7 +124,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert no two sibling nodes have overlapping bounding boxes
     - **Validates: Requirements 1.9, 3.8**
 
-  - [ ]* 5.5 Write property test: Minimum Parent Padding (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.5 Write property test: Minimum Parent Padding (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 5: Minimum Parent Padding**
     - Generate containers with children
     - Assert every child's bounding box is at least 20px from parent border on all sides

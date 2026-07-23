@@ -230,3 +230,80 @@ describe('Property 4: No Sibling Overlap in Layout', () => {
     );
   });
 });
+
+// Feature: architecture-diagram-visualization, Property 5: Minimum Parent Padding
+
+/**
+ * **Validates: Requirements 1.10**
+ *
+ * Property 5: Minimum Parent Padding
+ * For any container in the layout result that has children, every child node's
+ * bounding box SHALL be at least 20 pixels from the parent container's border
+ * on all sides.
+ */
+describe('Property 5: Minimum Parent Padding', () => {
+  it('every child node is at least 20px from parent border on all sides', () => {
+    fc.assert(
+      fc.property(hierarchyArb, ({ hierarchy, diagramNodes, diagramEdges }) => {
+        const result = computeHierarchyLayout(hierarchy, diagramNodes, diagramEdges);
+
+        const MIN_PADDING = 20;
+
+        // Build a map of node id -> node for quick lookup
+        const nodeMap = new Map<string, (typeof result.nodes)[number]>();
+        for (const node of result.nodes) {
+          nodeMap.set(node.id, node);
+        }
+
+        // Check every node that has a parentId
+        for (const node of result.nodes) {
+          const parentId = (node as { parentId?: string }).parentId;
+          if (!parentId) continue;
+
+          const parent = nodeMap.get(parentId);
+          if (!parent) continue;
+
+          // Get child bounding box (position is relative to parent)
+          const childBox = getNodeBoundingBox(
+            node as { position: { x: number; y: number }; style?: Record<string, unknown>; type?: string }
+          );
+
+          // Get parent dimensions from style
+          const parentStyle = (parent as { style?: Record<string, unknown> }).style;
+          const parentWidth = typeof parentStyle?.width === 'number' ? parentStyle.width : 0;
+          const parentHeight = typeof parentStyle?.height === 'number' ? parentStyle.height : 0;
+
+          // Positions are relative to the parent, so parent origin is (0, 0)
+          // Left padding: child.x >= 20
+          expect(
+            childBox.x,
+            `Node "${node.id}" left padding from parent "${parentId}" is less than ${MIN_PADDING}px. ` +
+            `child.x=${childBox.x}`
+          ).toBeGreaterThanOrEqual(MIN_PADDING);
+
+          // Top padding: child.y >= 20
+          expect(
+            childBox.y,
+            `Node "${node.id}" top padding from parent "${parentId}" is less than ${MIN_PADDING}px. ` +
+            `child.y=${childBox.y}`
+          ).toBeGreaterThanOrEqual(MIN_PADDING);
+
+          // Right padding: child.x + child.width <= parentWidth - 20
+          expect(
+            childBox.x + childBox.width,
+            `Node "${node.id}" right padding from parent "${parentId}" is less than ${MIN_PADDING}px. ` +
+            `child.x + child.width=${childBox.x + childBox.width}, parentWidth - 20=${parentWidth - MIN_PADDING}`
+          ).toBeLessThanOrEqual(parentWidth - MIN_PADDING);
+
+          // Bottom padding: child.y + child.height <= parentHeight - 20
+          expect(
+            childBox.y + childBox.height,
+            `Node "${node.id}" bottom padding from parent "${parentId}" is less than ${MIN_PADDING}px. ` +
+            `child.y + child.height=${childBox.y + childBox.height}, parentHeight - 20=${parentHeight - MIN_PADDING}`
+          ).toBeLessThanOrEqual(parentHeight - MIN_PADDING);
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+});
