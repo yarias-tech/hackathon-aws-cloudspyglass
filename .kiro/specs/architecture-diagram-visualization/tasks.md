@@ -178,7 +178,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test each boundary type renders appropriately
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ]* 6.6 Write property test: Collapsed Container Badge Count (`frontend/src/components/ContainerNode.property.test.ts`)
+  - [x] 6.6 Write property test: Collapsed Container Badge Count (`frontend/src/components/ContainerNode.property.test.ts`)
     - **Property 13: Collapsed Container Badge Count**
     - Generate containers with nested sub-containers and resources
     - Assert badge count equals total recursive resource count
