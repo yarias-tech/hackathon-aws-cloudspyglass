@@ -442,3 +442,266 @@ describe('Property 6: Minimum Container Dimensions', () => {
     );
   });
 });
+
+// Feature: architecture-diagram-visualization, Property 10: Boundary Service Positioning
+
+/**
+ * **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5**
+ *
+ * Property 10: Boundary Service Positioning
+ * For any boundary service (internet_gateway, nat_gateway, waf, vpn_gateway) in
+ * the layout, the node's center coordinates SHALL lie on the border line of its
+ * designated container edge, resulting in approximately 50% of the node area
+ * inside and 50% outside the container boundary.
+ */
+
+// ─── Constants matching the layout engine for boundary nodes ──────────────────
+const BOUNDARY_NODE_WIDTH = 120;
+const BOUNDARY_NODE_HEIGHT = 60;
+
+// ─── Arbitrary: Hierarchy with Boundary Services ──────────────────────────────
+
+type BoundaryTypeValue = 'igw' | 'nat' | 'waf' | 'vpn';
+type EdgePositionValue = 'top' | 'bottom' | 'left' | 'right';
+
+interface BoundaryTestHierarchy {
+  hierarchy: HierarchyTree;
+  diagramNodes: DiagramNode[];
+  diagramEdges: DiagramEdge[];
+  expectedBoundary: {
+    resourceArn: string;
+    innerContainerId: string;
+    edgePosition: EdgePositionValue;
+  }[];
+}
+
+/**
+ * Generates a valid HierarchyTree with a cloud → account → region → vpc chain
+ * and 1-3 boundary services attached to the VPC container with various edge positions.
+ */
+const boundaryServiceHierarchyArb: fc.Arbitrary<BoundaryTestHierarchy> = fc
+  .record({
+    numBoundaryServices: fc.integer({ min: 1, max: 3 }),
+    boundaryTypes: fc.array(
+      fc.constantFrom<BoundaryTypeValue>('igw', 'nat', 'waf', 'vpn'),
+      { minLength: 3, maxLength: 3 }
+    ),
+    edgePositions: fc.array(
+      fc.constantFrom<EdgePositionValue>('top', 'bottom', 'left', 'right'),
+      { minLength: 3, maxLength: 3 }
+    ),
+    numResources: fc.integer({ min: 1, max: 3 }),
+  })
+  .map(({ numBoundaryServices, boundaryTypes, edgePositions, numResources }) => {
+    const containers: ContainerMetadata[] = [];
+    const diagramNodes: DiagramNode[] = [];
+
+    // Build cloud → account → region → vpc hierarchy
+    const cloudId = 'cloud-root';
+    const accountId = 'account-1';
+    const regionId = 'region-us-east-1';
+    const vpcId = 'vpc-abc123';
+
+    containers.push({
+      id: cloudId,
+      name: 'AWS Cloud',
+      type: 'cloud',
+      parent_id: null,
+      subnet_type: null,
+      icon_key: 'aws-cloud',
+      resources: [],
+      children: [accountId],
+    });
+
+    containers.push({
+      id: accountId,
+      name: 'Account 123456789012',
+      type: 'account',
+      parent_id: cloudId,
+      subnet_type: null,
+      icon_key: 'aws-account',
+      resources: [],
+      children: [regionId],
+    });
+
+    containers.push({
+      id: regionId,
+      name: 'us-east-1',
+      type: 'region',
+      parent_id: accountId,
+      subnet_type: null,
+      icon_key: 'region',
+      resources: [],
+      children: [vpcId],
+    });
+
+    // VPC container holds the resources - boundary services attach to it
+    const vpcResources: string[] = [];
+    for (let i = 0; i < numResources; i++) {
+      const resId = `arn:aws:ec2:us-east-1:123456789012:instance/i-${i}`;
+      vpcResources.push(resId);
+      diagramNodes.push({
+        id: resId,
+        resource_type: 'aws::ec2::instance',
+        name: `Instance ${i}`,
+        region: 'us-east-1',
+        is_external: false,
+        is_unresolved: false,
+        icon_url: '/icons/ec2.svg',
+      });
+    }
+
+    containers.push({
+      id: vpcId,
+      name: 'VPC abc123',
+      type: 'vpc',
+      parent_id: regionId,
+      subnet_type: null,
+      icon_key: 'vpc',
+      resources: vpcResources,
+      children: [],
+    });
+
+    // Create boundary services attached to the VPC
+    const boundaryServices: import('../types/hierarchy').BoundaryServicePlacement[] = [];
+    const expectedBoundary: BoundaryTestHierarchy['expectedBoundary'] = [];
+
+    // All boundary services on the same edge so they are grouped together
+    const chosenEdge = edgePositions[0];
+
+    for (let i = 0; i < numBoundaryServices; i++) {
+      const bType = boundaryTypes[i % boundaryTypes.length];
+      const resourceArn = `arn:aws:ec2:us-east-1:123456789012:${bType}/bs-${i}`;
+
+      boundaryServices.push({
+        resource_arn: resourceArn,
+        boundary_type: bType,
+        inner_container_id: vpcId,
+        outer_container_id: regionId,
+        edge_position: chosenEdge,
+      });
+
+      diagramNodes.push({
+        id: resourceArn,
+        resource_type: `aws::ec2::${bType}`,
+        name: `${bType}-${i}`,
+        region: 'us-east-1',
+        is_external: false,
+        is_unresolved: false,
+        icon_url: `/icons/${bType}.svg`,
+      });
+
+      expectedBoundary.push({
+        resourceArn,
+        innerContainerId: vpcId,
+        edgePosition: chosenEdge,
+      });
+    }
+
+    const hierarchy: HierarchyTree = {
+      containers,
+      root_id: cloudId,
+      boundary_services: boundaryServices,
+    };
+
+    return {
+      hierarchy,
+      diagramNodes,
+      diagramEdges: [] as DiagramEdge[],
+      expectedBoundary,
+    };
+  });
+
+// ─── Property Test ────────────────────────────────────────────────────────────
+
+describe('Property 10: Boundary Service Positioning', () => {
+  it('boundary service node center lies on the designated container border line', () => {
+    fc.assert(
+      fc.property(boundaryServiceHierarchyArb, ({ hierarchy, diagramNodes, diagramEdges, expectedBoundary }) => {
+        const result = computeHierarchyLayout(hierarchy, diagramNodes, diagramEdges);
+
+        // Build a map of node id -> node for quick lookup
+        const nodeMap = new Map<string, (typeof result.nodes)[number]>();
+        for (const node of result.nodes) {
+          nodeMap.set(node.id, node);
+        }
+
+        for (const expected of expectedBoundary) {
+          // Find the boundary-type node specifically (the same id may also appear
+          // as an external node since boundary resources aren't in container.resources)
+          const boundaryNode = result.nodes.find(
+            (n) => n.id === expected.resourceArn && n.type === 'boundary'
+          );
+          expect(
+            boundaryNode,
+            `Boundary node "${expected.resourceArn}" (type=boundary) should exist in layout result`
+          ).toBeDefined();
+
+          if (!boundaryNode) continue;
+
+          // The container node for the inner_container_id
+          const containerNode = nodeMap.get(expected.innerContainerId);
+          expect(
+            containerNode,
+            `Container node "${expected.innerContainerId}" should exist in layout result`
+          ).toBeDefined();
+
+          if (!containerNode) continue;
+
+          // Get container dimensions from style
+          const containerStyle = (containerNode as { style?: Record<string, unknown> }).style;
+          const containerWidth = typeof containerStyle?.width === 'number' ? containerStyle.width : 0;
+          const containerHeight = typeof containerStyle?.height === 'number' ? containerStyle.height : 0;
+
+          // Boundary node center:
+          //   centerX = boundaryNode.position.x + BOUNDARY_NODE_WIDTH / 2
+          //   centerY = boundaryNode.position.y + BOUNDARY_NODE_HEIGHT / 2
+          //
+          // Both boundaryNode.position and containerNode.position are relative to
+          // the container's parent (since boundaryNode.parentId = container's parentId).
+          const centerX = boundaryNode.position.x + BOUNDARY_NODE_WIDTH / 2;
+          const centerY = boundaryNode.position.y + BOUNDARY_NODE_HEIGHT / 2;
+
+          switch (expected.edgePosition) {
+            case 'top':
+              // Node center Y should equal container's top Y
+              expect(
+                centerY,
+                `Boundary node "${expected.resourceArn}" center Y (${centerY}) should equal ` +
+                `container top Y (${containerNode.position.y}) for edge_position="top"`
+              ).toBe(containerNode.position.y);
+              break;
+
+            case 'bottom':
+              // Node center Y should equal container's bottom Y (position.y + height)
+              expect(
+                centerY,
+                `Boundary node "${expected.resourceArn}" center Y (${centerY}) should equal ` +
+                `container bottom Y (${containerNode.position.y + containerHeight}) for edge_position="bottom"`
+              ).toBe(containerNode.position.y + containerHeight);
+              break;
+
+            case 'left':
+              // Node center X should equal container's left X
+              expect(
+                centerX,
+                `Boundary node "${expected.resourceArn}" center X (${centerX}) should equal ` +
+                `container left X (${containerNode.position.x}) for edge_position="left"`
+              ).toBe(containerNode.position.x);
+              break;
+
+            case 'right':
+              // Node center X should equal container's right X (position.x + width)
+              expect(
+                centerX,
+                `Boundary node "${expected.resourceArn}" center X (${centerX}) should equal ` +
+                `container right X (${containerNode.position.x + containerWidth}) for edge_position="right"`
+              ).toBe(containerNode.position.x + containerWidth);
+              break;
+          }
+        }
+      }),
+      { numRuns: 100 }
+    );
+  });
+});

@@ -136,7 +136,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert width ≥ 100px and height ≥ 60px
     - **Validates: Requirements 1.11**
 
-  - [ ]* 5.7 Write property test: Boundary Service Positioning (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.7 Write property test: Boundary Service Positioning (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 10: Boundary Service Positioning**
     - Generate boundary services with designated container edges
     - Assert node center lies on the container border line
