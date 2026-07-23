@@ -1,4 +1,5 @@
 import type { RegionFailure } from "./resources";
+import type { HierarchyTree } from "./hierarchy";
 
 export interface DiagramNode {
   id: string;
@@ -27,4 +28,5 @@ export interface DiagramData {
   total_resources: number;
   scanned_regions: string[];
   failures: RegionFailure[];
+  hierarchy: HierarchyTree | null;
 }

@@ -103,7 +103,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Define `ContainerMetadata`, `BoundaryServicePlacement`, `HierarchyTree` interfaces
     - _Requirements: 6.6_
 
-  - [ ] 5.2 Update DiagramData type (`frontend/src/types/diagram.ts`)
+  - [x] 5.2 Update DiagramData type (`frontend/src/types/diagram.ts`)
     - Add `hierarchy: HierarchyTree | null` field to `DiagramData` interface
     - Import `HierarchyTree` from `./hierarchy`
     - _Requirements: 6.5_
