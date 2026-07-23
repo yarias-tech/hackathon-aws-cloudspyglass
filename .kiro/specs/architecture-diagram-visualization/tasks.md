@@ -98,7 +98,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Frontend types and layout engine
-  - [ ] 5.1 Create hierarchy TypeScript types (`frontend/src/types/hierarchy.ts`)
+  - [x] 5.1 Create hierarchy TypeScript types (`frontend/src/types/hierarchy.ts`)
     - Define `ContainerType`, `SubnetType`, `BoundaryType`, `EdgePosition` type aliases
     - Define `ContainerMetadata`, `BoundaryServicePlacement`, `HierarchyTree` interfaces
     - _Requirements: 6.6_
