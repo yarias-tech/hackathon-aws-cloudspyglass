@@ -6,7 +6,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
 
 ## Tasks
 
-- [ ] 1. Backend data models and icon resolver
+- [x] 1. Backend data models and icon resolver
   - [x] 1.1 Create hierarchy Pydantic models (`backend/models/hierarchy.py`)
     - Define `ContainerMetadata`, `BoundaryServicePlacement`, and `HierarchyTree` models
     - Include all fields: id, name, type, parent_id, subnet_type, icon_key, resources, children
@@ -18,7 +18,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Ensure backward compatibility (field defaults to None)
     - _Requirements: 6.5_
 
-  - [ ] 1.3 Implement ArchitectureIconResolver (`backend/services/icon_resolver.py`)
+  - [x] 1.3 Implement ArchitectureIconResolver (`backend/services/icon_resolver.py`)
     - Map resource types to 48px SVG paths from `Architecture-Service-Icons_07312025`
     - Map container types to 32px SVG paths from `Architecture-Group-Icons_07312025`
     - Support all container types: cloud, account, region, vpc, public subnet, private subnet, az
