@@ -200,7 +200,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Fall back to generic placeholder icon (gray square with "?") on load failure
     - _Requirements: 2.2, 2.3, 2.6_
 
-  - [ ]* 8.3 Write property test: Edge Category-to-Style Mapping (`frontend/src/components/RelationshipEdge.property.test.ts`)
+  - [x] 8.3 Write property test: Edge Category-to-Style Mapping (`frontend/src/components/RelationshipEdge.property.test.ts`)
     - **Property 7: Edge Category-to-Style Mapping**
     - Generate edges with all category values (network, iam, event, data, unknown)
     - Assert rendered style matches category deterministically
