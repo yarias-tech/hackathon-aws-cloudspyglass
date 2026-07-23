@@ -51,6 +51,8 @@ class ArchitectureIconResolver:
         "opensearch": f"{SERVICE_ICON_BASE}/Arch_Analytics/48/Arch_Amazon-OpenSearch-Service_48.svg",
         "codepipeline": f"{SERVICE_ICON_BASE}/Arch_Developer-Tools/48/Arch_AWS-CodePipeline_48.svg",
         "glue": f"{SERVICE_ICON_BASE}/Arch_Analytics/48/Arch_AWS-Glue_48.svg",
+        "asg": f"{SERVICE_ICON_BASE}/Arch_Compute/48/Arch_Amazon-EC2-Auto-Scaling_48.svg",
+        "target_group": f"{SERVICE_ICON_BASE}/Arch_Networking-Content-Delivery/48/Arch_Elastic-Load-Balancing_48.svg",
     }
 
     # Container type → relative path to 32px SVG group icon

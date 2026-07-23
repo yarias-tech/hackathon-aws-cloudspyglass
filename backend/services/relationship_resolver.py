@@ -498,6 +498,73 @@ class RelationshipResolver:
                             derived_from="AliasTarget.DNSName",
                         ))
 
+            elif resource.resource_type == "asg":
+                # ASG → EC2 instances
+                for instance_id in attrs.get("instance_ids", []):
+                    instance_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:instance/{instance_id}"
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=instance_arn,
+                        category="network",
+                        derived_from="Instances[].InstanceId",
+                    ))
+
+                # ASG → Target Groups
+                for tg_arn in attrs.get("target_group_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=tg_arn,
+                        category="network",
+                        derived_from="TargetGroupARNs[]",
+                    ))
+
+                # ASG → Subnets
+                for subnet_id in attrs.get("subnet_ids", []):
+                    subnet_arn = self._build_subnet_arn(subnet_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=subnet_arn,
+                        category="network",
+                        derived_from="VPCZoneIdentifier",
+                    ))
+
+            elif resource.resource_type == "target_group":
+                # Target Group → ALB/NLB (load balancers it's attached to)
+                for lb_arn in attrs.get("load_balancer_arns", []):
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=lb_arn,
+                        category="network",
+                        derived_from="LoadBalancerArns[]",
+                    ))
+
+                # Target Group → EC2 instances / Lambda (registered targets)
+                target_type = attrs.get("target_type", "instance")
+                for target_id in attrs.get("target_ids", []):
+                    if target_type == "instance":
+                        target_arn = f"arn:aws:ec2:{resource.region}:{self._account_id}:instance/{target_id}"
+                    elif target_type == "lambda":
+                        target_arn = target_id  # Already an ARN
+                    else:
+                        continue  # Skip IP targets
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=target_arn,
+                        category="network",
+                        derived_from="Targets[].Id",
+                    ))
+
+                # Target Group → VPC
+                vpc_id = attrs.get("vpc_id")
+                if vpc_id:
+                    vpc_arn = self._build_vpc_arn(vpc_id, resource.region)
+                    relationships.append(Relationship(
+                        source_arn=resource.arn,
+                        target_arn=vpc_arn,
+                        category="network",
+                        derived_from="VpcId",
+                    ))
+
         return relationships
 
     def _resolve_iam_relationships(
@@ -953,6 +1020,8 @@ class RelationshipResolver:
             "sns": "sns",
             "sqs": "sqs",
             "dynamodb": "dynamodb",
+            "autoscaling": "asg",
+            "elasticache": "elasticache",
         }
 
         # Parse service from ARN: arn:aws:SERVICE:region:account:...
@@ -963,6 +1032,8 @@ class RelationshipResolver:
             if service == "elasticloadbalancing":
                 if "loadbalancer/net/" in arn:
                     return "nlb"
+                if "targetgroup/" in arn:
+                    return "target_group"
                 return "alb"
             # Refine EC2 subtypes
             if service == "ec2":
@@ -972,6 +1043,10 @@ class RelationshipResolver:
                     return "vpc"
                 if "subnet/" in arn:
                     return "subnet"
+                if "elastic-ip/" in arn:
+                    return "elastic_ip"
+                if "natgateway/" in arn:
+                    return "nat_gateway"
                 return "ec2"
             return type_mapping.get(service, "unknown")
 

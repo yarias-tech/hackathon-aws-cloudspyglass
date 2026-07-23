@@ -31,6 +31,7 @@ REGIONAL_RESOURCE_TYPES = [
     "eks", "elasticache", "ebs", "elastic_ip", "nat_gateway",
     "transit_gateway", "vpn_gateway", "step_functions", "kinesis",
     "secrets_manager", "redshift", "opensearch", "codepipeline", "glue",
+    "asg", "target_group",
 ]
 
 ALL_RESOURCE_TYPES = REGIONAL_RESOURCE_TYPES + GLOBAL_RESOURCE_TYPES
@@ -341,6 +342,8 @@ class Scanner:
             "opensearch": self._fetch_opensearch,
             "codepipeline": self._fetch_codepipeline,
             "glue": self._fetch_glue,
+            "asg": self._fetch_auto_scaling_groups,
+            "target_group": self._fetch_target_groups,
         }
         return fetchers[resource_type]
 
@@ -2077,5 +2080,126 @@ class Scanner:
                     ))
         except ClientError:
             pass
+
+        return resources
+
+    def _fetch_auto_scaling_groups(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch Auto Scaling Groups."""
+        client = session.client("autoscaling", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = client.get_paginator("describe_auto_scaling_groups")
+        for page in paginator.paginate():
+            for asg in page.get("AutoScalingGroups", []):
+                asg_name = asg["AutoScalingGroupName"]
+                asg_arn = asg["AutoScalingGroupARN"]
+
+                # Tags
+                tags = {}
+                for tag in asg.get("Tags", []):
+                    tags[tag.get("Key", "")] = tag.get("Value", "")
+
+                # Collect instance IDs from the group
+                instance_ids: list[str] = [
+                    inst["InstanceId"]
+                    for inst in asg.get("Instances", [])
+                    if inst.get("InstanceId")
+                ]
+
+                # Collect target group ARNs
+                target_group_arns: list[str] = asg.get("TargetGroupARNs", [])
+
+                # Collect load balancer names (Classic LB)
+                load_balancer_names: list[str] = asg.get("LoadBalancerNames", [])
+
+                # Subnets (VPC zone identifier is comma-separated subnet IDs)
+                vpc_zone_id = asg.get("VPCZoneIdentifier", "")
+                subnet_ids = [s.strip() for s in vpc_zone_id.split(",") if s.strip()]
+
+                # Launch template or launch config
+                launch_template = asg.get("LaunchTemplate", {})
+                launch_config_name = asg.get("LaunchConfigurationName")
+
+                resources.append(Resource(
+                    arn=asg_arn,
+                    resource_type="asg",
+                    name=self._get_name_from_tags(tags, asg_name),
+                    region=region,
+                    tags=tags,
+                    creation_date=asg.get("CreatedTime", "").isoformat()
+                        if asg.get("CreatedTime") else None,
+                    attributes={
+                        "min_size": asg.get("MinSize"),
+                        "max_size": asg.get("MaxSize"),
+                        "desired_capacity": asg.get("DesiredCapacity"),
+                        "instance_ids": instance_ids,
+                        "target_group_arns": target_group_arns,
+                        "load_balancer_names": load_balancer_names,
+                        "subnet_ids": subnet_ids,
+                        "availability_zones": asg.get("AvailabilityZones", []),
+                        "health_check_type": asg.get("HealthCheckType"),
+                        "launch_template_id": launch_template.get("LaunchTemplateId"),
+                        "launch_template_name": launch_template.get("LaunchTemplateName"),
+                        "launch_config_name": launch_config_name,
+                        "status": asg.get("Status", "active"),
+                    },
+                ))
+
+        return resources
+
+    def _fetch_target_groups(
+        self, session: boto3.Session, region: str, account_id: str
+    ) -> list[Resource]:
+        """Fetch ELBv2 Target Groups."""
+        elbv2 = session.client("elbv2", region_name=region)
+        resources: list[Resource] = []
+
+        paginator = elbv2.get_paginator("describe_target_groups")
+        for page in paginator.paginate():
+            for tg in page.get("TargetGroups", []):
+                tg_arn = tg["TargetGroupArn"]
+                tg_name = tg["TargetGroupName"]
+
+                # Get tags
+                tags = {}
+                try:
+                    tag_resp = elbv2.describe_tags(ResourceArns=[tg_arn])
+                    for desc in tag_resp.get("TagDescriptions", []):
+                        tags = self._extract_tags(desc.get("Tags"))
+                except ClientError:
+                    pass
+
+                # Get targets registered in this target group
+                target_ids: list[str] = []
+                target_type = tg.get("TargetType", "instance")
+                try:
+                    th_resp = elbv2.describe_target_health(TargetGroupArn=tg_arn)
+                    for thd in th_resp.get("TargetHealthDescriptions", []):
+                        target_ids.append(thd["Target"]["Id"])
+                except ClientError:
+                    pass
+
+                # Load balancer ARNs that this TG is attached to
+                lb_arns: list[str] = tg.get("LoadBalancerArns", [])
+
+                resources.append(Resource(
+                    arn=tg_arn,
+                    resource_type="target_group",
+                    name=tg_name,
+                    region=region,
+                    tags=tags,
+                    attributes={
+                        "target_type": target_type,
+                        "protocol": tg.get("Protocol"),
+                        "port": tg.get("Port"),
+                        "vpc_id": tg.get("VpcId"),
+                        "health_check_protocol": tg.get("HealthCheckProtocol"),
+                        "health_check_path": tg.get("HealthCheckPath"),
+                        "target_ids": target_ids,
+                        "load_balancer_arns": lb_arns,
+                    },
+                ))
 
         return resources
