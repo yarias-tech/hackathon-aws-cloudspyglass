@@ -70,6 +70,7 @@ const mockDiagramData: DiagramData = {
   total_resources: 2,
   scanned_regions: ['us-east-1'],
   failures: [],
+  hierarchy: null,
 };
 
 describe('DiagramCanvas', () => {

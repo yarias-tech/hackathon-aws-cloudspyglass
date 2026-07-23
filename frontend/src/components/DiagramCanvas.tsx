@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -17,11 +17,16 @@ import '@xyflow/react/dist/style.css';
 import type { DiagramData, DiagramNode, DiagramEdge } from '../types/diagram';
 import { EmptyState } from './EmptyState';
 import { ResourceNode } from './ResourceNode';
+import { ContainerNode } from './ContainerNode';
+import { BoundaryServiceNode } from './BoundaryServiceNode';
 import { RelationshipEdge } from './RelationshipEdge';
+import { computeHierarchyLayout } from '../layout/HierarchyLayoutEngine';
 
 /** Register custom node types for React Flow */
 const nodeTypes: NodeTypes = {
   resource: ResourceNode,
+  container: ContainerNode,
+  boundary: BoundaryServiceNode,
 };
 
 /** Register custom edge types for React Flow */
@@ -114,18 +119,30 @@ interface DiagramCanvasProps {
 
 /**
  * DiagramCanvas wraps @xyflow/react ReactFlow to render the AWS infrastructure diagram.
- * - Applies dagre layout with top-to-bottom rank direction (Requirement 5.4)
+ * - Uses hierarchical layout when hierarchy data is present (Requirements 1.1, 6.5)
+ * - Falls back to dagre layout with top-to-bottom rank direction when hierarchy is null
  * - Supports pan and zoom within 0.25x to 4.0x range, fitView on load (Requirement 5.5)
  * - Shows EmptyState when no scan data exists (Requirement 5.7)
  */
 export function DiagramCanvas({ data, isFiltered = false, onNodeClick }: DiagramCanvasProps) {
   const hasData = data !== null && data.nodes.length > 0;
 
+  // Track collapsed container IDs for centralized state management
+  // (used for potential edge rerouting in future iterations)
+  const [_collapsedContainers, _setCollapsedContainers] = useState<Set<string>>(new Set());
+
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(
-    () =>
-      hasData
-        ? applyDagreLayout(data.nodes, data.edges)
-        : { nodes: [], edges: [] },
+    () => {
+      if (!hasData) return { nodes: [], edges: [] };
+
+      // Use hierarchical layout when hierarchy data is available
+      if (data.hierarchy != null) {
+        return computeHierarchyLayout(data.hierarchy, data.nodes, data.edges);
+      }
+
+      // Fall back to dagre layout when hierarchy is null (backward compat)
+      return applyDagreLayout(data.nodes, data.edges);
+    },
     [data, hasData]
   );
 

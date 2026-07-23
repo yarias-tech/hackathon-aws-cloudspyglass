@@ -219,7 +219,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - **Validates: Requirements 4.1**
 
 - [ ] 9. DiagramCanvas integration and interactive behaviors
-  - [ ] 9.1 Update DiagramCanvas to use hierarchical layout (`frontend/src/components/DiagramCanvas.tsx`)
+  - [x] 9.1 Update DiagramCanvas to use hierarchical layout (`frontend/src/components/DiagramCanvas.tsx`)
     - Replace `applyDagreLayout` with `computeHierarchyLayout`
     - Register `ContainerNode`, `BoundaryServiceNode` as custom node types
     - Manage collapsed container state via `useState<Set<string>>`
