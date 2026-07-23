@@ -263,7 +263,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - On cancel: restore last rendered state or show empty canvas
     - _Requirements: 10.5_
 
-  - [x]* 10.3 Write property test: Viewport Culling Node Bound (`frontend/src/components/DiagramCanvas.property.test.ts`)
+  - [x] 10.3 Write property test: Viewport Culling Node Bound (`frontend/src/components/DiagramCanvas.property.test.ts`)
     - **Property 16: Viewport Culling Node Bound**
     - Generate diagrams with >200 resources and a defined viewport
     - Assert DOM-rendered node count ≤ visible nodes + 50 buffer
