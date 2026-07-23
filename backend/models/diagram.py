@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from .hierarchy import HierarchyTree
 from .scan import RegionFailure
 
 
@@ -40,3 +41,4 @@ class DiagramData(BaseModel):
     total_resources: int
     scanned_regions: list[str]
     failures: list[RegionFailure] = []
+    hierarchy: HierarchyTree | None = None

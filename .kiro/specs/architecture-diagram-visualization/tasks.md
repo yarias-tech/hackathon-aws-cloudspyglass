@@ -13,7 +13,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Add `Literal` type constraints for container types, boundary types, edge positions
     - _Requirements: 6.6_
 
-  - [ ] 1.2 Update DiagramData model (`backend/models/diagram.py`)
+  - [x] 1.2 Update DiagramData model (`backend/models/diagram.py`)
     - Add optional `hierarchy: HierarchyTree | None = None` field to `DiagramData`
     - Ensure backward compatibility (field defaults to None)
     - _Requirements: 6.5_
