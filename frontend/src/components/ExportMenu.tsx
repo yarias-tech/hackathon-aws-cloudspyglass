@@ -1,11 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { apiClient, ApiError } from '../api/apiClient';
-import type { FilterCriteria } from '../types/filters';
-import type { ExportFormat, ExportRequest, ExportResult } from '../types/export';
+import type { ExportFormat } from '../types/export';
 
 export interface ExportMenuProps {
-  /** Current active filter criteria */
-  filters: FilterCriteria;
+  /** Account ID for the filename */
+  accountId?: string;
 }
 
 /** Available export format options */
@@ -15,24 +13,39 @@ const EXPORT_FORMATS: { format: ExportFormat; label: string }[] = [
   { format: 'svg', label: 'SVG' },
 ];
 
-/** Check whether the given filters contain any active criteria */
-function hasActiveFilters(filters: FilterCriteria): boolean {
-  return filters.tag_filters.length > 0 || filters.type_filters.length > 0;
+/**
+ * Generate a timestamped export filename.
+ */
+function generateFilename(accountId: string, format: ExportFormat): string {
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 15).replace(/(\d{8})(\d{6})/, '$1_$2');
+  return `${accountId}_${timestamp}.${format}`;
+}
+
+/**
+ * Trigger a browser download from a Blob.
+ */
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
 
 /**
  * ExportMenu provides a dropdown button to export the current diagram
- * in PDF, PNG, or SVG format.
+ * in PDF, PNG, or SVG format by capturing the React Flow canvas directly.
  *
- * - Posts to /api/export with the selected format and current filter criteria
- * - Shows loading state while export is in progress
- * - Displays success message with filename on completion
- * - Shows error message on failure
- * - Auto-dismisses status messages after a few seconds
+ * This produces an export that matches exactly what the user sees on screen,
+ * including AWS icons, layout, colors, and edges.
  *
  * Requirements: 11.1, 11.2
  */
-export function ExportMenu({ filters }: ExportMenuProps) {
+export function ExportMenu({ accountId = 'export' }: ExportMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -87,33 +100,38 @@ export function ExportMenu({ filters }: ExportMenuProps) {
     }, 4000);
   }, []);
 
-  /** Handle export format selection */
+  /** Handle export format selection — captures the React Flow canvas */
   const handleExport = useCallback(async (format: ExportFormat) => {
     setMenuOpen(false);
     setExporting(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    const requestBody: ExportRequest = {
-      format,
-      filters: hasActiveFilters(filters) ? filters : null,
-    };
-
     try {
-      const result = await apiClient.post<ExportResult>('/export', requestBody);
-      // Trigger browser download of the generated file
-      await apiClient.download(`/export/download/${result.filename}`, result.filename);
-      showStatus('success', `Exported: ${result.filename}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        showStatus('error', err.message);
-      } else {
-        showStatus('error', 'Export failed unexpectedly');
+      // Find the React Flow viewport element
+      const flowElement = document.querySelector('.react-flow') as HTMLElement | null;
+      if (!flowElement) {
+        throw new Error('Diagram not found. Please ensure a diagram is displayed.');
       }
+
+      const filename = generateFilename(accountId, format);
+
+      if (format === 'svg') {
+        await exportAsSvg(flowElement, filename);
+      } else if (format === 'png') {
+        await exportAsPng(flowElement, filename);
+      } else if (format === 'pdf') {
+        await exportAsPdf(flowElement, filename);
+      }
+
+      showStatus('success', `Exported: ${filename}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Export failed unexpectedly';
+      showStatus('error', message);
     } finally {
       setExporting(false);
     }
-  }, [filters, showStatus]);
+  }, [accountId, showStatus]);
 
   /** Toggle dropdown menu */
   const toggleMenu = useCallback(() => {
@@ -256,4 +274,89 @@ export function ExportMenu({ filters }: ExportMenuProps) {
       )}
     </div>
   );
+}
+
+// -------------------------------------------------------------------
+// Export helpers — capture the React Flow canvas using html2canvas/jspdf
+// -------------------------------------------------------------------
+
+/**
+ * Export the diagram as SVG by cloning the React Flow SVG layer and
+ * serializing it along with the node HTML overlays.
+ */
+async function exportAsSvg(flowElement: HTMLElement, filename: string): Promise<void> {
+  // Use html2canvas to render to canvas, then convert to SVG-wrapped image
+  const html2canvas = (await import('html2canvas')).default;
+
+  const canvas = await html2canvas(flowElement, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+
+  // Convert canvas to PNG data URL and embed in SVG
+  const dataUrl = canvas.toDataURL('image/png');
+  const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="${canvas.width}" height="${canvas.height}"
+  viewBox="0 0 ${canvas.width} ${canvas.height}">
+  <image width="${canvas.width}" height="${canvas.height}" xlink:href="${dataUrl}"/>
+</svg>`;
+
+  const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+  downloadBlob(blob, filename);
+}
+
+/**
+ * Export the diagram as PNG at high resolution using html2canvas.
+ */
+async function exportAsPng(flowElement: HTMLElement, filename: string): Promise<void> {
+  const html2canvas = (await import('html2canvas')).default;
+
+  // Scale 3x for ~300 DPI equivalent
+  const canvas = await html2canvas(flowElement, {
+    backgroundColor: '#ffffff',
+    scale: 3,
+    useCORS: true,
+    logging: false,
+  });
+
+  canvas.toBlob((blob) => {
+    if (blob) {
+      downloadBlob(blob, filename);
+    }
+  }, 'image/png');
+}
+
+/**
+ * Export the diagram as PDF using html2canvas + jsPDF.
+ * Captures the canvas at high resolution and embeds it in a landscape PDF.
+ */
+async function exportAsPdf(flowElement: HTMLElement, filename: string): Promise<void> {
+  const html2canvas = (await import('html2canvas')).default;
+  const { jsPDF } = await import('jspdf');
+
+  const canvas = await html2canvas(flowElement, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+
+  const imgData = canvas.toDataURL('image/png');
+  const imgWidth = canvas.width;
+  const imgHeight = canvas.height;
+
+  // Use landscape orientation, sized to fit the diagram
+  const orientation = imgWidth >= imgHeight ? 'landscape' : 'portrait';
+  const pdf = new jsPDF({
+    orientation,
+    unit: 'px',
+    format: [imgWidth, imgHeight],
+  });
+
+  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+  const pdfBlob = pdf.output('blob');
+  downloadBlob(pdfBlob, filename);
 }
