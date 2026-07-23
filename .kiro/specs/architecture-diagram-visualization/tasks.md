@@ -80,21 +80,21 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test empty scan returns minimal hierarchy (cloud + account containers only)
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 3. Backend API integration
-  - [ ] 3.1 Update diagrams route to include hierarchy (`backend/routes/diagrams.py`)
+- [x] 3. Backend API integration
+  - [x] 3.1 Update diagrams route to include hierarchy (`backend/routes/diagrams.py`)
     - Integrate HierarchyBuilder into the `/api/diagrams/latest` endpoint
     - Call `HierarchyBuilder.build()` after relationship resolution
     - Attach resulting `HierarchyTree` to `DiagramData.hierarchy`
     - Handle build failure gracefully: set `hierarchy = None` and log error
     - _Requirements: 6.5_
 
-  - [ ]* 3.2 Write integration test for diagrams endpoint (`backend/tests/test_diagrams_route.py`)
+  - [x] 3.2 Write integration test for diagrams endpoint (`backend/tests/test_diagrams_route.py`)
     - Test that `/api/diagrams/latest` response includes `hierarchy` field
     - Test that hierarchy is null when no scan data exists
     - Test backward compatibility: existing fields unchanged
     - _Requirements: 6.5_
 
-- [ ] 4. Checkpoint - Backend complete
+- [x] 4. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Frontend types and layout engine

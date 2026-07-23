@@ -11,6 +11,7 @@ from ..exceptions import CloudSpyglassError
 from ..models.diagram import DiagramData
 from ..models.filters import FilteredResult, TagFilter
 from ..models.resources import Resource
+from ..services.hierarchy_builder import HierarchyBuilder
 from .scan import get_last_scan_result
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/api", tags=["diagrams"])
 async def get_latest_diagram() -> DiagramData:
     """Return the latest unfiltered diagram data from the most recent scan.
 
-    Requirements: 5.1
+    Requirements: 5.1, 6.5
     """
     scan_result = get_last_scan_result()
     if scan_result is None:
@@ -35,6 +36,21 @@ async def get_latest_diagram() -> DiagramData:
 
     # Apply no filters to get full diagram
     result = filter_engine.apply_filters(scan_result)
+
+    # Build hierarchy from full scan data (not filtered) for complete topology
+    try:
+        hierarchy_builder = HierarchyBuilder()
+        hierarchy = hierarchy_builder.build(
+            resources=scan_result.resources,
+            relationships=scan_result.relationships,
+            account_id=scan_result.account_id,
+            scanned_regions=scan_result.scanned_regions,
+        )
+        result.diagram.hierarchy = hierarchy
+    except Exception:
+        logger.exception("Failed to build hierarchy tree")
+        result.diagram.hierarchy = None
+
     return result.diagram
 
 
