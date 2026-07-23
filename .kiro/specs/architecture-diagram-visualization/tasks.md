@@ -47,7 +47,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert every container's parent type follows strict ordering: cloud → account → region → vpc → az → subnet
     - **Validates: Requirements 1.2, 1.3, 1.4, 1.5, 1.6, 6.1**
 
-  - [ ]* 2.3 Write property test: Subnet Classification Correctness (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.3 Write property test: Subnet Classification Correctness (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 2: Subnet Classification Correctness**
     - Generate subnets with varying route table configurations
     - Assert public classification iff route table has 0.0.0.0/0 → IGW; private otherwise

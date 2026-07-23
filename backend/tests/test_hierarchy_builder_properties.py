@@ -428,3 +428,343 @@ class TestHierarchyNestingOrder:
                     f"has parent '{parent.id}' of type '{parent.type}', "
                     f"but expected parent type '{expected_parent_type}'"
                 )
+
+
+# ---------------------------------------------------------------------------
+# Strategies for Property 2
+# ---------------------------------------------------------------------------
+
+igw_id_strategy = hex_suffix.map(lambda s: f"igw-{s}")
+nat_id_strategy = hex_suffix.map(lambda s: f"nat-{s}")
+rtb_id_strategy = hex_suffix.map(lambda s: f"rtb-{s}")
+
+# Non-IGW target prefixes for private subnet routes
+NON_IGW_TARGETS = ["nat-", "local", "pcx-", "vpce-", "vgw-", "eni-", "tgw-"]
+
+
+@st.composite
+def route_with_igw_strategy(draw: st.DrawFn) -> dict:
+    """Generate a route entry that targets an Internet Gateway (public subnet indicator)."""
+    igw_id = draw(igw_id_strategy)
+    return {"destination": "0.0.0.0/0", "target": igw_id}
+
+
+@st.composite
+def route_without_igw_strategy(draw: st.DrawFn) -> dict:
+    """Generate a route entry that does NOT target an Internet Gateway."""
+    prefix = draw(st.sampled_from(NON_IGW_TARGETS))
+    suffix = draw(hex_suffix)
+    target = f"{prefix}{suffix}" if prefix not in ("local",) else "local"
+    # Destination can be 0.0.0.0/0 or something else—key point is target is NOT igw-*
+    destination = draw(
+        st.sampled_from(["0.0.0.0/0", "10.0.0.0/16", "172.16.0.0/12", "192.168.0.0/16"])
+    )
+    return {"destination": destination, "target": target}
+
+
+@st.composite
+def route_table_with_igw_strategy(draw: st.DrawFn) -> list[dict]:
+    """Generate a route table (as list of route dicts) that contains an IGW route."""
+    # Include 0-3 non-IGW routes plus exactly one IGW route
+    non_igw_routes = draw(
+        st.lists(route_without_igw_strategy(), min_size=0, max_size=3)
+    )
+    igw_route = draw(route_with_igw_strategy())
+    routes = non_igw_routes + [igw_route]
+    # Shuffle so IGW route is not always last
+    shuffled = draw(st.permutations(routes))
+    return list(shuffled)
+
+
+@st.composite
+def route_table_without_igw_strategy(draw: st.DrawFn) -> list[dict]:
+    """Generate a route table (as list of route dicts) with NO IGW route."""
+    return draw(st.lists(route_without_igw_strategy(), min_size=0, max_size=5))
+
+
+@st.composite
+def subnet_with_embedded_route_tables_strategy(
+    draw: st.DrawFn, has_igw: bool
+) -> tuple[Resource, bool]:
+    """Generate a subnet resource with route table data embedded in attributes.route_tables.
+
+    Returns (resource, expected_is_public).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    subnet_id = draw(subnet_id_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    az_suffix = draw(az_suffix_strategy)
+    az = f"{region}{az_suffix}"
+
+    if has_igw:
+        routes = draw(route_table_with_igw_strategy())
+    else:
+        routes = draw(route_table_without_igw_strategy())
+
+    rtb_id = draw(rtb_id_strategy)
+    route_tables = [{"route_table_id": rtb_id, "routes": routes}]
+
+    arn = f"arn:aws:ec2:{region}:{account_id}:subnet/{subnet_id}"
+    resource = Resource(
+        arn=arn,
+        resource_type="subnet",
+        name=f"subnet-{subnet_id}",
+        region=region,
+        attributes={
+            "subnet_id": subnet_id,
+            "vpc_id": vpc_id,
+            "availability_zone": az,
+            "route_tables": route_tables,
+        },
+    )
+    return (resource, has_igw)
+
+
+@st.composite
+def subnet_with_embedded_routes_strategy(
+    draw: st.DrawFn, has_igw: bool
+) -> tuple[Resource, bool]:
+    """Generate a subnet resource with route data embedded in attributes.routes.
+
+    Returns (resource, expected_is_public).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    subnet_id = draw(subnet_id_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    az_suffix = draw(az_suffix_strategy)
+    az = f"{region}{az_suffix}"
+
+    if has_igw:
+        routes = draw(route_table_with_igw_strategy())
+    else:
+        routes = draw(route_table_without_igw_strategy())
+
+    arn = f"arn:aws:ec2:{region}:{account_id}:subnet/{subnet_id}"
+    resource = Resource(
+        arn=arn,
+        resource_type="subnet",
+        name=f"subnet-{subnet_id}",
+        region=region,
+        attributes={
+            "subnet_id": subnet_id,
+            "vpc_id": vpc_id,
+            "availability_zone": az,
+            "routes": routes,
+        },
+    )
+    return (resource, has_igw)
+
+
+@st.composite
+def subnet_with_external_route_table_strategy(
+    draw: st.DrawFn, has_igw: bool
+) -> tuple[Resource, Resource, bool]:
+    """Generate a subnet + separate route_table resource associated via associated_subnets.
+
+    Returns (subnet_resource, route_table_resource, expected_is_public).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    subnet_id = draw(subnet_id_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    az_suffix = draw(az_suffix_strategy)
+    az = f"{region}{az_suffix}"
+
+    if has_igw:
+        routes = draw(route_table_with_igw_strategy())
+    else:
+        routes = draw(route_table_without_igw_strategy())
+
+    rtb_id = draw(rtb_id_strategy)
+
+    subnet_arn = f"arn:aws:ec2:{region}:{account_id}:subnet/{subnet_id}"
+    subnet_resource = Resource(
+        arn=subnet_arn,
+        resource_type="subnet",
+        name=f"subnet-{subnet_id}",
+        region=region,
+        attributes={
+            "subnet_id": subnet_id,
+            "vpc_id": vpc_id,
+            "availability_zone": az,
+        },
+    )
+
+    rtb_arn = f"arn:aws:ec2:{region}:{account_id}:route-table/{rtb_id}"
+    route_table_resource = Resource(
+        arn=rtb_arn,
+        resource_type="route_table",
+        name=f"rtb-{rtb_id}",
+        region=region,
+        attributes={
+            "routes": routes,
+            "associated_subnets": [subnet_id],
+            "vpc_id": vpc_id,
+        },
+    )
+
+    return (subnet_resource, route_table_resource, has_igw)
+
+
+@st.composite
+def subnet_with_no_route_info_strategy(draw: st.DrawFn) -> Resource:
+    """Generate a subnet resource with no route table information at all."""
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    subnet_id = draw(subnet_id_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    az_suffix = draw(az_suffix_strategy)
+    az = f"{region}{az_suffix}"
+
+    arn = f"arn:aws:ec2:{region}:{account_id}:subnet/{subnet_id}"
+    return Resource(
+        arn=arn,
+        resource_type="subnet",
+        name=f"subnet-{subnet_id}",
+        region=region,
+        attributes={
+            "subnet_id": subnet_id,
+            "vpc_id": vpc_id,
+            "availability_zone": az,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Property 2: Subnet Classification Correctness
+# ---------------------------------------------------------------------------
+
+# Feature: architecture-diagram-visualization, Property 2: Subnet Classification Correctness
+
+
+class TestSubnetClassificationCorrectness:
+    """Subnet is classified as "public" iff its associated route table contains 0.0.0.0/0 → igw-*;
+    otherwise "private".
+
+    **Validates: Requirements 1.7, 1.8, 6.3**
+    """
+
+    @given(data=subnet_with_embedded_route_tables_strategy(has_igw=True))
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_with_igw_in_route_tables_is_public(
+        self,
+        data: tuple[Resource, bool],
+    ) -> None:
+        """A subnet whose route_tables attribute contains a route with
+        destination 0.0.0.0/0 targeting igw-* must be classified as public."""
+        subnet_resource, expected_is_public = data
+        assert expected_is_public is True
+
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet_resource, [])
+        assert result == "public", (
+            f"Subnet with IGW route in route_tables should be 'public' but got '{result}'. "
+            f"route_tables={subnet_resource.attributes.get('route_tables')}"
+        )
+
+    @given(data=subnet_with_embedded_route_tables_strategy(has_igw=False))
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_without_igw_in_route_tables_is_private(
+        self,
+        data: tuple[Resource, bool],
+    ) -> None:
+        """A subnet whose route_tables attribute has routes but none targeting igw-*
+        must be classified as private."""
+        subnet_resource, expected_is_public = data
+        assert expected_is_public is False
+
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet_resource, [])
+        assert result == "private", (
+            f"Subnet without IGW route in route_tables should be 'private' but got '{result}'. "
+            f"route_tables={subnet_resource.attributes.get('route_tables')}"
+        )
+
+    @given(data=subnet_with_embedded_routes_strategy(has_igw=True))
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_with_igw_in_routes_attribute_is_public(
+        self,
+        data: tuple[Resource, bool],
+    ) -> None:
+        """A subnet whose routes attribute contains a route with
+        destination 0.0.0.0/0 targeting igw-* must be classified as public."""
+        subnet_resource, expected_is_public = data
+        assert expected_is_public is True
+
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet_resource, [])
+        assert result == "public", (
+            f"Subnet with IGW route in routes should be 'public' but got '{result}'. "
+            f"routes={subnet_resource.attributes.get('routes')}"
+        )
+
+    @given(data=subnet_with_embedded_routes_strategy(has_igw=False))
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_without_igw_in_routes_attribute_is_private(
+        self,
+        data: tuple[Resource, bool],
+    ) -> None:
+        """A subnet whose routes attribute has routes but none targeting igw-*
+        must be classified as private."""
+        subnet_resource, expected_is_public = data
+        assert expected_is_public is False
+
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet_resource, [])
+        assert result == "private", (
+            f"Subnet without IGW route in routes should be 'private' but got '{result}'. "
+            f"routes={subnet_resource.attributes.get('routes')}"
+        )
+
+    @given(data=subnet_with_external_route_table_strategy(has_igw=True))
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_with_igw_in_external_route_table_is_public(
+        self,
+        data: tuple[Resource, Resource, bool],
+    ) -> None:
+        """A subnet associated with a separate route_table resource that has
+        an IGW route must be classified as public."""
+        subnet_resource, route_table_resource, expected_is_public = data
+        assert expected_is_public is True
+
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet_resource, [route_table_resource])
+        assert result == "public", (
+            f"Subnet with IGW route in external route_table should be 'public' but got '{result}'. "
+            f"route_table routes={route_table_resource.attributes.get('routes')}"
+        )
+
+    @given(data=subnet_with_external_route_table_strategy(has_igw=False))
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_with_external_route_table_no_igw_is_private(
+        self,
+        data: tuple[Resource, Resource, bool],
+    ) -> None:
+        """A subnet associated with a separate route_table resource that does NOT
+        have an IGW route must be classified as private."""
+        subnet_resource, route_table_resource, expected_is_public = data
+        assert expected_is_public is False
+
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet_resource, [route_table_resource])
+        assert result == "private", (
+            f"Subnet without IGW route in external route_table should be 'private' but got '{result}'. "
+            f"route_table routes={route_table_resource.attributes.get('routes')}"
+        )
+
+    @given(subnet=subnet_with_no_route_info_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_with_no_route_info_defaults_to_private(
+        self,
+        subnet: Resource,
+    ) -> None:
+        """A subnet with no route table information at all must default to private
+        (Requirement 6.3)."""
+        builder = HierarchyBuilder()
+        result = builder._classify_subnet_type(subnet, [])
+        assert result == "private", (
+            f"Subnet with no route info should default to 'private' but got '{result}'. "
+            f"attributes={subnet.attributes}"
+        )
