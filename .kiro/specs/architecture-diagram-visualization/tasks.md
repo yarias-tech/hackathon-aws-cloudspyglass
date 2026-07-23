@@ -118,7 +118,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Position external resources area to the right of AWS Cloud container (40px gap)
     - _Requirements: 1.9, 1.10, 1.11, 3.8, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 9.1_
 
-  - [ ]* 5.4 Write property test: No Sibling Overlap (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.4 Write property test: No Sibling Overlap (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 4: No Sibling Overlap in Layout**
     - Generate hierarchies with varying container and resource counts
     - Assert no two sibling nodes have overlapping bounding boxes
