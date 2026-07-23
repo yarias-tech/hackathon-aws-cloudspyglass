@@ -97,18 +97,18 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
 - [x] 4. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Frontend types and layout engine
-  - [ ] 5.1 Create hierarchy TypeScript types (`frontend/src/types/hierarchy.ts`)
+- [x] 5. Frontend types and layout engine
+  - [x] 5.1 Create hierarchy TypeScript types (`frontend/src/types/hierarchy.ts`)
     - Define `ContainerType`, `SubnetType`, `BoundaryType`, `EdgePosition` type aliases
     - Define `ContainerMetadata`, `BoundaryServicePlacement`, `HierarchyTree` interfaces
     - _Requirements: 6.6_
 
-  - [ ] 5.2 Update DiagramData type (`frontend/src/types/diagram.ts`)
+  - [x] 5.2 Update DiagramData type (`frontend/src/types/diagram.ts`)
     - Add `hierarchy: HierarchyTree | null` field to `DiagramData` interface
     - Import `HierarchyTree` from `./hierarchy`
     - _Requirements: 6.5_
 
-  - [ ] 5.3 Implement HierarchyLayoutEngine (`frontend/src/layout/HierarchyLayoutEngine.ts`)
+  - [x] 5.3 Implement HierarchyLayoutEngine (`frontend/src/layout/HierarchyLayoutEngine.ts`)
     - Implement `computeHierarchyLayout()` function
     - Recursive container sizing: parent sizes based on children + padding (20px min)
     - Grid/flow sub-layout for resource nodes within containers (16px spacing)
@@ -118,31 +118,31 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Position external resources area to the right of AWS Cloud container (40px gap)
     - _Requirements: 1.9, 1.10, 1.11, 3.8, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 9.1_
 
-  - [ ]* 5.4 Write property test: No Sibling Overlap (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.4 Write property test: No Sibling Overlap (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 4: No Sibling Overlap in Layout**
     - Generate hierarchies with varying container and resource counts
     - Assert no two sibling nodes have overlapping bounding boxes
     - **Validates: Requirements 1.9, 3.8**
 
-  - [ ]* 5.5 Write property test: Minimum Parent Padding (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.5 Write property test: Minimum Parent Padding (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 5: Minimum Parent Padding**
     - Generate containers with children
     - Assert every child's bounding box is at least 20px from parent border on all sides
     - **Validates: Requirements 1.10**
 
-  - [ ]* 5.6 Write property test: Minimum Container Dimensions (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.6 Write property test: Minimum Container Dimensions (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 6: Minimum Container Dimensions**
     - Generate empty containers (no resources, no sub-containers)
     - Assert width ≥ 100px and height ≥ 60px
     - **Validates: Requirements 1.11**
 
-  - [ ]* 5.7 Write property test: Boundary Service Positioning (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.7 Write property test: Boundary Service Positioning (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 10: Boundary Service Positioning**
     - Generate boundary services with designated container edges
     - Assert node center lies on the container border line
     - **Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5**
 
-  - [ ]* 5.8 Write property test: Boundary Service Spacing (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
+  - [x] 5.8 Write property test: Boundary Service Spacing (`frontend/src/layout/HierarchyLayoutEngine.property.test.ts`)
     - **Property 11: Boundary Service Spacing**
     - Generate multiple boundary services on same container edge
     - Assert horizontal distance between adjacent nodes ≥ 20px
