@@ -32,9 +32,9 @@ const DEFAULT_OPTIONS: LayoutOptions = {
   minContainerHeight: 60,
 };
 
-/** Node dimensions for resource nodes (matches DiagramCanvas constants) */
+/** Node dimensions for resource nodes (matches actual rendered size) */
 const NODE_WIDTH = 180;
-const NODE_HEIGHT = 60;
+const NODE_HEIGHT = 120;
 
 /** Boundary service node dimensions */
 const BOUNDARY_NODE_WIDTH = 120;
@@ -205,39 +205,76 @@ export function computeHierarchyLayout(
     const padding = opts.containerPadding;
     const spacing = opts.resourceSpacing;
 
-    // Layout resources in a grid (flow layout)
-    const resourceLayout = computeGridLayout(
+    // Step 1: Determine the required content width.
+    // Resource grid uses square-root heuristic for initial width estimate.
+    const resourceGridEstimate = computeGridLayout(
       resourceIds.length,
       NODE_WIDTH,
       NODE_HEIGHT,
       spacing
     );
 
-    // Layout child containers horizontally (flow)
-    const childrenLayout = computeChildrenFlowLayout(childSizes, spacing);
+    // Children flow: sum of all child widths in a single row
+    const childrenFlowEstimate = computeChildrenFlowLayout(childSizes, spacing);
 
-    // Total content width is the max of resource grid and children flow
+    // Content width is the max of resource grid estimate and children flow
     const contentWidth = Math.max(
-      resourceLayout.width,
-      childrenLayout.width,
+      resourceGridEstimate.width,
+      childrenFlowEstimate.width,
       0
     );
 
-    // Total content height stacks: resources on top, children below
-    let contentHeight = 0;
-    if (resourceLayout.height > 0) {
-      contentHeight += resourceLayout.height;
-    }
-    if (childrenLayout.height > 0) {
-      if (contentHeight > 0) contentHeight += spacing;
-      contentHeight += childrenLayout.height;
-    }
-
-    // Add padding on all sides + header height
+    // Total container width (determines available space for positioning)
     const totalWidth = Math.max(
       contentWidth + padding * 2,
       opts.minContainerWidth
     );
+
+    // Step 2: Now compute ACTUAL heights using the determined available width,
+    // matching exactly what the positioning phase will use.
+    const availableWidth = totalWidth - padding * 2;
+
+    // Actual resource grid height using the real available width
+    let resourceHeight = 0;
+    if (resourceIds.length > 0) {
+      const cols = Math.max(1, Math.floor((availableWidth + spacing) / (NODE_WIDTH + spacing)));
+      const rows = Math.ceil(resourceIds.length / cols);
+      resourceHeight = rows * NODE_HEIGHT + (rows - 1) * spacing;
+    }
+
+    // Actual children layout height accounting for wrapping
+    let childrenHeight = 0;
+    if (childSizes.length > 0) {
+      let childX = 0;
+      let rowHeight = 0;
+      let totalChildHeight = 0;
+
+      for (const child of childSizes) {
+        // Wrap to next row if exceeds available width
+        if (childX + child.size.width > availableWidth && childX > 0) {
+          totalChildHeight += rowHeight + spacing;
+          childX = 0;
+          rowHeight = 0;
+        }
+        childX += child.size.width + spacing;
+        rowHeight = Math.max(rowHeight, child.size.height);
+      }
+      // Add last row
+      totalChildHeight += rowHeight;
+      childrenHeight = totalChildHeight;
+    }
+
+    // Total content height stacks: resources on top, children below
+    let contentHeight = 0;
+    if (resourceHeight > 0) {
+      contentHeight += resourceHeight;
+    }
+    if (childrenHeight > 0) {
+      if (contentHeight > 0) contentHeight += spacing;
+      contentHeight += childrenHeight;
+    }
+
+    // Add padding on all sides + header height
     const totalHeight = Math.max(
       contentHeight + padding * 2 + CONTAINER_HEADER_HEIGHT,
       opts.minContainerHeight
