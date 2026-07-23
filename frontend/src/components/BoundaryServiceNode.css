@@ -1,0 +1,109 @@
+.boundary-service-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  border: 2px dashed #5a6b7b;
+  background: rgba(255, 255, 255, 0.95);
+  min-width: 72px;
+  user-select: none;
+  position: relative;
+}
+
+/* Boundary type variants */
+
+/* Internet Gateway: green theme matching VPC boundary */
+.boundary-service-node--igw {
+  border-color: #1b660f;
+  background: rgba(27, 102, 15, 0.08);
+}
+
+/* NAT Gateway: teal/blue theme for subnet boundary */
+.boundary-service-node--nat {
+  border-color: #147eb4;
+  background: rgba(20, 126, 180, 0.08);
+}
+
+/* WAF: orange theme for external boundary */
+.boundary-service-node--waf {
+  border-color: #ea580c;
+  background: rgba(234, 88, 12, 0.08);
+}
+
+/* VPN Gateway: purple theme for external connectivity */
+.boundary-service-node--vpn {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+/* Straddling indicator: visual cue that this node sits on a boundary */
+.boundary-service-node::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+.boundary-service-node--igw::before {
+  color: #1b660f;
+}
+
+.boundary-service-node--nat::before {
+  color: #147eb4;
+}
+
+.boundary-service-node--waf::before {
+  color: #ea580c;
+}
+
+.boundary-service-node--vpn::before {
+  color: #7c3aed;
+}
+
+/* Icon */
+.boundary-service-node__icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boundary-service-node__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.boundary-service-node__icon--placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #6b7280;
+}
+
+/* Label */
+.boundary-service-node__label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+  color: #374151;
+}

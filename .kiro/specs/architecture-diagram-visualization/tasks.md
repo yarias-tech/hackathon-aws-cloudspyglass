@@ -156,7 +156,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Handle double-click to toggle collapse/expand
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 8.3, 8.4_
 
-  - [ ] 6.2 Implement BoundaryServiceNode component (`frontend/src/components/BoundaryServiceNode.tsx`)
+  - [x] 6.2 Implement BoundaryServiceNode component (`frontend/src/components/BoundaryServiceNode.tsx`)
     - Render resource icon (48x48) with label
     - Visual styling to indicate boundary positioning
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
