@@ -48,11 +48,13 @@ async def trigger_export(request: ExportRequest) -> ExportResult:
     # Convert scan result to diagram data, applying filters if provided
     tag_filters = request.filters.tag_filters if request.filters else None
     type_filters = request.filters.type_filters if request.filters else None
+    tag_filter_operator = request.filters.tag_filter_operator if request.filters else "AND"
 
     filtered_result = filter_engine.apply_filters(
         scan_result,
         tag_filters=tag_filters if tag_filters else None,
         type_filters=type_filters if type_filters else None,
+        tag_filter_operator=tag_filter_operator,
     )
 
     # Export the diagram data
