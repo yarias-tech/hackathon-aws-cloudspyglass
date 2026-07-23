@@ -88,7 +88,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Handle build failure gracefully: set `hierarchy = None` and log error
     - _Requirements: 6.5_
 
-  - [ ]* 3.2 Write integration test for diagrams endpoint (`backend/tests/test_diagrams_route.py`)
+  - [x] 3.2 Write integration test for diagrams endpoint (`backend/tests/test_diagrams_route.py`)
     - Test that `/api/diagrams/latest` response includes `hierarchy` field
     - Test that hierarchy is null when no scan data exists
     - Test backward compatibility: existing fields unchanged
