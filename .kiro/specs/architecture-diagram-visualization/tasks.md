@@ -31,8 +31,8 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test unknown resource type returns placeholder path
     - _Requirements: 2.1, 2.4, 2.3_
 
-- [ ] 2. Backend HierarchyBuilder service
-  - [ ] 2.1 Implement HierarchyBuilder core (`backend/services/hierarchy_builder.py`)
+- [x] 2. Backend HierarchyBuilder service
+  - [x] 2.1 Implement HierarchyBuilder core (`backend/services/hierarchy_builder.py`)
     - Implement `build()` method: construct tree cloud → account → region → vpc → az → subnet
     - Implement `_classify_subnet_type()`: check route tables for IGW route to determine public/private
     - Implement `_assign_resource_to_container()`: priority-based placement (external → global → subnet → az → vpc → region)
