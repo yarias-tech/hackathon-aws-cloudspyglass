@@ -80,8 +80,8 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Test empty scan returns minimal hierarchy (cloud + account containers only)
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 3. Backend API integration
-  - [ ] 3.1 Update diagrams route to include hierarchy (`backend/routes/diagrams.py`)
+- [x] 3. Backend API integration
+  - [x] 3.1 Update diagrams route to include hierarchy (`backend/routes/diagrams.py`)
     - Integrate HierarchyBuilder into the `/api/diagrams/latest` endpoint
     - Call `HierarchyBuilder.build()` after relationship resolution
     - Attach resulting `HierarchyTree` to `DiagramData.hierarchy`
