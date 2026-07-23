@@ -53,7 +53,7 @@ This plan implements the hierarchical AWS architecture diagram visualization fea
     - Assert public classification iff route table has 0.0.0.0/0 → IGW; private otherwise
     - **Validates: Requirements 1.7, 1.8, 6.3**
 
-  - [ ]* 2.4 Write property test: Resource Placement Priority (`backend/tests/test_hierarchy_builder_properties.py`)
+  - [x] 2.4 Write property test: Resource Placement Priority (`backend/tests/test_hierarchy_builder_properties.py`)
     - **Property 3: Resource Placement Priority**
     - Generate resources with various combinations of is_external, global type, subnet_id, vpc_id, az
     - Assert each resource is assigned to exactly one container per priority rules

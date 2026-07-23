@@ -768,3 +768,663 @@ class TestSubnetClassificationCorrectness:
             f"Subnet with no route info should default to 'private' but got '{result}'. "
             f"attributes={subnet.attributes}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Strategies for Property 3
+# ---------------------------------------------------------------------------
+
+# Resource types that are NOT vpc, subnet, or boundary services
+# These are the types that go through _assign_resource_to_container normally
+NON_CONTAINER_RESOURCE_TYPES = [
+    "ec2",
+    "lambda",
+    "rds",
+    "dynamodb",
+    "ecs",
+    "elb",
+    "sqs",
+    "sns",
+    "api_gateway",
+    "elasticache",
+]
+
+# Global services that are NOT also boundary services (waf is both, so excluded here)
+GLOBAL_SERVICE_TYPES_FOR_PLACEMENT = ["iam", "iam_role", "route53", "cloudfront", "s3", "ecr"]
+
+# UUID-like suffix to ensure unique ARNs
+unique_suffix_strategy = st.uuids().map(lambda u: str(u).replace("-", "")[:16])
+
+
+@st.composite
+def external_resource_strategy(draw: st.DrawFn) -> Resource:
+    """Generate a resource with is_external=True and a unique ARN."""
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    arn = f"arn:aws:{resource_type}:{region}:{account_id}:ext-{suffix}"
+    return Resource(
+        arn=arn,
+        resource_type=resource_type,
+        name=f"external-{suffix}",
+        region=region,
+        is_external=True,
+        attributes={},
+    )
+
+
+@st.composite
+def global_service_resource_for_placement_strategy(draw: st.DrawFn) -> Resource:
+    """Generate a global service resource with a unique ARN.
+
+    Excludes 'waf' since it is also a boundary service and gets
+    boundary placement instead of container assignment.
+    """
+    account_id = draw(account_id_strategy)
+    service_type = draw(st.sampled_from(GLOBAL_SERVICE_TYPES_FOR_PLACEMENT))
+    suffix = draw(unique_suffix_strategy)
+    arn = f"arn:aws:{service_type}::{account_id}:global-{suffix}"
+    return Resource(
+        arn=arn,
+        resource_type=service_type,
+        name=f"global-{suffix}",
+        region="global",
+        is_external=False,
+        attributes={},
+    )
+
+
+@st.composite
+def resource_with_subnet_strategy(draw: st.DrawFn) -> tuple[Resource, str]:
+    """Generate a resource that has a subnet_id attribute with a unique ARN.
+
+    Returns (resource, subnet_id).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    subnet_id = draw(subnet_id_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    az_suffix = draw(az_suffix_strategy)
+    az = f"{region}{az_suffix}"
+    arn = f"arn:aws:{resource_type}:{region}:{account_id}:sub-{suffix}"
+    return (
+        Resource(
+            arn=arn,
+            resource_type=resource_type,
+            name=f"res-sub-{suffix}",
+            region=region,
+            is_external=False,
+            attributes={
+                "subnet_id": subnet_id,
+                "vpc_id": vpc_id,
+                "availability_zone": az,
+            },
+        ),
+        subnet_id,
+    )
+
+
+@st.composite
+def resource_with_vpc_and_az_strategy(draw: st.DrawFn) -> tuple[Resource, str, str]:
+    """Generate a resource with vpc_id and availability_zone but NO subnet_id, with unique ARN.
+
+    Returns (resource, vpc_id, az).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    az_suffix = draw(az_suffix_strategy)
+    az = f"{region}{az_suffix}"
+    arn = f"arn:aws:{resource_type}:{region}:{account_id}:vpcaz-{suffix}"
+    return (
+        Resource(
+            arn=arn,
+            resource_type=resource_type,
+            name=f"res-vpcaz-{suffix}",
+            region=region,
+            is_external=False,
+            attributes={
+                "vpc_id": vpc_id,
+                "availability_zone": az,
+            },
+        ),
+        vpc_id,
+        az,
+    )
+
+
+@st.composite
+def resource_with_vpc_only_strategy(draw: st.DrawFn) -> tuple[Resource, str]:
+    """Generate a resource with vpc_id but NO subnet_id and NO availability_zone, with unique ARN.
+
+    Returns (resource, vpc_id).
+    """
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    vpc_id = draw(vpc_id_strategy)
+    arn = f"arn:aws:{resource_type}:{region}:{account_id}:vpc-{suffix}"
+    return (
+        Resource(
+            arn=arn,
+            resource_type=resource_type,
+            name=f"res-vpc-{suffix}",
+            region=region,
+            is_external=False,
+            attributes={
+                "vpc_id": vpc_id,
+            },
+        ),
+        vpc_id,
+    )
+
+
+@st.composite
+def regional_resource_strategy(draw: st.DrawFn) -> Resource:
+    """Generate a resource with no vpc_id, no subnet_id, not global, not external, with unique ARN."""
+    account_id = draw(account_id_strategy)
+    region = draw(region_strategy)
+    resource_type = draw(st.sampled_from(NON_CONTAINER_RESOURCE_TYPES))
+    suffix = draw(unique_suffix_strategy)
+    arn = f"arn:aws:{resource_type}:{region}:{account_id}:reg-{suffix}"
+    return Resource(
+        arn=arn,
+        resource_type=resource_type,
+        name=f"res-reg-{suffix}",
+        region=region,
+        is_external=False,
+        attributes={},
+    )
+
+
+@st.composite
+def mixed_placement_resources_strategy(
+    draw: st.DrawFn,
+) -> tuple[list[Resource], str, list[str]]:
+    """Generate a mix of resources covering ALL placement priority levels with unique ARNs.
+
+    Returns (resources, account_id, scanned_regions).
+    Includes: external, global, subnet-placed, vpc+az-placed, vpc-only, and regional resources.
+    """
+    account_id = draw(account_id_strategy)
+    regions = draw(
+        st.lists(region_strategy, min_size=1, max_size=2, unique=True)
+    )
+
+    resources: list[Resource] = []
+
+    # At least one external resource
+    num_external = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_external):
+        resources.append(draw(external_resource_strategy()))
+
+    # At least one global service
+    num_globals = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_globals):
+        resources.append(draw(global_service_resource_for_placement_strategy()))
+
+    # At least one resource with subnet_id
+    num_subnet = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_subnet):
+        res, _ = draw(resource_with_subnet_strategy())
+        resources.append(res)
+
+    # At least one resource with vpc_id + az (no subnet)
+    num_vpc_az = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_vpc_az):
+        res, _, _ = draw(resource_with_vpc_and_az_strategy())
+        resources.append(res)
+
+    # At least one resource with vpc_id only
+    num_vpc_only = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_vpc_only):
+        res, _ = draw(resource_with_vpc_only_strategy())
+        resources.append(res)
+
+    # At least one regional resource (no vpc, no subnet, not global)
+    num_regional = draw(st.integers(min_value=1, max_value=3))
+    for _ in range(num_regional):
+        resources.append(draw(regional_resource_strategy()))
+
+    return (resources, account_id, regions)
+
+
+# ---------------------------------------------------------------------------
+# Property 3: Resource Placement Priority
+# ---------------------------------------------------------------------------
+
+# Feature: architecture-diagram-visualization, Property 3: Resource Placement Priority
+
+
+class TestResourcePlacementPriority:
+    """Each resource is assigned to exactly one container per priority rules.
+    No resource is unassigned and no resource appears in multiple containers.
+
+    **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 6.2, 6.7**
+    """
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_no_resource_appears_in_multiple_containers(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """For any generated set of resources, no resource ARN appears in more
+        than one container's resources array."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        # Collect all resource ARNs across all containers
+        arn_to_containers: dict[str, list[str]] = {}
+        for container in tree.containers:
+            for arn in container.resources:
+                if arn not in arn_to_containers:
+                    arn_to_containers[arn] = []
+                arn_to_containers[arn].append(container.id)
+
+        # No ARN should appear in more than one container
+        duplicates = {
+            arn: containers
+            for arn, containers in arn_to_containers.items()
+            if len(containers) > 1
+        }
+        assert not duplicates, (
+            f"Resources appear in multiple containers: {duplicates}"
+        )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_non_external_non_boundary_resources_are_assigned(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """For any non-external, non-boundary, non-vpc, non-subnet resource,
+        it must appear in exactly one container's resources array."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        # Collect all assigned ARNs
+        all_assigned_arns: set[str] = set()
+        for container in tree.containers:
+            all_assigned_arns.update(container.resources)
+
+        # Check each resource that should be assigned
+        for resource in resources:
+            if resource.resource_type in ("vpc", "subnet"):
+                continue  # These become containers, not leaf resources
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue  # Boundary services get boundary placements
+            if resource.is_external:
+                continue  # External resources are NOT assigned to containers
+
+            assert resource.arn in all_assigned_arns, (
+                f"Resource '{resource.arn}' (type={resource.resource_type}) "
+                f"was not assigned to any container. "
+                f"attributes={resource.attributes}, is_external={resource.is_external}"
+            )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_external_resources_not_in_any_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """External resources (is_external=True) must NOT appear in any
+        container's resources array."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        # Collect all assigned ARNs
+        all_assigned_arns: set[str] = set()
+        for container in tree.containers:
+            all_assigned_arns.update(container.resources)
+
+        # External resources should not be assigned
+        for resource in resources:
+            if resource.is_external:
+                assert resource.arn not in all_assigned_arns, (
+                    f"External resource '{resource.arn}' was assigned to a container "
+                    f"but should be in the external area (outside cloud container)."
+                )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_global_services_assigned_to_account_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Global services (IAM, Route53, CloudFront, S3, WAF, ECR, IAM Role) that are
+        not external must be placed in the account container."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        account_container_id = f"account-{account_id}"
+
+        for resource in resources:
+            if resource.is_external:
+                continue
+            # waf is both GLOBAL_SERVICES and BOUNDARY_SERVICES; boundary check
+            # happens first in build(), so waf gets boundary placement, not container
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue
+            if resource.resource_type in HierarchyBuilder.GLOBAL_SERVICES:
+                # Find which container holds this resource
+                found_in = None
+                for container in tree.containers:
+                    if resource.arn in container.resources:
+                        found_in = container
+                        break
+
+                assert found_in is not None, (
+                    f"Global service '{resource.arn}' (type={resource.resource_type}) "
+                    f"was not assigned to any container."
+                )
+                assert found_in.id == account_container_id, (
+                    f"Global service '{resource.arn}' (type={resource.resource_type}) "
+                    f"was placed in container '{found_in.id}' (type={found_in.type}) "
+                    f"but should be in account container '{account_container_id}'."
+                )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_subnet_resources_assigned_to_subnet_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Resources with subnet_id attribute (and not external, not global) must be
+        placed in a subnet container."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for resource in resources:
+            if resource.is_external:
+                continue
+            if resource.resource_type in HierarchyBuilder.GLOBAL_SERVICES:
+                continue
+            if resource.resource_type in ("vpc", "subnet"):
+                continue
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue
+
+            subnet_id = resource.attributes.get("subnet_id")
+            if not subnet_id:
+                continue
+
+            # This resource should be in a subnet container
+            expected_container_id = f"subnet-{subnet_id}"
+            found_in = None
+            for container in tree.containers:
+                if resource.arn in container.resources:
+                    found_in = container
+                    break
+
+            assert found_in is not None, (
+                f"Resource '{resource.arn}' with subnet_id='{subnet_id}' "
+                f"was not assigned to any container."
+            )
+            assert found_in.id == expected_container_id, (
+                f"Resource '{resource.arn}' with subnet_id='{subnet_id}' "
+                f"was placed in container '{found_in.id}' (type={found_in.type}) "
+                f"but should be in subnet container '{expected_container_id}'."
+            )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_vpc_az_resources_assigned_to_az_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Resources with vpc_id and availability_zone but NO subnet_id (and not external,
+        not global) must be placed in an AZ container."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for resource in resources:
+            if resource.is_external:
+                continue
+            if resource.resource_type in HierarchyBuilder.GLOBAL_SERVICES:
+                continue
+            if resource.resource_type in ("vpc", "subnet"):
+                continue
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue
+
+            subnet_id = resource.attributes.get("subnet_id")
+            subnet_ids = resource.attributes.get("subnet_ids", [])
+            vpc_id = resource.attributes.get("vpc_id")
+            az = resource.attributes.get("availability_zone")
+
+            # Only check resources with vpc_id + az but NO subnet info
+            if subnet_id or subnet_ids:
+                continue
+            if not (vpc_id and az):
+                continue
+
+            # This resource should be in an AZ container
+            expected_container_id = f"az-{resource.region}-{az}"
+            found_in = None
+            for container in tree.containers:
+                if resource.arn in container.resources:
+                    found_in = container
+                    break
+
+            assert found_in is not None, (
+                f"Resource '{resource.arn}' with vpc_id='{vpc_id}' and az='{az}' "
+                f"was not assigned to any container."
+            )
+            assert found_in.id == expected_container_id, (
+                f"Resource '{resource.arn}' with vpc_id='{vpc_id}' and az='{az}' "
+                f"was placed in container '{found_in.id}' (type={found_in.type}) "
+                f"but should be in AZ container '{expected_container_id}'."
+            )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_vpc_only_resources_assigned_to_vpc_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Resources with vpc_id but NO subnet_id and NO availability_zone (and not
+        external, not global) must be placed in a VPC container."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for resource in resources:
+            if resource.is_external:
+                continue
+            if resource.resource_type in HierarchyBuilder.GLOBAL_SERVICES:
+                continue
+            if resource.resource_type in ("vpc", "subnet"):
+                continue
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue
+
+            subnet_id = resource.attributes.get("subnet_id")
+            subnet_ids = resource.attributes.get("subnet_ids", [])
+            vpc_id = resource.attributes.get("vpc_id")
+            az = resource.attributes.get("availability_zone")
+
+            # Only check resources with vpc_id only (no subnet, no az)
+            if subnet_id or subnet_ids:
+                continue
+            if not vpc_id:
+                continue
+            if az:
+                continue
+
+            # This resource should be in a VPC container
+            expected_container_id = f"vpc-{vpc_id}"
+            found_in = None
+            for container in tree.containers:
+                if resource.arn in container.resources:
+                    found_in = container
+                    break
+
+            assert found_in is not None, (
+                f"Resource '{resource.arn}' with vpc_id='{vpc_id}' (no az, no subnet) "
+                f"was not assigned to any container."
+            )
+            assert found_in.id == expected_container_id, (
+                f"Resource '{resource.arn}' with vpc_id='{vpc_id}' (no az, no subnet) "
+                f"was placed in container '{found_in.id}' (type={found_in.type}) "
+                f"but should be in VPC container '{expected_container_id}'."
+            )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_regional_resources_assigned_to_region_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Resources with no vpc_id, no subnet_id, not global, not external must be
+        placed in a region container."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        for resource in resources:
+            if resource.is_external:
+                continue
+            if resource.resource_type in HierarchyBuilder.GLOBAL_SERVICES:
+                continue
+            if resource.resource_type in ("vpc", "subnet"):
+                continue
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue
+
+            subnet_id = resource.attributes.get("subnet_id")
+            subnet_ids = resource.attributes.get("subnet_ids", [])
+            vpc_id = resource.attributes.get("vpc_id")
+
+            # Only check resources with no vpc, no subnet info
+            if subnet_id or subnet_ids or vpc_id:
+                continue
+
+            # This resource should be in a region container
+            expected_container_id = f"region-{resource.region}"
+            found_in = None
+            for container in tree.containers:
+                if resource.arn in container.resources:
+                    found_in = container
+                    break
+
+            assert found_in is not None, (
+                f"Resource '{resource.arn}' (type={resource.resource_type}, region={resource.region}) "
+                f"with no vpc/subnet info was not assigned to any container."
+            )
+            assert found_in.id == expected_container_id, (
+                f"Resource '{resource.arn}' (type={resource.resource_type}, region={resource.region}) "
+                f"with no vpc/subnet info was placed in container '{found_in.id}' (type={found_in.type}) "
+                f"but should be in region container '{expected_container_id}'."
+            )
+
+    @given(data=mixed_placement_resources_strategy())
+    @settings(max_examples=100, deadline=None)
+    def test_each_assignable_resource_in_exactly_one_container(
+        self,
+        data: tuple[list[Resource], str, list[str]],
+    ) -> None:
+        """Combined invariant: every non-external, non-boundary, non-container resource
+        appears in exactly one container. This is the single-assignment guarantee."""
+        resources, account_id, scanned_regions = data
+
+        builder = HierarchyBuilder()
+        tree = builder.build(
+            resources=resources,
+            relationships=[],
+            account_id=account_id,
+            scanned_regions=scanned_regions,
+        )
+
+        # Build mapping: arn → list of container IDs
+        arn_to_containers: dict[str, list[str]] = {}
+        for container in tree.containers:
+            for arn in container.resources:
+                if arn not in arn_to_containers:
+                    arn_to_containers[arn] = []
+                arn_to_containers[arn].append(container.id)
+
+        for resource in resources:
+            if resource.resource_type in ("vpc", "subnet"):
+                continue
+            if resource.resource_type in HierarchyBuilder.BOUNDARY_SERVICES:
+                continue
+            if resource.is_external:
+                # External resources should NOT be in any container
+                assert resource.arn not in arn_to_containers, (
+                    f"External resource '{resource.arn}' should not be in any container "
+                    f"but found in: {arn_to_containers.get(resource.arn)}"
+                )
+            else:
+                # Non-external resources must be in exactly one container
+                assert resource.arn in arn_to_containers, (
+                    f"Resource '{resource.arn}' (type={resource.resource_type}) "
+                    f"was not assigned to any container."
+                )
+                containers_for_resource = arn_to_containers[resource.arn]
+                assert len(containers_for_resource) == 1, (
+                    f"Resource '{resource.arn}' (type={resource.resource_type}) "
+                    f"appears in {len(containers_for_resource)} containers: "
+                    f"{containers_for_resource}. Should be exactly 1."
+                )
