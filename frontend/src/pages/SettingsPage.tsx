@@ -237,7 +237,7 @@ export function SettingsPage() {
         <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 1rem 0', fontStyle: 'italic' }}>
           {t.about_built_with}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>{t.about_source_code}:</span>
           <a
             href="https://github.com/yericksonarias/hackathon-aws-cloudspyglass"
@@ -247,6 +247,29 @@ export function SettingsPage() {
           >
             github.com/yericksonarias/hackathon-aws-cloudspyglass
           </a>
+        </div>
+
+        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem' }}>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 0.375rem 0', fontWeight: 500 }}>
+            {t.about_authors}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+            <a href="https://www.linkedin.com/in/stalin-pilapanta-3b9b1096/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Stalin Pilapanta
+            </a>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+            <a href="https://www.linkedin.com/in/yerickson-arias-1a16873a/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Yerick Arias
+            </a>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+            <a href="https://www.linkedin.com/in/chrystianbarros/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Chrystian Barros
+            </a>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+            <a href="https://github.com/kikem4n" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Hiram Rosales
+            </a>
+          </div>
         </div>
       </section>
 
@@ -590,29 +613,7 @@ export function SettingsPage() {
         )}
       </section>
 
-      {/* Authors */}
-      <section style={{ marginBottom: '1rem', padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb' }}>
-        <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0 0 0.5rem 0', fontWeight: 500 }}>
-          {t.about_authors}
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          <a href="https://www.linkedin.com/in/stalin-pilapanta-3b9b1096/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Stalin Pilapanta
-          </a>
-          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
-          <a href="https://www.linkedin.com/in/yerickson-arias-1a16873a/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Yerick Arias
-          </a>
-          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
-          <a href="https://www.linkedin.com/in/chrystianbarros/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Chrystian Barros
-          </a>
-          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
-          <a href="https://github.com/kikem4n" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Hiram Rosales
-          </a>
-        </div>
-      </section>
+
     </div>
   );
 }

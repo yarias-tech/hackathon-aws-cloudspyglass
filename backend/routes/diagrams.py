@@ -4,7 +4,7 @@ import json
 import logging
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from ..dependencies import filter_engine
 from ..exceptions import CloudSpyglassError
@@ -13,7 +13,7 @@ from ..models.filters import FilteredResult, TagFilter
 from ..models.hierarchy import ContainerMetadata, HierarchyTree
 from ..models.resources import Resource
 from ..services.hierarchy_builder import HierarchyBuilder
-from .scan import get_last_scan_result
+from .scan import get_last_scan_result_from_session
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +21,12 @@ router = APIRouter(prefix="/api", tags=["diagrams"])
 
 
 @router.get("/diagrams/latest", response_model=DiagramData)
-async def get_latest_diagram() -> DiagramData:
+async def get_latest_diagram(request: Request) -> DiagramData:
     """Return the latest unfiltered diagram data from the most recent scan.
 
     Requirements: 5.1, 6.5
     """
-    scan_result = get_last_scan_result()
+    scan_result = get_last_scan_result_from_session(request)
     if scan_result is None:
         raise CloudSpyglassError(
             error_code="NO_SCAN_DATA",
@@ -57,6 +57,7 @@ async def get_latest_diagram() -> DiagramData:
 
 @router.get("/diagrams/latest/filtered", response_model=FilteredResult)
 async def get_filtered_diagram(
+    request: Request,
     tag_filters: str | None = Query(
         default=None,
         description='JSON array of tag filters, e.g. [{"key":"env","value":"prod"}]',
@@ -78,7 +79,7 @@ async def get_filtered_diagram(
 
     Requirements: 7.2, 5.1
     """
-    scan_result = get_last_scan_result()
+    scan_result = get_last_scan_result_from_session(request)
     if scan_result is None:
         raise CloudSpyglassError(
             error_code="NO_SCAN_DATA",
@@ -261,13 +262,13 @@ def _prune_hierarchy(
 
 
 @router.get("/resources/{resource_id:path}", response_model=Resource)
-async def get_resource_detail(resource_id: str) -> Resource:
+async def get_resource_detail(resource_id: str, request: Request) -> Resource:
     """Return full resource metadata for a given resource ARN.
 
     Looks up the resource from the latest scan result.
     The resource_id is the ARN (URL-encoded in the path).
     """
-    scan_result = get_last_scan_result()
+    scan_result = get_last_scan_result_from_session(request)
     if scan_result is None:
         raise CloudSpyglassError(
             error_code="NO_SCAN_DATA",

@@ -20,9 +20,9 @@ from moto import mock_aws
 from backend.main import app
 from backend.models.resources import Resource
 from backend.models.scan import ScanResult
-from backend.routes import scan as scan_module
 from backend.services.relationship_resolver import RelationshipResolver
 from backend.services.scan_storage import ScanStorage
+from backend.services.session_manager import session_manager
 
 
 # ---------------------------------------------------------------------------
@@ -34,24 +34,10 @@ from backend.services.scan_storage import ScanStorage
 async def client():
     """Create an async httpx test client wrapping the FastAPI app."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", cookies={}
+    ) as ac:
         yield ac
-
-
-@pytest.fixture(autouse=True)
-def reset_scan_state():
-    """Reset the scan module state between tests."""
-    scan_module._scan_status = scan_module.ScanStatus.idle
-    scan_module._scan_started_at = None
-    scan_module._scan_completed_at = None
-    scan_module._scan_error_message = None
-    scan_module._last_scan_result = None
-    yield
-    scan_module._scan_status = scan_module.ScanStatus.idle
-    scan_module._scan_started_at = None
-    scan_module._scan_completed_at = None
-    scan_module._scan_error_message = None
-    scan_module._last_scan_result = None
 
 
 @pytest.fixture
@@ -236,8 +222,12 @@ class TestAPIEndpointContracts:
 
     async def test_error_response_structure_on_409(self, client: AsyncClient):
         """POST /api/scan returns 409 with proper ErrorResponse when scan is in progress."""
-        scan_module._scan_status = scan_module.ScanStatus.in_progress
-        scan_module._scan_started_at = "2024-01-01T00:00:00+00:00"
+        # Get session and put it in in_progress state
+        await client.get("/api/scan/status")
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "in_progress"
+        session.scan_started_at = "2024-01-01T00:00:00+00:00"
 
         response = await client.post("/api/scan", json={"regions": ["us-east-1"]})
         assert response.status_code == 409
@@ -355,8 +345,12 @@ class TestAPIEndpointContracts:
 
     async def test_error_timestamp_is_iso8601_utc(self, client: AsyncClient):
         """All error responses have a valid ISO 8601 UTC timestamp."""
-        scan_module._scan_status = scan_module.ScanStatus.in_progress
-        scan_module._scan_started_at = "2024-01-01T00:00:00+00:00"
+        # Get session and put it in in_progress state
+        await client.get("/api/scan/status")
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "in_progress"
+        session.scan_started_at = "2024-01-01T00:00:00+00:00"
 
         response = await client.post("/api/scan", json={})
         data = response.json()

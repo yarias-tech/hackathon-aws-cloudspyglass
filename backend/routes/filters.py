@@ -1,17 +1,18 @@
 """API routes for tag autocomplete suggestions."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from ..dependencies import filter_engine
 from ..exceptions import CloudSpyglassError
 from ..models.filters import TagSuggestion
-from .scan import get_last_scan_result
+from .scan import get_last_scan_result_from_session
 
 router = APIRouter(prefix="/api/tags", tags=["filters"])
 
 
 @router.get("/suggestions", response_model=list[TagSuggestion])
 async def get_tag_suggestions(
+    request: Request,
     prefix: str = Query(default="", max_length=128),
 ) -> list[TagSuggestion]:
     """Return tag autocomplete suggestions filtered by prefix.
@@ -21,7 +22,7 @@ async def get_tag_suggestions(
 
     Requirements: 7.2
     """
-    scan_result = get_last_scan_result()
+    scan_result = get_last_scan_result_from_session(request)
     if scan_result is None:
         raise CloudSpyglassError(
             error_code="NO_SCAN_DATA",

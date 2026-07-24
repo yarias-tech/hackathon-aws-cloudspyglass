@@ -3,43 +3,26 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from ..dependencies import (
-    get_relationship_resolver,
-    scan_storage,
-    scanner,
-)
+from ..dependencies import get_relationship_resolver, scan_storage
 from ..exceptions import CloudSpyglassError
 from ..models.scan import ScanRequest, ScanResult
+from ..services.scanner import Scanner
+from ..services.session_manager import SessionState
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scan", tags=["scan"])
 
 
-# ---------------------------------------------------------------------------
-# Scan state tracking
-# ---------------------------------------------------------------------------
-
-
-class ScanStatus(str, Enum):
-    """Possible states of the scan lifecycle."""
-
-    idle = "idle"
-    in_progress = "in_progress"
-    completed = "completed"
-    failed = "failed"
-
-
 class ScanProgress(BaseModel):
     """Response model for GET /api/scan/status."""
 
-    status: ScanStatus
+    status: str
     started_at: str | None = None
     completed_at: str | None = None
     error_message: str | None = None
@@ -48,34 +31,17 @@ class ScanProgress(BaseModel):
     total_failures: int | None = None
 
 
-# Module-level scan state
-_scan_status: ScanStatus = ScanStatus.idle
-_scan_started_at: str | None = None
-_scan_completed_at: str | None = None
-_scan_error_message: str | None = None
-_last_scan_result: ScanResult | None = None
-_scan_task: asyncio.Task | None = None
-_scan_generation: int = 0  # Increments with each scan to prevent stale task interference
-
-
-# ---------------------------------------------------------------------------
-# Background scan task
-# ---------------------------------------------------------------------------
-
-
-async def _run_scan(regions: list[str] | None, generation: int) -> None:
-    """Execute the scan in the background, updating module-level state."""
-    global _scan_status, _scan_started_at, _scan_completed_at
-    global _scan_error_message, _last_scan_result, _scan_generation
-
+async def _run_scan(session: SessionState, regions: list[str] | None, generation: int) -> None:
+    """Execute the scan in the background, updating session state."""
     try:
-        result = await scanner.scan(regions=regions)
+        scanner_instance = Scanner(session.credential_manager)
+        result = await scanner_instance.scan(regions=regions)
 
-        # Check if this scan is still the current one (not cancelled/superseded)
-        if generation != _scan_generation:
+        # Check if this scan is still the current one
+        if generation != session.scan_generation:
             return
 
-        # Resolve relationships using the account_id from the scan result
+        # Resolve relationships
         account_id = result.account_id
         if account_id and result.resources:
             try:
@@ -86,16 +52,15 @@ async def _run_scan(regions: list[str] | None, generation: int) -> None:
             except Exception as rel_exc:
                 logger.warning("Relationship resolution failed: %s", rel_exc)
 
-        # Check again after relationship resolution
-        if generation != _scan_generation:
+        if generation != session.scan_generation:
             return
 
-        _last_scan_result = result
-        _scan_status = ScanStatus.completed
-        _scan_completed_at = datetime.now(timezone.utc).isoformat()
-        _scan_error_message = None
+        session.last_scan_result = result
+        session.scan_status = "completed"
+        session.scan_completed_at = datetime.now(timezone.utc).isoformat()
+        session.scan_error_message = None
 
-        # Persist scan result to storage
+        # Persist scan result
         if account_id:
             try:
                 await scan_storage.save(account_id, result)
@@ -108,85 +73,75 @@ async def _run_scan(regions: list[str] | None, generation: int) -> None:
             len(result.scanned_regions),
         )
     except asyncio.CancelledError:
-        # Only update state if this is still the current scan
-        if generation == _scan_generation:
-            _scan_status = ScanStatus.idle
-            _scan_completed_at = datetime.now(timezone.utc).isoformat()
-            _scan_error_message = "Scan cancelled by user"
+        if generation == session.scan_generation:
+            session.scan_status = "idle"
+            session.scan_completed_at = datetime.now(timezone.utc).isoformat()
+            session.scan_error_message = "Scan cancelled by user"
         logger.info("Scan generation %d cancelled", generation)
     except Exception as exc:
-        if generation == _scan_generation:
-            _scan_status = ScanStatus.failed
-            _scan_completed_at = datetime.now(timezone.utc).isoformat()
-            _scan_error_message = str(exc)
+        if generation == session.scan_generation:
+            session.scan_status = "failed"
+            session.scan_completed_at = datetime.now(timezone.utc).isoformat()
+            session.scan_error_message = str(exc)
         logger.exception("Scan failed: %s", exc)
 
 
-# ---------------------------------------------------------------------------
-# Route handlers
-# ---------------------------------------------------------------------------
-
-
-def get_last_scan_result() -> ScanResult | None:
-    """Return the most recent scan result (or None if no scan has completed)."""
-    return _last_scan_result
+def get_last_scan_result_from_session(request: Request) -> ScanResult | None:
+    """Return the most recent scan result for the current session."""
+    session = request.state.session
+    return session.last_scan_result
 
 
 @router.post("")
-async def trigger_scan(request: ScanRequest | None = None) -> dict[str, Any]:
+async def trigger_scan(request: Request, scan_request: ScanRequest | None = None) -> dict[str, Any]:
     """Trigger a new infrastructure scan.
-
-    Rejects the request if a scan is already in progress (409 Conflict).
 
     Requirements: 3.1, 3.2
     """
-    global _scan_status, _scan_started_at, _scan_completed_at, _scan_error_message
-    global _scan_generation, _scan_task
+    session = request.state.session
 
-    if request is None:
-        request = ScanRequest()
+    if scan_request is None:
+        scan_request = ScanRequest()
 
-    if _scan_status == ScanStatus.in_progress:
+    if session.scan_status == "in_progress":
         raise CloudSpyglassError(
             error_code="SCAN_IN_PROGRESS",
             message="A scan is already in progress. Please wait for it to complete.",
-            details=f"Scan started at {_scan_started_at}",
+            details=f"Scan started at {session.scan_started_at}",
             recoverable=False,
             status_code=409,
         )
 
     # Transition to in_progress
-    _scan_status = ScanStatus.in_progress
-    _scan_started_at = datetime.now(timezone.utc).isoformat()
-    _scan_completed_at = None
-    _scan_error_message = None
-    _scan_generation += 1
+    session.scan_status = "in_progress"
+    session.scan_started_at = datetime.now(timezone.utc).isoformat()
+    session.scan_completed_at = None
+    session.scan_error_message = None
+    session.scan_generation += 1
 
-    # Cancel any previous task that might still be running
-    if _scan_task and not _scan_task.done():
-        _scan_task.cancel()
+    # Cancel any previous task
+    if session.scan_task and not session.scan_task.done():
+        session.scan_task.cancel()
 
-    # Launch scan as a background coroutine
-    _scan_task = asyncio.create_task(_run_scan(request.regions, _scan_generation))
+    # Launch scan as background task
+    session.scan_task = asyncio.create_task(
+        _run_scan(session, scan_request.regions, session.scan_generation)
+    )
 
     return {
         "status": "accepted",
         "message": "Scan initiated",
-        "started_at": _scan_started_at,
-        "regions": request.regions,
+        "started_at": session.scan_started_at,
+        "regions": scan_request.regions,
     }
 
 
 @router.post("/cancel")
-async def cancel_scan() -> dict[str, str]:
-    """Cancel a running scan.
+async def cancel_scan(request: Request) -> dict[str, str]:
+    """Cancel a running scan."""
+    session = request.state.session
 
-    Returns the scan to idle state, preserving any previously completed results.
-    """
-    global _scan_status, _scan_completed_at, _scan_error_message
-    global _scan_task, _scan_generation
-
-    if _scan_status != ScanStatus.in_progress:
+    if session.scan_status != "in_progress":
         raise CloudSpyglassError(
             error_code="NO_SCAN_IN_PROGRESS",
             message="No scan is currently in progress to cancel.",
@@ -194,16 +149,14 @@ async def cancel_scan() -> dict[str, str]:
             status_code=400,
         )
 
-    # Increment generation so the old task stops updating state
-    _scan_generation += 1
+    session.scan_generation += 1
 
-    # Cancel the background task
-    if _scan_task and not _scan_task.done():
-        _scan_task.cancel()
+    if session.scan_task and not session.scan_task.done():
+        session.scan_task.cancel()
 
-    _scan_status = ScanStatus.idle
-    _scan_completed_at = datetime.now(timezone.utc).isoformat()
-    _scan_error_message = "Scan cancelled by user"
+    session.scan_status = "idle"
+    session.scan_completed_at = datetime.now(timezone.utc).isoformat()
+    session.scan_error_message = "Scan cancelled by user"
 
     return {
         "status": "cancelled",
@@ -212,21 +165,23 @@ async def cancel_scan() -> dict[str, str]:
 
 
 @router.get("/status", response_model=ScanProgress)
-async def get_scan_status() -> ScanProgress:
+async def get_scan_status(request: Request) -> ScanProgress:
     """Return the current scan progress/status.
 
     Requirements: 3.1, 3.2
     """
+    session = request.state.session
+
     progress = ScanProgress(
-        status=_scan_status,
-        started_at=_scan_started_at,
-        completed_at=_scan_completed_at,
-        error_message=_scan_error_message,
+        status=session.scan_status,
+        started_at=session.scan_started_at,
+        completed_at=session.scan_completed_at,
+        error_message=session.scan_error_message,
     )
 
-    if _last_scan_result is not None:
-        progress.total_resources = len(_last_scan_result.resources)
-        progress.total_regions = len(_last_scan_result.scanned_regions)
-        progress.total_failures = len(_last_scan_result.failures)
+    if session.last_scan_result is not None:
+        progress.total_resources = len(session.last_scan_result.resources)
+        progress.total_regions = len(session.last_scan_result.scanned_regions)
+        progress.total_failures = len(session.last_scan_result.failures)
 
     return progress
