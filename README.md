@@ -1,11 +1,76 @@
-# CloudSpyglass
+# CloudSpyglass 🔭
 
-Herramienta de visualización de infraestructura AWS. Escanea una cuenta AWS en múltiples regiones, descubre recursos y sus relaciones, y genera un diagrama interactivo de arquitectura en el navegador.
+> **Visualiza toda tu infraestructura AWS en un solo click.** Escanea 30+ tipos de recursos en todas las regiones, detecta relaciones automáticamente, y genera un diagrama de arquitectura interactivo — en segundos, no en días.
+
+---
+
+## 🎯 Problema que Resuelve
+
+Los equipos de desarrollo, SREs y arquitectos cloud enfrentan un dolor constante: **no tienen visibilidad real de su infraestructura**. La consola de AWS es fragmentada (servicio por servicio, región por región), los diagramas manuales se desactualizan al siguiente deploy, y las herramientas existentes (AWS Config, CloudMapper) requieren configuración compleja o no generan visualizaciones útiles.
+
+**CloudSpyglass elimina ese problema**: conecta tus credenciales, pulsa un botón, y en segundos tienes un diagrama completo y navegable de toda tu arquitectura AWS.
+
+---
+
+## 💡 Innovación y Ventaja Competitiva
+
+| Aspecto | Alternativas existentes | CloudSpyglass |
+|---------|------------------------|---------------|
+| **Setup** | Configuración de agentes, roles, permisos complejos | Zero-config: pega tus credenciales y escanea |
+| **Velocidad** | Minutos u horas de procesamiento | Escaneo paralelo en segundos (5 regiones simultáneas) |
+| **Visualización** | Exportaciones estáticas, PDFs manuales | Diagrama interactivo en vivo (pan, zoom, click-to-detail) |
+| **Relaciones** | Solo inventario de recursos | Detecta relaciones Network, IAM, Event y Data automáticamente |
+| **Cobertura** | 5-10 tipos de recursos | 30+ tipos: EC2, Lambda, RDS, ECS, DynamoDB, API GW, y más |
+| **Arquitectura** | Aplicaciones monolíticas pesadas | Contenedor ligero serverless (Fargate) + SPA moderna |
+| **Costo** | Licencias enterprise costosas | Open-source, corre en un solo container (~$15/mes en Fargate) |
+
+---
+
+## 🏗️ Uso de Servicios AWS y Kiro
+
+### Servicios AWS utilizados en la plataforma
+
+| Servicio | Uso en CloudSpyglass |
+|----------|---------------------|
+| **ECS Fargate** | Ejecución serverless del contenedor (zero server management) |
+| **ECR** | Registry de imágenes Docker con lifecycle policy |
+| **ALB** | Load balancer público con health checks y HTTPS |
+| **CloudWatch Logs** | Observabilidad centralizada |
+| **IAM** | Roles de ejecución con principio de mínimo privilegio |
+| **ACM** | Certificados TLS gratuitos |
+| **S3** | Backend de estado Terraform |
+| **STS** | Validación de credenciales del usuario |
+
+### Servicios AWS escaneados por la herramienta
+
+EC2, VPC, Subnets, Security Groups, Lambda, RDS, S3, ECS, ALB/NLB, IAM Roles, DynamoDB, SNS, SQS, CloudFront, Route53, API Gateway, EKS, ElastiCache, EBS, Elastic IP, NAT Gateway, Transit Gateway, VPN Gateway, Step Functions, Kinesis, Secrets Manager, Redshift, OpenSearch, CodePipeline, Glue, ECR, Auto Scaling Groups, Target Groups.
+
+### Desarrollo con Kiro
+
+El proyecto fue desarrollado íntegramente usando **Kiro IDE** como entorno de desarrollo AI-powered:
+- Specs estructurados (Requirements → Design → Tasks) para cada feature
+- Steering files para mantener consistencia en el codebase
+- Generación de código con validación automática de tipos
+- Property-based testing generado con Hypothesis y fast-check
+
+---
+
+## 📋 Entregables
+
+| Entregable | Link |
+|-----------|------|
+| 📁 Repositorio + README | [github.com/yericksonarias/hackathon-aws-cloudspyglass](https://github.com/yericksonarias/hackathon-aws-cloudspyglass) |
+| 🌐 Demo en línea | *(URL del ALB desplegado)* |
+| 🎥 Video de presentación | *(Link al video)* |
 
 ---
 
 ## Tabla de Contenidos
 
+- [Problema que Resuelve](#-problema-que-resuelve)
+- [Innovación y Ventaja Competitiva](#-innovación-y-ventaja-competitiva)
+- [Uso de Servicios AWS y Kiro](#️-uso-de-servicios-aws-y-kiro)
+- [Entregables](#-entregables)
 - [Descripción](#descripción)
 - [Arquitectura General](#arquitectura-general)
 - [Diagrama de Infraestructura (AWS)](#diagrama-de-infraestructura-aws)
@@ -33,6 +98,7 @@ CloudSpyglass permite a desarrolladores, SREs y arquitectos cloud obtener una vi
 - Exportación a PDF, PNG y SVG
 - Persistencia de resultados como JSON por cuenta
 - Auto-refresh configurable
+- Internacionalización (Español, English, Português)
 
 ---
 

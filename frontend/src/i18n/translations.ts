@@ -95,7 +95,7 @@ const en: Translations = {
   settings_select_regions: 'Select regions to scan',
 
   about_title: 'About CloudSpyglass',
-  about_description: 'Discover your entire AWS infrastructure in seconds. CloudSpyglass automatically scans 30+ resource types across all regions, maps every relationship — network, IAM, events, data flows — and renders a live, interactive architecture diagram. No manual documentation, no stale Visio files. Connect your credentials, hit Scan, and see your cloud the way it actually is.',
+  about_description: 'Your entire AWS infrastructure, visualized in one click. Scans 30+ resource types across all regions, detects network/IAM/event/data relationships automatically, and renders a live interactive diagram. No agents, no complex setup — just connect and scan.',
   about_authors: 'Authors',
   about_source_code: 'Source Code',
   about_built_with: 'Built with React, FastAPI, and boto3. Deployed on AWS ECS Fargate.',
@@ -147,7 +147,7 @@ const es: Translations = {
   settings_select_regions: 'Seleccionar regiones a escanear',
 
   about_title: 'Acerca de CloudSpyglass',
-  about_description: 'Descubre toda tu infraestructura AWS en segundos. CloudSpyglass escanea automáticamente más de 30 tipos de recursos en todas las regiones, mapea cada relación — red, IAM, eventos, flujos de datos — y genera un diagrama de arquitectura interactivo en tiempo real. Sin documentación manual, sin diagramas desactualizados. Conecta tus credenciales, pulsa Escanear, y visualiza tu nube tal como es.',
+  about_description: 'Toda tu infraestructura AWS, visualizada en un click. Escanea más de 30 tipos de recursos en todas las regiones, detecta relaciones de red/IAM/eventos/datos automáticamente, y genera un diagrama interactivo en vivo. Sin agentes, sin configuración compleja — solo conecta y escanea.',
   about_authors: 'Autores',
   about_source_code: 'Código Fuente',
   about_built_with: 'Construido con React, FastAPI y boto3. Desplegado en AWS ECS Fargate.',
@@ -199,7 +199,7 @@ const pt: Translations = {
   settings_select_regions: 'Selecionar regiões para escanear',
 
   about_title: 'Sobre o CloudSpyglass',
-  about_description: 'Descubra toda a sua infraestrutura AWS em segundos. O CloudSpyglass escaneia automaticamente mais de 30 tipos de recursos em todas as regiões, mapeia cada relacionamento — rede, IAM, eventos, fluxos de dados — e gera um diagrama de arquitetura interativo em tempo real. Sem documentação manual, sem diagramas desatualizados. Conecte suas credenciais, clique em Escanear, e visualize sua nuvem como ela realmente é.',
+  about_description: 'Toda a sua infraestrutura AWS, visualizada em um clique. Escaneia mais de 30 tipos de recursos em todas as regiões, detecta relacionamentos de rede/IAM/eventos/dados automaticamente, e gera um diagrama interativo ao vivo. Sem agentes, sem configuração complexa — apenas conecte e escaneie.',
   about_authors: 'Autores',
   about_source_code: 'Código Fonte',
   about_built_with: 'Construído com React, FastAPI e boto3. Implantado no AWS ECS Fargate.',
