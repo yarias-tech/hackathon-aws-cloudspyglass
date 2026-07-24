@@ -7,31 +7,17 @@ from httpx import ASGITransport, AsyncClient
 
 from backend.main import app
 from backend.models.scan import ScanResult
-from backend.routes import scan as scan_module
+from backend.services.session_manager import session_manager
 
 
 @pytest.fixture
 async def client():
-    """Create an async test client."""
+    """Create an async test client that maintains a session cookie across requests."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport, base_url="http://test", cookies={}
+    ) as ac:
         yield ac
-
-
-@pytest.fixture(autouse=True)
-def reset_scan_state():
-    """Reset the scan module state between tests."""
-    scan_module._scan_status = scan_module.ScanStatus.idle
-    scan_module._scan_started_at = None
-    scan_module._scan_completed_at = None
-    scan_module._scan_error_message = None
-    scan_module._last_scan_result = None
-    yield
-    scan_module._scan_status = scan_module.ScanStatus.idle
-    scan_module._scan_started_at = None
-    scan_module._scan_completed_at = None
-    scan_module._scan_error_message = None
-    scan_module._last_scan_result = None
 
 
 class TestPostScan:
@@ -39,9 +25,9 @@ class TestPostScan:
 
     async def test_trigger_scan_returns_accepted(self, client: AsyncClient) -> None:
         """POST /api/scan returns accepted status when no scan is running."""
-        with patch.object(
-            scan_module, "_run_scan", new_callable=AsyncMock
-        ) as mock_run:
+        with patch(
+            "backend.routes.scan._run_scan", new_callable=AsyncMock
+        ):
             response = await client.post("/api/scan", json={"regions": ["us-east-1"]})
             assert response.status_code == 200
             data = response.json()
@@ -52,7 +38,7 @@ class TestPostScan:
 
     async def test_trigger_scan_no_regions(self, client: AsyncClient) -> None:
         """POST /api/scan with no regions passes None (discover all)."""
-        with patch.object(scan_module, "_run_scan", new_callable=AsyncMock):
+        with patch("backend.routes.scan._run_scan", new_callable=AsyncMock):
             response = await client.post("/api/scan", json={})
             assert response.status_code == 200
             data = response.json()
@@ -61,10 +47,11 @@ class TestPostScan:
 
     async def test_duplicate_scan_returns_409(self, client: AsyncClient) -> None:
         """POST /api/scan while scan is in progress returns SCAN_IN_PROGRESS error."""
-        # Simulate an in-progress scan
-        scan_module._scan_status = scan_module.ScanStatus.in_progress
-        scan_module._scan_started_at = "2024-01-01T00:00:00+00:00"
+        # Start a scan first to put session in in_progress state
+        with patch("backend.routes.scan._run_scan", new_callable=AsyncMock):
+            await client.post("/api/scan", json={"regions": ["us-east-1"]})
 
+        # Second attempt should fail with 409
         response = await client.post("/api/scan", json={"regions": ["us-east-1"]})
         assert response.status_code == 409
         data = response.json()
@@ -74,9 +61,18 @@ class TestPostScan:
 
     async def test_scan_after_completed_is_allowed(self, client: AsyncClient) -> None:
         """POST /api/scan is allowed after a previous scan completed."""
-        scan_module._scan_status = scan_module.ScanStatus.completed
+        # First, get a session cookie by making any request
+        # Then simulate a completed scan by manipulating session state
+        # Get session via a status request first
+        status_resp = await client.get("/api/scan/status")
+        assert status_resp.status_code == 200
 
-        with patch.object(scan_module, "_run_scan", new_callable=AsyncMock):
+        # Get the session from cookies
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "completed"
+
+        with patch("backend.routes.scan._run_scan", new_callable=AsyncMock):
             response = await client.post("/api/scan", json={})
             assert response.status_code == 200
             data = response.json()
@@ -84,9 +80,15 @@ class TestPostScan:
 
     async def test_scan_after_failed_is_allowed(self, client: AsyncClient) -> None:
         """POST /api/scan is allowed after a previous scan failed."""
-        scan_module._scan_status = scan_module.ScanStatus.failed
+        # Get session via initial request
+        status_resp = await client.get("/api/scan/status")
+        assert status_resp.status_code == 200
 
-        with patch.object(scan_module, "_run_scan", new_callable=AsyncMock):
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "failed"
+
+        with patch("backend.routes.scan._run_scan", new_callable=AsyncMock):
             response = await client.post("/api/scan", json={})
             assert response.status_code == 200
             data = response.json()
@@ -111,8 +113,12 @@ class TestGetScanStatus:
 
     async def test_status_in_progress(self, client: AsyncClient) -> None:
         """GET /api/scan/status reflects in_progress state."""
-        scan_module._scan_status = scan_module.ScanStatus.in_progress
-        scan_module._scan_started_at = "2024-01-01T12:00:00+00:00"
+        # Get session
+        await client.get("/api/scan/status")
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "in_progress"
+        session.scan_started_at = "2024-01-01T12:00:00+00:00"
 
         response = await client.get("/api/scan/status")
         assert response.status_code == 200
@@ -123,10 +129,14 @@ class TestGetScanStatus:
 
     async def test_status_completed_with_result(self, client: AsyncClient) -> None:
         """GET /api/scan/status returns resource counts after scan completes."""
-        scan_module._scan_status = scan_module.ScanStatus.completed
-        scan_module._scan_started_at = "2024-01-01T12:00:00+00:00"
-        scan_module._scan_completed_at = "2024-01-01T12:05:00+00:00"
-        scan_module._last_scan_result = ScanResult(
+        # Get session
+        await client.get("/api/scan/status")
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "completed"
+        session.scan_started_at = "2024-01-01T12:00:00+00:00"
+        session.scan_completed_at = "2024-01-01T12:05:00+00:00"
+        session.last_scan_result = ScanResult(
             account_id="123456789012",
             scan_timestamp="2024-01-01T12:05:00+00:00",
             resources=[],
@@ -146,10 +156,14 @@ class TestGetScanStatus:
 
     async def test_status_failed_with_error(self, client: AsyncClient) -> None:
         """GET /api/scan/status shows error message when scan fails."""
-        scan_module._scan_status = scan_module.ScanStatus.failed
-        scan_module._scan_started_at = "2024-01-01T12:00:00+00:00"
-        scan_module._scan_completed_at = "2024-01-01T12:00:05+00:00"
-        scan_module._scan_error_message = "Invalid credentials"
+        # Get session
+        await client.get("/api/scan/status")
+        session_id = client.cookies.get("cloudspyglass_session")
+        session = session_manager.get_session(session_id)
+        session.scan_status = "failed"
+        session.scan_started_at = "2024-01-01T12:00:00+00:00"
+        session.scan_completed_at = "2024-01-01T12:00:05+00:00"
+        session.scan_error_message = "Invalid credentials"
 
         response = await client.get("/api/scan/status")
         assert response.status_code == 200

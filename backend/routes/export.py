@@ -4,13 +4,13 @@ import logging
 import re
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse
 
 from ..dependencies import export_service, filter_engine
 from ..exceptions import CloudSpyglassError
 from ..models.export import ExportRequest, ExportResult
-from .scan import get_last_scan_result
+from .scan import get_last_scan_result_from_session
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ _FILENAME_PATTERN = re.compile(r"^[\w\-]+_\d{8}_\d{6}\.(pdf|png|svg)$")
 
 
 @router.post("", response_model=ExportResult)
-async def trigger_export(request: ExportRequest) -> ExportResult:
+async def trigger_export(request: Request, export_request: ExportRequest) -> ExportResult:
     """Export the current diagram view in the requested format.
 
     Accepts an ExportRequest with format and optional filters.
@@ -36,7 +36,7 @@ async def trigger_export(request: ExportRequest) -> ExportResult:
 
     Requirements: 11.4
     """
-    scan_result = get_last_scan_result()
+    scan_result = get_last_scan_result_from_session(request)
     if scan_result is None:
         raise CloudSpyglassError(
             error_code="NO_SCAN_DATA",
@@ -46,9 +46,9 @@ async def trigger_export(request: ExportRequest) -> ExportResult:
         )
 
     # Convert scan result to diagram data, applying filters if provided
-    tag_filters = request.filters.tag_filters if request.filters else None
-    type_filters = request.filters.type_filters if request.filters else None
-    tag_filter_operator = request.filters.tag_filter_operator if request.filters else "AND"
+    tag_filters = export_request.filters.tag_filters if export_request.filters else None
+    type_filters = export_request.filters.type_filters if export_request.filters else None
+    tag_filter_operator = export_request.filters.tag_filter_operator if export_request.filters else "AND"
 
     filtered_result = filter_engine.apply_filters(
         scan_result,
@@ -60,8 +60,8 @@ async def trigger_export(request: ExportRequest) -> ExportResult:
     # Export the diagram data
     result = await export_service.export(
         diagram_data=filtered_result.diagram,
-        format=request.format,
-        filters=request.filters,
+        format=export_request.format,
+        filters=export_request.filters,
     )
 
     return result

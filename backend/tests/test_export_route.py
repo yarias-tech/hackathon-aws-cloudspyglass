@@ -59,7 +59,7 @@ class TestExportRoute:
 
     async def test_no_scan_data_returns_404(self, client: AsyncClient) -> None:
         """When no scan data exists, returns 404 with NO_SCAN_DATA error."""
-        with patch("backend.routes.export.get_last_scan_result", return_value=None):
+        with patch("backend.routes.export.get_last_scan_result_from_session", return_value=None):
             response = await client.post(
                 "/api/export", json={"format": "svg"}
             )
@@ -79,7 +79,7 @@ class TestExportRoute:
         )
 
         with patch(
-            "backend.routes.export.get_last_scan_result", return_value=scan_result
+            "backend.routes.export.get_last_scan_result_from_session", return_value=scan_result
         ), patch(
             "backend.routes.export.export_service.export",
             new_callable=AsyncMock,
@@ -105,7 +105,7 @@ class TestExportRoute:
         )
 
         with patch(
-            "backend.routes.export.get_last_scan_result", return_value=scan_result
+            "backend.routes.export.get_last_scan_result_from_session", return_value=scan_result
         ), patch(
             "backend.routes.export.export_service.export",
             new_callable=AsyncMock,
@@ -132,7 +132,7 @@ class TestExportRoute:
     async def test_export_invalid_format_returns_422(self, client: AsyncClient) -> None:
         """Invalid export format returns 422 validation error."""
         with patch(
-            "backend.routes.export.get_last_scan_result",
+            "backend.routes.export.get_last_scan_result_from_session",
             return_value=_make_scan_result(),
         ):
             response = await client.post(
