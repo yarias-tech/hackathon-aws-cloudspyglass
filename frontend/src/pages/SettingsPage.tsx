@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiError } from '../api/apiClient';
+import { useLanguage } from '../i18n/LanguageContext';
 import type { CredentialSubmission, CredentialStatus } from '../types/credentials';
 import type { AppSettings, AutoRefreshInterval } from '../types/settings';
 
@@ -31,6 +32,7 @@ const AUTO_REFRESH_OPTIONS: { value: AutoRefreshInterval; label: string }[] = [
  * Requirements: 1.1, 2.2, 2.5, 2.6, 3.1, 12.1, 12.3, 12.4, 12.5
  */
 export function SettingsPage() {
+  const { t } = useLanguage();
   // Credential form state
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretAccessKey, setSecretAccessKey] = useState('');
@@ -219,10 +221,34 @@ export function SettingsPage() {
   const isConnected = credentialStatus?.connected === true;
 
   return (
-    <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '2rem 1rem' }}>
+    <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '2rem 1rem', overflowY: 'auto', height: '100%', boxSizing: 'border-box' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#111827', marginBottom: '2rem' }}>
-        Settings
+        {t.settings_title}
       </h1>
+
+      {/* Product Overview */}
+      <section style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', backgroundColor: '#f8fafc' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#111827', marginTop: 0, marginBottom: '0.75rem' }}>
+          {t.about_title}
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 1rem 0', lineHeight: 1.6 }}>
+          {t.about_description}
+        </p>
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 1rem 0', fontStyle: 'italic' }}>
+          {t.about_built_with}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>{t.about_source_code}:</span>
+          <a
+            href="https://github.com/yericksonarias/hackathon-aws-cloudspyglass"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: '0.875rem', color: '#2563eb', textDecoration: 'none' }}
+          >
+            github.com/yericksonarias/hackathon-aws-cloudspyglass
+          </a>
+        </div>
+      </section>
 
       {/* Credential Status Section */}
       <section style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', backgroundColor: '#fff' }}>
@@ -562,6 +588,30 @@ export function SettingsPage() {
             })}
           </div>
         )}
+      </section>
+
+      {/* Authors */}
+      <section style={{ marginBottom: '1rem', padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb' }}>
+        <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0 0 0.5rem 0', fontWeight: 500 }}>
+          {t.about_authors}
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+          <a href="https://www.linkedin.com/in/stalin-pilapanta-3b9b1096/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+            Stalin Pilapanta
+          </a>
+          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+          <a href="https://www.linkedin.com/in/yerickson-arias-1a16873a/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+            Yerick Arias
+          </a>
+          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+          <a href="https://www.linkedin.com/in/chrystianbarros/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+            Chrystian Barros
+          </a>
+          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+          <a href="https://github.com/kikem4n" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+            Hiram Rosales
+          </a>
+        </div>
       </section>
     </div>
   );

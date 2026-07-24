@@ -30,10 +30,10 @@ export interface EdgeStyleConfig {
 
 /** Edge styling configuration per design specification (Requirements 4.2-4.5, 4.9) */
 export const EDGE_STYLES: Record<RelationshipCategory, EdgeStyleConfig> = {
-  network: { stroke: '#2563EB', animated: false },
-  iam: { stroke: '#DC2626', strokeDasharray: '5 5', animated: false },
+  network: { stroke: '#2563EB', animated: true },
+  iam: { stroke: '#DC2626', strokeDasharray: '5 5', animated: true },
   event: { stroke: '#EA580C', strokeDasharray: '2 2', animated: true },
-  data: { stroke: '#7C3AED', animated: false },
+  data: { stroke: '#7C3AED', animated: true },
 };
 
 /** Default/fallback style for unknown categories (Requirement 4.9) */

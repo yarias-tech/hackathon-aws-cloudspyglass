@@ -1,11 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { apiClient, ApiError } from '../api/apiClient';
-import type { FilterCriteria } from '../types/filters';
-import type { ExportFormat, ExportRequest, ExportResult } from '../types/export';
+import type { ExportFormat } from '../types/export';
 
 export interface ExportMenuProps {
-  /** Current active filter criteria */
-  filters: FilterCriteria;
+  /** Account ID for the filename */
+  accountId?: string;
 }
 
 /** Available export format options */
@@ -15,24 +13,39 @@ const EXPORT_FORMATS: { format: ExportFormat; label: string }[] = [
   { format: 'svg', label: 'SVG' },
 ];
 
-/** Check whether the given filters contain any active criteria */
-function hasActiveFilters(filters: FilterCriteria): boolean {
-  return filters.tag_filters.length > 0 || filters.type_filters.length > 0;
+/**
+ * Generate a timestamped export filename.
+ */
+function generateFilename(accountId: string, format: ExportFormat): string {
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 15).replace(/(\d{8})(\d{6})/, '$1_$2');
+  return `${accountId}_${timestamp}.${format}`;
+}
+
+/**
+ * Trigger a browser download from a Blob.
+ */
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
 
 /**
  * ExportMenu provides a dropdown button to export the current diagram
- * in PDF, PNG, or SVG format.
+ * in PDF, PNG, or SVG format by capturing the React Flow canvas directly.
  *
- * - Posts to /api/export with the selected format and current filter criteria
- * - Shows loading state while export is in progress
- * - Displays success message with filename on completion
- * - Shows error message on failure
- * - Auto-dismisses status messages after a few seconds
+ * This produces an export that matches exactly what the user sees on screen,
+ * including AWS icons, layout, colors, and edges.
  *
  * Requirements: 11.1, 11.2
  */
-export function ExportMenu({ filters }: ExportMenuProps) {
+export function ExportMenu({ accountId = 'export' }: ExportMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -87,33 +100,38 @@ export function ExportMenu({ filters }: ExportMenuProps) {
     }, 4000);
   }, []);
 
-  /** Handle export format selection */
+  /** Handle export format selection — captures the React Flow canvas */
   const handleExport = useCallback(async (format: ExportFormat) => {
     setMenuOpen(false);
     setExporting(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    const requestBody: ExportRequest = {
-      format,
-      filters: hasActiveFilters(filters) ? filters : null,
-    };
-
     try {
-      const result = await apiClient.post<ExportResult>('/export', requestBody);
-      // Trigger browser download of the generated file
-      await apiClient.download(`/export/download/${result.filename}`, result.filename);
-      showStatus('success', `Exported: ${result.filename}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        showStatus('error', err.message);
-      } else {
-        showStatus('error', 'Export failed unexpectedly');
+      // Find the React Flow viewport element
+      const flowElement = document.querySelector('.react-flow') as HTMLElement | null;
+      if (!flowElement) {
+        throw new Error('Diagram not found. Please ensure a diagram is displayed.');
       }
+
+      const filename = generateFilename(accountId, format);
+
+      if (format === 'svg') {
+        await exportAsSvg(flowElement, filename);
+      } else if (format === 'png') {
+        await exportAsPng(flowElement, filename);
+      } else if (format === 'pdf') {
+        await exportAsPdf(flowElement, filename);
+      }
+
+      showStatus('success', `Exported: ${filename}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Export failed unexpectedly';
+      showStatus('error', message);
     } finally {
       setExporting(false);
     }
-  }, [filters, showStatus]);
+  }, [accountId, showStatus]);
 
   /** Toggle dropdown menu */
   const toggleMenu = useCallback(() => {
@@ -256,4 +274,174 @@ export function ExportMenu({ filters }: ExportMenuProps) {
       )}
     </div>
   );
+}
+
+// -------------------------------------------------------------------
+// Export helpers — capture the React Flow viewport using html-to-image
+// which properly handles both HTML nodes and SVG edges
+// -------------------------------------------------------------------
+
+/**
+ * Temporarily disable all CSS animations and hide invisible interaction paths
+ * to prevent html-to-image rendering artifacts.
+ * Returns a cleanup function to restore everything.
+ */
+function pauseAnimations(element: HTMLElement): () => void {
+  // 1. Inject style to kill all animations and hide interaction paths
+  const style = document.createElement('style');
+  style.setAttribute('data-export-pause', 'true');
+  style.textContent = `
+    .react-flow *,
+    .react-flow *::before,
+    .react-flow *::after {
+      animation: none !important;
+      animation-delay: 0s !important;
+      animation-duration: 0s !important;
+      transition: none !important;
+    }
+    .relationship-edge__path--interactive {
+      display: none !important;
+    }
+    .react-flow__edge path[stroke="transparent"],
+    .react-flow__edge path[stroke-width="12"] {
+      display: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 2. Directly hide all interactive paths via inline style
+  const interactivePaths = element.querySelectorAll('.relationship-edge__path--interactive');
+  interactivePaths.forEach((el) => {
+    (el as SVGElement).style.display = 'none';
+  });
+
+  // 3. Also hide any path with transparent stroke or fill:none + large stroke-width
+  const allEdgePaths = element.querySelectorAll('.react-flow__edge path, .react-flow__edges path');
+  const hiddenPaths: SVGElement[] = [];
+  allEdgePaths.forEach((el) => {
+    const svgEl = el as SVGElement;
+    const computedStyle = window.getComputedStyle(svgEl);
+    const stroke = computedStyle.stroke;
+    const strokeWidth = parseFloat(computedStyle.strokeWidth || '0');
+    // Hide paths that are transparent/none with wide stroke (interaction hitboxes)
+    if (strokeWidth >= 10 || stroke === 'transparent' || stroke === 'none' || stroke === 'rgba(0, 0, 0, 0)') {
+      if (!svgEl.getAttribute('class')?.includes('react-flow__edge-path')) {
+        svgEl.style.display = 'none';
+        hiddenPaths.push(svgEl);
+      }
+    }
+  });
+
+  // Force reflow
+  void element.offsetHeight;
+
+  return () => {
+    interactivePaths.forEach((el) => {
+      (el as SVGElement).style.display = '';
+    });
+    hiddenPaths.forEach((el) => {
+      el.style.display = '';
+    });
+    document.head.removeChild(style);
+  };
+}
+
+/**
+ * Filter function to exclude UI controls and invisible interaction paths from the export.
+ */
+function exportFilter(node: Element | HTMLElement): boolean {
+  if (node instanceof HTMLElement) {
+    const classes = node.classList;
+    if (
+      classes?.contains('react-flow__minimap') ||
+      classes?.contains('react-flow__controls') ||
+      classes?.contains('react-flow__attribution') ||
+      classes?.contains('react-flow__panel')
+    ) {
+      return false;
+    }
+  }
+  // Exclude the invisible wide interaction paths that render as black blobs
+  if (node instanceof SVGElement && node.classList?.contains('relationship-edge__path--interactive')) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Export the diagram as SVG.
+ */
+async function exportAsSvg(flowElement: HTMLElement, filename: string): Promise<void> {
+  const { toSvg } = await import('html-to-image');
+
+  const resume = pauseAnimations(flowElement);
+  // Wait for browser to fully repaint without animations
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const dataUrl = await toSvg(flowElement, {
+      backgroundColor: '#ffffff',
+      filter: exportFilter,
+    });
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    downloadBlob(blob, filename);
+  } finally {
+    resume();
+  }
+}
+
+/**
+ * Export the diagram as PNG at high resolution.
+ */
+async function exportAsPng(flowElement: HTMLElement, filename: string): Promise<void> {
+  const { toPng } = await import('html-to-image');
+
+  const resume = pauseAnimations(flowElement);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const dataUrl = await toPng(flowElement, {
+      backgroundColor: '#ffffff',
+      pixelRatio: 3,
+      filter: exportFilter,
+    });
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    downloadBlob(blob, filename);
+  } finally {
+    resume();
+  }
+}
+
+/**
+ * Export the diagram as PDF using html-to-image + jsPDF.
+ */
+async function exportAsPdf(flowElement: HTMLElement, filename: string): Promise<void> {
+  const { toPng } = await import('html-to-image');
+  const { jsPDF } = await import('jspdf');
+
+  const resume = pauseAnimations(flowElement);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const dataUrl = await toPng(flowElement, {
+      backgroundColor: '#ffffff',
+      pixelRatio: 2,
+      filter: exportFilter,
+    });
+
+    const width = flowElement.offsetWidth * 2;
+    const height = flowElement.offsetHeight * 2;
+
+    const orientation = width >= height ? 'landscape' : 'portrait';
+    const pdf = new jsPDF({
+      orientation,
+      unit: 'px',
+      format: [width, height],
+    });
+
+    pdf.addImage(dataUrl, 'PNG', 0, 0, width, height);
+    const pdfBlob = pdf.output('blob');
+    downloadBlob(pdfBlob, filename);
+  } finally {
+    resume();
+  }
 }

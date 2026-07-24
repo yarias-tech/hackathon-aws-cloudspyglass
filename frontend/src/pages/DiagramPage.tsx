@@ -354,7 +354,7 @@ export function DiagramPage() {
           onError={handleScanError}
           selectedRegions={scanRegions}
         />
-        <ExportMenu filters={filters} />
+        <ExportMenu accountId={diagramData?.account_id} />
       </div>
 
       {/* Filter bar */}

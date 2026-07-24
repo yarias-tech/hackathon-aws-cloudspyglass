@@ -1,5 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { LanguageProvider } from './i18n/LanguageContext';
+import { ScanProvider } from './contexts/ScanContext';
 import { NavHeader } from './components/NavHeader';
 import { ErrorBanner } from './components/ErrorBanner';
 import { DiagramPage } from './pages/DiagramPage';
@@ -63,19 +65,23 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
 
 function App() {
   return (
-    <BrowserRouter>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <NavHeader />
-        <AppErrorBoundary>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <Routes>
-              <Route path="/" element={<DiagramPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
+    <LanguageProvider>
+      <ScanProvider>
+        <BrowserRouter>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            <NavHeader />
+            <AppErrorBoundary>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <Routes>
+                  <Route path="/" element={<DiagramPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </div>
+            </AppErrorBoundary>
           </div>
-        </AppErrorBoundary>
-      </div>
-    </BrowserRouter>
+        </BrowserRouter>
+      </ScanProvider>
+    </LanguageProvider>
   );
 }
 
