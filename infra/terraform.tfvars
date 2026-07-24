@@ -24,8 +24,8 @@ container_port = 8080
 # CPU: 256 | 512 | 1024 | 2048 | 4096
 # Memory: debe ser compatible con el CPU elegido
 # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html
-task_cpu    = "512"
-task_memory = "1024"
+task_cpu    = "1024"
+task_memory = "2048"
 
 # Número de instancias del contenedor corriendo simultáneamente
 desired_count = 1

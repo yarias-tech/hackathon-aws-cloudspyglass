@@ -595,6 +595,15 @@ El scanner detecta los siguientes tipos de recursos AWS:
 
 ---
 
+## Autores
+
+- [Stalin Pilapanta](https://www.linkedin.com/in/stalin-pilapanta-3b9b1096/)
+- [Yerick Arias](https://www.linkedin.com/in/yerickson-arias-1a16873a/)
+- [Chrystian Barros](https://www.linkedin.com/in/chrystianbarros/)
+- [Hiram Rosales](https://github.com/kikem4n)
+
+---
+
 ## Licencia
 
 Proyecto interno - Hackathon AWS

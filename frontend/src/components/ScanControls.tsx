@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient, ApiError } from '../api/apiClient';
+import { useLanguage } from '../i18n/LanguageContext';
+import { useScanContext } from '../contexts/ScanContext';
 import type { AutoRefreshInterval } from '../types/settings';
 import type { DiagramData } from '../types/diagram';
 
@@ -13,6 +15,13 @@ function intervalToMs(interval: AutoRefreshInterval): number | null {
     case '60m': return 3_600_000;
     case 'manual': return null;
   }
+}
+
+/** Format elapsed seconds into mm:ss */
+function formatElapsed(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 export interface ScanControlsProps {
@@ -35,47 +44,73 @@ export interface ScanControlsProps {
  * - Skips scheduled scan if one is already in progress (Req 9.3)
  * - On failure, retains current diagram and reports error (Req 9.4)
  * - Resets timer on manual refresh (Req 9.7)
+ * - Shows elapsed time counter that persists after scan completes
  *
  * Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7
  */
 export function ScanControls({ autoRefreshInterval, onScanComplete, onError, selectedRegions }: ScanControlsProps) {
+  const { t } = useLanguage();
+  const { lastScanDuration, setLastScanDuration } = useScanContext();
   const [scanning, setScanning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanningRef = useRef(false);
 
-  // Keep scanningRef in sync with scanning state so the timer callback
-  // can check the latest value without needing to re-create the interval.
+  // Keep scanningRef in sync with scanning state
   useEffect(() => {
     scanningRef.current = scanning;
+  }, [scanning]);
+
+  // Elapsed time counter — starts when scanning begins, stops when it ends
+  useEffect(() => {
+    if (scanning) {
+      setElapsedSeconds(0);
+      elapsedTimerRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (elapsedTimerRef.current !== null) {
+        clearInterval(elapsedTimerRef.current);
+        elapsedTimerRef.current = null;
+      }
+      // Save last scan duration when scanning stops (only if it actually ran)
+      if (elapsedSeconds > 0) {
+        setLastScanDuration(elapsedSeconds);
+      }
+    }
+
+    return () => {
+      if (elapsedTimerRef.current !== null) {
+        clearInterval(elapsedTimerRef.current);
+        elapsedTimerRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning]);
 
   /**
    * Perform a scan: POST /api/scan, poll /api/scan/status until complete,
    * then GET /api/diagrams/latest on success.
-   * On failure, calls onError but does NOT clear diagram data (Req 9.4).
    */
   const performScan = useCallback(async () => {
-    // Skip if already scanning (Req 9.3)
     if (scanningRef.current) return;
 
     setScanning(true);
     try {
-      // Trigger a new scan with optional region selection
       const body = selectedRegions && selectedRegions.length > 0
         ? { regions: selectedRegions }
         : {};
       await apiClient.post<unknown>('/scan', body);
 
-      // Poll scan status until completed, failed, or idle (cancelled)
       let scanComplete = false;
       let attempts = 0;
-      const maxAttempts = 360; // 30 minutes at 5-second intervals
+      const maxAttempts = 360;
 
       while (!scanComplete && attempts < maxAttempts && scanningRef.current) {
         await new Promise(resolve => setTimeout(resolve, 5000));
         attempts++;
 
-        // If scanning was stopped externally (handleCancelScan set scanning=false)
         if (!scanningRef.current) return;
 
         try {
@@ -86,11 +121,8 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
             onError(status.error_message || 'Scan failed');
             return;
           } else if (status.status === 'idle' && attempts > 1) {
-            // Scan was cancelled — stop polling silently
-            // (skip on first poll to avoid race with scan startup)
             return;
           }
-          // If still 'in_progress' or 'idle' on first poll, keep polling
         } catch {
           // Status check failed, keep trying
         }
@@ -103,15 +135,11 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
         return;
       }
 
-      // Fetch the latest diagram data after scan completes
       const data = await apiClient.get<DiagramData>('/diagrams/latest');
       onScanComplete(data);
     } catch (err) {
       if (err instanceof ApiError) {
-        // 409 SCAN_IN_PROGRESS means a scan is already running — not a real error
-        if (err.statusCode === 409) {
-          // Skip silently; scan is already in progress
-        } else {
+        if (err.statusCode !== 409) {
           onError(err.message);
         }
       } else {
@@ -124,17 +152,14 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
 
   /** Clear and restart the auto-refresh timer */
   const resetTimer = useCallback(() => {
-    // Clear existing timer
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
 
-    // Set up new timer if not manual
     const ms = intervalToMs(autoRefreshInterval);
     if (ms !== null) {
       timerRef.current = setInterval(() => {
-        // Skip if a scan is already in progress (Req 9.3)
         if (!scanningRef.current) {
           performScan();
         }
@@ -142,7 +167,6 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
     }
   }, [autoRefreshInterval, performScan]);
 
-  // Set up / tear down the auto-refresh timer when interval changes (Req 9.1, 9.2)
   useEffect(() => {
     resetTimer();
     return () => {
@@ -153,26 +177,26 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
     };
   }, [resetTimer]);
 
-  /** Handle manual refresh: perform scan and reset timer (Req 9.6, 9.7) */
   const handleManualRefresh = useCallback(() => {
     performScan();
     resetTimer();
   }, [performScan, resetTimer]);
 
-  /** Handle scan cancellation */
   const handleCancelScan = useCallback(async () => {
-    // Set scanning to false first so the polling loop exits
     setScanning(false);
     try {
       await apiClient.post<unknown>('/scan/cancel');
     } catch {
-      // Ignore errors on cancel — scan may have already finished
+      // Ignore errors on cancel
     }
   }, []);
 
+  // Determine what time to show: active elapsed or last scan duration
+  const displayTime = scanning ? elapsedSeconds : lastScanDuration;
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      {/* Non-blocking refresh indicator (Req 9.5) */}
+      {/* Non-blocking refresh indicator */}
       {scanning && (
         <div
           style={{
@@ -189,7 +213,7 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
         />
       )}
 
-      {/* Manual refresh button — always available (Req 9.6) */}
+      {/* Manual refresh button */}
       <button
         type="button"
         onClick={handleManualRefresh}
@@ -210,8 +234,27 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
         aria-label="Refresh scan"
         data-testid="manual-refresh-button"
       >
-        {scanning ? 'Scanning…' : 'Scan'}
+        {scanning ? t.scan_scanning : t.scan_button}
       </button>
+
+      {/* Elapsed time counter — always visible once a scan has run */}
+      {displayTime !== null && (
+        <span
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            color: scanning ? '#2563eb' : '#6b7280',
+            fontVariantNumeric: 'tabular-nums',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }}
+          data-testid="scan-elapsed-time"
+          aria-live="polite"
+        >
+          ⏱ {formatElapsed(displayTime)}
+        </span>
+      )}
 
       {/* Stop button — visible only while scanning */}
       {scanning && (
@@ -231,7 +274,7 @@ export function ScanControls({ autoRefreshInterval, onScanComplete, onError, sel
           aria-label="Stop scan"
           data-testid="stop-scan-button"
         >
-          Stop
+          {t.scan_stop}
         </button>
       )}
     </div>
