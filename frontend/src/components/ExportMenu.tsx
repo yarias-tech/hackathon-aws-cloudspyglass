@@ -277,86 +277,171 @@ export function ExportMenu({ accountId = 'export' }: ExportMenuProps) {
 }
 
 // -------------------------------------------------------------------
-// Export helpers — capture the React Flow canvas using html2canvas/jspdf
+// Export helpers — capture the React Flow viewport using html-to-image
+// which properly handles both HTML nodes and SVG edges
 // -------------------------------------------------------------------
 
 /**
- * Export the diagram as SVG by cloning the React Flow SVG layer and
- * serializing it along with the node HTML overlays.
+ * Temporarily disable all CSS animations and hide invisible interaction paths
+ * to prevent html-to-image rendering artifacts.
+ * Returns a cleanup function to restore everything.
+ */
+function pauseAnimations(element: HTMLElement): () => void {
+  // 1. Inject style to kill all animations and hide interaction paths
+  const style = document.createElement('style');
+  style.setAttribute('data-export-pause', 'true');
+  style.textContent = `
+    .react-flow *,
+    .react-flow *::before,
+    .react-flow *::after {
+      animation: none !important;
+      animation-delay: 0s !important;
+      animation-duration: 0s !important;
+      transition: none !important;
+    }
+    .relationship-edge__path--interactive {
+      display: none !important;
+    }
+    .react-flow__edge path[stroke="transparent"],
+    .react-flow__edge path[stroke-width="12"] {
+      display: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 2. Directly hide all interactive paths via inline style
+  const interactivePaths = element.querySelectorAll('.relationship-edge__path--interactive');
+  interactivePaths.forEach((el) => {
+    (el as SVGElement).style.display = 'none';
+  });
+
+  // 3. Also hide any path with transparent stroke or fill:none + large stroke-width
+  const allEdgePaths = element.querySelectorAll('.react-flow__edge path, .react-flow__edges path');
+  const hiddenPaths: SVGElement[] = [];
+  allEdgePaths.forEach((el) => {
+    const svgEl = el as SVGElement;
+    const computedStyle = window.getComputedStyle(svgEl);
+    const stroke = computedStyle.stroke;
+    const strokeWidth = parseFloat(computedStyle.strokeWidth || '0');
+    // Hide paths that are transparent/none with wide stroke (interaction hitboxes)
+    if (strokeWidth >= 10 || stroke === 'transparent' || stroke === 'none' || stroke === 'rgba(0, 0, 0, 0)') {
+      if (!svgEl.getAttribute('class')?.includes('react-flow__edge-path')) {
+        svgEl.style.display = 'none';
+        hiddenPaths.push(svgEl);
+      }
+    }
+  });
+
+  // Force reflow
+  void element.offsetHeight;
+
+  return () => {
+    interactivePaths.forEach((el) => {
+      (el as SVGElement).style.display = '';
+    });
+    hiddenPaths.forEach((el) => {
+      el.style.display = '';
+    });
+    document.head.removeChild(style);
+  };
+}
+
+/**
+ * Filter function to exclude UI controls and invisible interaction paths from the export.
+ */
+function exportFilter(node: Element | HTMLElement): boolean {
+  if (node instanceof HTMLElement) {
+    const classes = node.classList;
+    if (
+      classes?.contains('react-flow__minimap') ||
+      classes?.contains('react-flow__controls') ||
+      classes?.contains('react-flow__attribution') ||
+      classes?.contains('react-flow__panel')
+    ) {
+      return false;
+    }
+  }
+  // Exclude the invisible wide interaction paths that render as black blobs
+  if (node instanceof SVGElement && node.classList?.contains('relationship-edge__path--interactive')) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Export the diagram as SVG.
  */
 async function exportAsSvg(flowElement: HTMLElement, filename: string): Promise<void> {
-  // Use html2canvas to render to canvas, then convert to SVG-wrapped image
-  const html2canvas = (await import('html2canvas')).default;
+  const { toSvg } = await import('html-to-image');
 
-  const canvas = await html2canvas(flowElement, {
-    backgroundColor: '#ffffff',
-    scale: 2,
-    useCORS: true,
-    logging: false,
-  });
-
-  // Convert canvas to PNG data URL and embed in SVG
-  const dataUrl = canvas.toDataURL('image/png');
-  const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-  width="${canvas.width}" height="${canvas.height}"
-  viewBox="0 0 ${canvas.width} ${canvas.height}">
-  <image width="${canvas.width}" height="${canvas.height}" xlink:href="${dataUrl}"/>
-</svg>`;
-
-  const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-  downloadBlob(blob, filename);
+  const resume = pauseAnimations(flowElement);
+  // Wait for browser to fully repaint without animations
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const dataUrl = await toSvg(flowElement, {
+      backgroundColor: '#ffffff',
+      filter: exportFilter,
+    });
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    downloadBlob(blob, filename);
+  } finally {
+    resume();
+  }
 }
 
 /**
- * Export the diagram as PNG at high resolution using html2canvas.
+ * Export the diagram as PNG at high resolution.
  */
 async function exportAsPng(flowElement: HTMLElement, filename: string): Promise<void> {
-  const html2canvas = (await import('html2canvas')).default;
+  const { toPng } = await import('html-to-image');
 
-  // Scale 3x for ~300 DPI equivalent
-  const canvas = await html2canvas(flowElement, {
-    backgroundColor: '#ffffff',
-    scale: 3,
-    useCORS: true,
-    logging: false,
-  });
-
-  canvas.toBlob((blob) => {
-    if (blob) {
-      downloadBlob(blob, filename);
-    }
-  }, 'image/png');
+  const resume = pauseAnimations(flowElement);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const dataUrl = await toPng(flowElement, {
+      backgroundColor: '#ffffff',
+      pixelRatio: 3,
+      filter: exportFilter,
+    });
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    downloadBlob(blob, filename);
+  } finally {
+    resume();
+  }
 }
 
 /**
- * Export the diagram as PDF using html2canvas + jsPDF.
- * Captures the canvas at high resolution and embeds it in a landscape PDF.
+ * Export the diagram as PDF using html-to-image + jsPDF.
  */
 async function exportAsPdf(flowElement: HTMLElement, filename: string): Promise<void> {
-  const html2canvas = (await import('html2canvas')).default;
+  const { toPng } = await import('html-to-image');
   const { jsPDF } = await import('jspdf');
 
-  const canvas = await html2canvas(flowElement, {
-    backgroundColor: '#ffffff',
-    scale: 2,
-    useCORS: true,
-    logging: false,
-  });
+  const resume = pauseAnimations(flowElement);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const dataUrl = await toPng(flowElement, {
+      backgroundColor: '#ffffff',
+      pixelRatio: 2,
+      filter: exportFilter,
+    });
 
-  const imgData = canvas.toDataURL('image/png');
-  const imgWidth = canvas.width;
-  const imgHeight = canvas.height;
+    const width = flowElement.offsetWidth * 2;
+    const height = flowElement.offsetHeight * 2;
 
-  // Use landscape orientation, sized to fit the diagram
-  const orientation = imgWidth >= imgHeight ? 'landscape' : 'portrait';
-  const pdf = new jsPDF({
-    orientation,
-    unit: 'px',
-    format: [imgWidth, imgHeight],
-  });
+    const orientation = width >= height ? 'landscape' : 'portrait';
+    const pdf = new jsPDF({
+      orientation,
+      unit: 'px',
+      format: [width, height],
+    });
 
-  pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-  const pdfBlob = pdf.output('blob');
-  downloadBlob(pdfBlob, filename);
+    pdf.addImage(dataUrl, 'PNG', 0, 0, width, height);
+    const pdfBlob = pdf.output('blob');
+    downloadBlob(pdfBlob, filename);
+  } finally {
+    resume();
+  }
 }
