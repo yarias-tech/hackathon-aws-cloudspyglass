@@ -60,8 +60,8 @@ El proyecto fue desarrollado íntegramente usando **Kiro IDE** como entorno de d
 | Entregable | Link |
 |-----------|------|
 | 📁 Repositorio + README | [github.com/yericksonarias/hackathon-aws-cloudspyglass](https://github.com/yericksonarias/hackathon-aws-cloudspyglass) |
-| 🌐 Demo en línea | *(URL del ALB desplegado)* |
-| 🎥 Video de presentación | *(Link al video)* |
+| 🌐 Demo en línea | [cloudspyglass-alb-1316998854.us-east-1.elb.amazonaws.com](http://cloudspyglass-alb-1316998854.us-east-1.elb.amazonaws.com/) |
+| 🎥 Video de presentación | [Ver video](https://drive.google.com/drive/u/1/folders/1VSp3wtDXg16r_H-GC6YyOV9d6u-7wt3v) |
 
 ---
 
