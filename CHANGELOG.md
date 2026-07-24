@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.1] - 2026-07-21
+
+Patch release with export bug fixes, UX improvements to the filter panel, and session handling corrections.
+
+### Fixed
+
+- PDF export download now works correctly and preserves the hierarchical diagram format ([`2c89f2c`](../../commit/2c89f2c))
+- Export diagram format rendering fixed to produce properly styled output ([`14cbb08`](../../commit/14cbb08))
+
+### Changed
+
+- Filter panel sections are now collapsible, reducing visual clutter on smaller screens ([`200a3ce`](../../commit/200a3ce))
+- Diagram DPI increased for higher-quality PNG exports ([`200a3ce`](../../commit/200a3ce))
+- Relationship edges now use animated flow lines for event-driven connections, improving visual distinction between categories ([`200a3ce`](../../commit/200a3ce))
+- Region list in Settings page updated with latest AWS region availability ([`ed195aa`](../../commit/ed195aa))
+- Session validation improved to prevent stale credential state between page navigations ([`c8fc189`](../../commit/c8fc189))
+- README updated with multilingual documentation references and project structure clarifications ([`2cd49fb`](../../commit/2cd49fb), [`1d512b2`](../../commit/1d512b2), [`e5f37a0`](../../commit/e5f37a0), [`1a4dfe1`](../../commit/1a4dfe1))
+
+
 ## [v2.0.0] - 2026-07-23
 
 Transforms CloudSpyglass from a flat flow-chart diagram tool into a hierarchical architecture diagram visualizer. Introduces nested containers (Cloud → Account → Region → VPC → Subnet), boundary service placement, viewport culling for performance, and expanded resource scanning.
