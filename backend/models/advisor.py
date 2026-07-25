@@ -4,6 +4,16 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .filters import TagFilter
+
+
+class FilterCriteriaInput(BaseModel):
+    """Optional filter criteria to scope the analysis to filtered resources."""
+
+    tag_filters: list[TagFilter] = Field(default_factory=list, max_length=10)
+    type_filters: list[str] = Field(default_factory=list)
+    tag_filter_operator: Literal["AND", "OR"] = "AND"
+
 
 class Suggestion(BaseModel):
     """A single architecture recommendation from the AI advisor."""
@@ -39,3 +49,4 @@ class AnalyzeRequest(BaseModel):
     pillars: list[Literal["Security", "Cost_Optimization", "Performance"]] | None = Field(
         None, max_length=3
     )
+    filter_criteria: FilterCriteriaInput | None = None

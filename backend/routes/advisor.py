@@ -29,7 +29,9 @@ async def analyze(request: AnalyzeRequest) -> JSONResponse:
         )
 
     task_id = await advisor_service.start_analysis(
-        pillars=request.pillars, account_id=status.account_id
+        pillars=request.pillars,
+        account_id=status.account_id,
+        filter_criteria=request.filter_criteria,
     )
 
     return JSONResponse(status_code=202, content={"task_id": task_id})

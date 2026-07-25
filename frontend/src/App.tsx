@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { ScanProvider } from './contexts/ScanContext';
+import { FilterProvider } from './contexts/FilterContext';
 import { NavHeader } from './components/NavHeader';
 import { ErrorBanner } from './components/ErrorBanner';
 import { DiagramPage } from './pages/DiagramPage';
@@ -68,20 +69,22 @@ function App() {
   return (
     <LanguageProvider>
       <ScanProvider>
-        <BrowserRouter>
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-            <NavHeader />
-            <AppErrorBoundary>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <Routes>
-                  <Route path="/" element={<DiagramPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/advisor" element={<AdvisorPanel />} />
-                </Routes>
-              </div>
-            </AppErrorBoundary>
-          </div>
-        </BrowserRouter>
+        <FilterProvider>
+          <BrowserRouter>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+              <NavHeader />
+              <AppErrorBoundary>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <Routes>
+                    <Route path="/" element={<DiagramPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/advisor" element={<AdvisorPanel />} />
+                  </Routes>
+                </div>
+              </AppErrorBoundary>
+            </div>
+          </BrowserRouter>
+        </FilterProvider>
       </ScanProvider>
     </LanguageProvider>
   );

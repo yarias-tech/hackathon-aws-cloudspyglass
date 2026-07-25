@@ -8,7 +8,7 @@ from enum import Enum
 from openai import APIStatusError, RateLimitError
 
 from ..exceptions import CloudSpyglassError
-from ..models.advisor import AdvisorResponse
+from ..models.advisor import AdvisorResponse, FilterCriteriaInput
 from .ai_credential_manager import AiCredentialManager
 from .context_serializer import ContextSerializer
 from .prompts import CLOUD_ARCHITECT_SYSTEM_PROMPT, build_user_message
@@ -65,13 +65,14 @@ class AdvisorService:
         self._error: str | None = None
 
     async def start_analysis(
-        self, pillars: list[str] | None, account_id: str
+        self, pillars: list[str] | None, account_id: str, filter_criteria: FilterCriteriaInput | None = None
     ) -> str:
         """Validate preconditions and initiate background analysis.
 
         Args:
             pillars: List of pillars to analyze, or None for all pillars.
             account_id: AWS account ID whose scan to analyze.
+            filter_criteria: Optional filter criteria to scope analysis to filtered resources.
 
         Returns:
             A task_id string identifying this analysis run.
@@ -122,16 +123,17 @@ class AdvisorService:
         self._error = None
 
         # Launch background task
-        asyncio.create_task(self.run_analysis(task_id, pillars, account_id))
+        asyncio.create_task(self.run_analysis(task_id, pillars, account_id, filter_criteria))
 
         return task_id
 
     async def run_analysis(
-        self, task_id: str, pillars: list[str], account_id: str
+        self, task_id: str, pillars: list[str], account_id: str, filter_criteria: FilterCriteriaInput | None = None
     ) -> None:
         """Execute the full analysis pipeline as a background task.
 
         1. Load scan from storage
+        1.5. Apply filters if provided
         2. Serialize context using ContextSerializer
         3. Get client and model from AiCredentialManager
         4. Call AI API with retry logic
@@ -142,6 +144,7 @@ class AdvisorService:
             task_id: The task identifier for this analysis run.
             pillars: List of pillars to analyze.
             account_id: AWS account ID whose scan to analyze.
+            filter_criteria: Optional filter criteria to scope analysis to filtered resources.
         """
         try:
             # 1. Load scan from storage
@@ -153,6 +156,52 @@ class AdvisorService:
                     recoverable=False,
                     status_code=400,
                 )
+
+            # 1.5 Apply filters if provided
+            if filter_criteria is not None:
+                tag_filters = filter_criteria.tag_filters or []
+                type_filters = filter_criteria.type_filters or []
+                tag_operator = filter_criteria.tag_filter_operator or "AND"
+
+                if tag_filters or type_filters:
+                    from ..models.filters import TagFilter as TagFilterModel
+                    from .filter_engine import FilterEngine
+
+                    # Convert to TagFilter models (they're already TagFilter instances from Pydantic)
+                    tag_filter_models = [
+                        TagFilterModel(key=tf.key, value=tf.value)
+                        for tf in tag_filters
+                    ]
+
+                    filter_engine = FilterEngine()
+                    filtered_result = filter_engine.apply_filters(
+                        scan_result,
+                        tag_filters=tag_filter_models,
+                        type_filters=type_filters,
+                        tag_filter_operator=tag_operator,
+                    )
+
+                    # Create a new ScanResult with only the filtered resources
+                    filtered_arns = {node.id for node in filtered_result.diagram.nodes}
+                    filtered_resources = [
+                        r for r in scan_result.resources if r.arn in filtered_arns
+                    ]
+                    filtered_relationships = [
+                        rel for rel in scan_result.relationships
+                        if rel.source_arn in filtered_arns and rel.target_arn in filtered_arns
+                    ]
+
+                    from ..models.scan import ScanResult as ScanResultModel
+
+                    scan_result = ScanResultModel(
+                        account_id=scan_result.account_id,
+                        scan_timestamp=scan_result.scan_timestamp,
+                        resources=filtered_resources,
+                        relationships=filtered_relationships,
+                        failures=scan_result.failures,
+                        scanned_regions=scan_result.scanned_regions,
+                        total_scan_duration_ms=scan_result.total_scan_duration_ms,
+                    )
 
             # 2. Serialize context
             serialized_context = self._context_serializer.serialize(

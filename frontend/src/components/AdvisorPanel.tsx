@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient, ApiError } from '../api/apiClient';
+import { useFilterContext } from '../contexts/FilterContext';
 import type { Pillar, Severity, Suggestion, AdvisorResponse, AdvisorStatus } from '../types/advisor';
 
 const PILLAR_OPTIONS: { value: Pillar; label: string }[] = [
@@ -42,6 +43,9 @@ export function AdvisorPanel() {
   );
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Read shared filter state from Diagram page
+  const { filters: diagramFilters } = useFilterContext();
 
   // Fetch initial status on mount
   useEffect(() => {
@@ -135,8 +139,10 @@ export function AdvisorPanel() {
     setError(null);
 
     try {
+      const hasFilters = diagramFilters.tag_filters.length > 0 || diagramFilters.type_filters.length > 0;
       await apiClient.post('/advisor/analyze', {
         pillars: [...selectedPillars],
+        ...(hasFilters ? { filter_criteria: diagramFilters } : {}),
       });
       setStatus({ status: 'in_progress', task_id: null });
     } catch (err) {
@@ -147,7 +153,7 @@ export function AdvisorPanel() {
         setError('Failed to start analysis');
       }
     }
-  }, [selectedPillars]);
+  }, [selectedPillars, diagramFilters]);
 
   const togglePillarAccordion = useCallback((pillar: Pillar) => {
     setExpandedPillars(prev => {
@@ -162,6 +168,9 @@ export function AdvisorPanel() {
   }, []);
 
   const isAnalyzeDisabled = selectedPillars.size === 0 || status?.status === 'in_progress' || loading;
+
+  // Check if diagram filters are active
+  const hasActiveFilters = diagramFilters.tag_filters.length > 0 || diagramFilters.type_filters.length > 0;
 
   // Group suggestions by pillar
   const suggestionsByPillar: Record<Pillar, Suggestion[]> = {
@@ -219,6 +228,21 @@ export function AdvisorPanel() {
             </label>
           ))}
         </div>
+
+        {/* Filter Status Indicator */}
+        {hasActiveFilters && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.5rem 0.75rem',
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '0.375rem',
+            fontSize: '0.8rem',
+            color: '#166534',
+          }} data-testid="filter-status-indicator">
+            Analysis will use filters from Diagram page ({diagramFilters.type_filters.length} type filter{diagramFilters.type_filters.length !== 1 ? 's' : ''}, {diagramFilters.tag_filters.length} tag filter{diagramFilters.tag_filters.length !== 1 ? 's' : ''})
+          </div>
+        )}
 
         {/* Analyze Button */}
         <div style={{ marginTop: '1rem' }}>
