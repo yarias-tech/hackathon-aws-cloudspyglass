@@ -192,8 +192,12 @@ class AdvisorService:
 
         except Exception as exc:
             self._state = AnalysisState.FAILED
-            self._error = str(exc)
-            logger.error("Analysis %s failed: %s", task_id, exc)
+            if isinstance(exc, CloudSpyglassError) and exc.details:
+                self._error = f"{exc} | Details: {exc.details}"
+                logger.error("Analysis %s failed: %s | Details: %s", task_id, exc, exc.details)
+            else:
+                self._error = str(exc)
+                logger.error("Analysis %s failed: %s", task_id, exc)
 
     async def _call_ai_with_retry(
         self, client, model: str, messages: list[dict]

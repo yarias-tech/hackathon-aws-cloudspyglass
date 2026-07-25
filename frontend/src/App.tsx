@@ -66,7 +66,6 @@ class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState>
 
 function App() {
   return (
-<<<<<<< HEAD
     <LanguageProvider>
       <ScanProvider>
         <BrowserRouter>
