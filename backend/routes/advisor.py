@@ -1,9 +1,9 @@
 """API routes for AI architecture advisor analysis."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ..dependencies import advisor_service, credential_manager
+from ..dependencies import advisor_service
 from ..exceptions import CloudSpyglassError
 from ..models.advisor import AdvisorResponse, AdvisorStatus, AnalyzeRequest
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/advisor", tags=["advisor"])
 
 
 @router.post("/analyze")
-async def analyze(request: AnalyzeRequest) -> JSONResponse:
+async def analyze(request: Request, body: AnalyzeRequest) -> JSONResponse:
     """Trigger an architecture analysis for the connected AWS account.
 
     Validates that an AWS account is connected, then starts a background
@@ -19,7 +19,8 @@ async def analyze(request: AnalyzeRequest) -> JSONResponse:
 
     Requirements: Design — Architecture Analysis Flow
     """
-    status = credential_manager.get_status()
+    session = request.state.session
+    status = session.credential_manager.get_status()
     if not status.connected or not status.account_id:
         raise CloudSpyglassError(
             error_code="NO_ACCOUNT_CONNECTED",
@@ -29,9 +30,9 @@ async def analyze(request: AnalyzeRequest) -> JSONResponse:
         )
 
     task_id = await advisor_service.start_analysis(
-        pillars=request.pillars,
+        pillars=body.pillars,
         account_id=status.account_id,
-        filter_criteria=request.filter_criteria,
+        filter_criteria=body.filter_criteria,
     )
 
     return JSONResponse(status_code=202, content={"task_id": task_id})
