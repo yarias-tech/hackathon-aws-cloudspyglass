@@ -5,6 +5,7 @@ import { DetailPanel } from '../components/DetailPanel';
 import { ScanControls } from '../components/ScanControls';
 import { ExportMenu } from '../components/ExportMenu';
 import { RegionScanSelector } from '../components/RegionScanSelector';
+import { useFilterContext } from '../contexts/FilterContext';
 import { apiClient, ApiError } from '../api/apiClient';
 import type { DiagramData } from '../types/diagram';
 import type { FilterCriteria, FilteredResult } from '../types/filters';
@@ -65,6 +66,9 @@ export function DiagramPage() {
     tag_filter_operator: 'AND',
   });
   const [filteredCount, setFilteredCount] = useState<number | null>(null);
+
+  // Shared filter context for cross-page communication
+  const { setFilters: setSharedFilters } = useFilterContext();
 
   // Detail panel state
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -171,7 +175,8 @@ export function DiagramPage() {
   // Handle filter changes
   const handleFiltersChange = useCallback((newFilters: FilterCriteria) => {
     setFilters(newFilters);
-  }, []);
+    setSharedFilters(newFilters);
+  }, [setSharedFilters]);
 
   // Handle node click to show detail panel.
   // Fetches full resource metadata from the backend.

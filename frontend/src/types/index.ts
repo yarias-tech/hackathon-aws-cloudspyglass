@@ -46,3 +46,12 @@ export type {
   BoundaryServicePlacement,
   HierarchyTree,
 } from "./hierarchy";
+
+export type {
+  Pillar,
+  Severity,
+  Suggestion,
+  AdvisorResponse,
+  AdvisorStatus,
+  AnalyzeRequest,
+} from "./advisor";

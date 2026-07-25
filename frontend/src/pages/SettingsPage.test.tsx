@@ -53,6 +53,7 @@ function setupMocks(
   (apiClient.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
     if (path === '/credentials/status') return Promise.resolve(credStatus);
     if (path === '/settings') return Promise.resolve(settings);
+    if (path === '/ai-credentials/status') return Promise.resolve({ connected: false, source: 'none', model: null, validated_at: null });
     return Promise.reject(new Error('Unknown path'));
   });
 }
