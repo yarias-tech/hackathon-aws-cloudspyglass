@@ -1,0 +1,150 @@
+{
+  "pbtResults": {
+    "1. Write bug condition exploration test": {
+      "status": "passed",
+      "failingExample": "Counterexample 1 (test_details_present_in_log_output): details='Maximum context length exceeded: 131072 tokens > 32768 max'. Log output only contains \"Analysis test-task-id failed: AI API rejected the request with status 413.\" — the details field is NOT present in log output.\n\nCounterexample 2 (test_details_present_in_error_field): details='Maximum context length exceeded: 131072 tokens > 32768 max'. service._error = 'AI API rejected the request with status 413.' — only str(exc) is stored, details are lost.\n\nCounterexample 3 (test_default_token_budget_is_safe): default_budget = 120000, expected 30000. The default of 120,000 exceeds many provider limits.",
+      "lastRunTimestamp": 1784763151207
+    },
+    "2. Write preservation property tests (BEFORE implementing fix)": {
+      "status": "passed",
+      "lastRunTimestamp": 1784763396660
+    },
+    "3.3 Verify bug condition exploration test now passes": {
+      "status": "failed",
+      "failingExample": "TestBugConditionDefaultTokenBudget::test_default_token_budget_is_safe FAILED - The test reads os.environ.get(\"AI_API_MAX_TOKENS\", \"120000\") directly with its own hardcoded fallback \"120000\" instead of testing the ContextSerializer's default. The serializer code is correctly fixed to use \"30000\" but the test bypasses it. AssertionError: Bug confirmed: default token budget is 120000, expected 30000. (Note: 2/3 tests PASSED - the property-based logging tests confirm the fix works)",
+      "lastRunTimestamp": 1784763864874
+    },
+    "3.4 Verify preservation tests still pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1784764016133
+    }
+  },
+  "executionHistory": {
+    "1. Write bug condition exploration test": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762056431
+      },
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762067660
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763166532
+      }
+    ],
+    "2. Write preservation property tests (BEFORE implementing fix)": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762057319
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763171289
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763413158
+      }
+    ],
+    "3.1 Implement enhanced error logging in `run_analysis`": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762057609
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763421761
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763746009
+      }
+    ],
+    "3.2 Lower default token budget in `ContextSerializer`": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762057796
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763750889
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763791815
+      }
+    ],
+    "3.3 Verify bug condition exploration test now passes": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762058098
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763796424
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763967346
+      }
+    ],
+    "3.4 Verify preservation tests still pass": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762058328
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784763971689
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784764026932
+      }
+    ],
+    "4. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "6656820c-9dd3-4987-b474-222ecb113ce5",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784762058535
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784764030883
+      },
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784764074221
+      }
+    ],
+    "3. Fix for Advisor 413 Error — Lost Details Logging and Excessive Default Token Budget": [
+      {
+        "executionId": "80cc0a25-4a1b-4b58-b0d2-2dc34cf88136",
+        "chatSessionId": "sess_6cf8ecb5-24ec-4855-85b2-22e00849da0d",
+        "timestamp": 1784764027007
+      }
+    ]
+  }
+}
