@@ -4,6 +4,21 @@ CloudSpyglass is an AWS infrastructure visualization tool that scans your AWS ac
 
 ---
 
+## Table of Contents
+
+1. [The Diagram Panel](#1-the-diagram-panel)
+2. [Changing the Language](#2-changing-the-language)
+3. [Setting Up AWS Credentials](#3-setting-up-aws-credentials)
+4. [Auto-Refresh](#4-auto-refresh)
+5. [Configuring A.I. API Credentials](#5-configuring-ai-api-credentials)
+6. [Selecting Regions](#6-selecting-regions)
+7. [Scanning and Viewing Your Architecture](#7-scanning-and-viewing-your-architecture)
+8. [Filtering Resources](#8-filtering-resources)
+9. [AI Architecture Advisor](#9-ai-architecture-advisor)
+10. [Exporting Your Diagram](#10-exporting-your-diagram)
+
+---
+
 ## 1. The Diagram Panel
 
 When you first open CloudSpyglass, you land on the **Diagram** panel. This is the main workspace where your architecture diagrams will be displayed.
@@ -81,7 +96,36 @@ Select the interval that fits your workflow. For actively changing environments,
 
 ---
 
-## 5. Selecting Regions
+## 5. Configuring A.I. API Credentials
+
+To use the **AI Architecture Advisor** feature, you need to configure your A.I. API credentials in the **Settings** panel.
+
+The **A.I. API Credentials** section is located below the Auto-Refresh settings. Click the **"Define your own A.I. API credentials"** button to expand the configuration form. Fill in the following fields:
+
+1. **Base URL** — the API endpoint URL (e.g., `https://api.groq.com/openai/v1`)
+2. **Model** — the model identifier to use (e.g., `openai/gpt-oss-120b`)
+3. **API Key** — your API key for authentication
+
+CloudSpyglass is compatible with the **OpenAI API standard**. This means you can use any provider that implements this standard, such as **Groq**, **OpenRouter**, **Gemini**, **Together AI**, or your own self-hosted models. Simply provide the appropriate Base URL, model name, and API key for your chosen provider.
+
+Once you've entered your credentials, click **"Validate & Save"**. The application will attempt to reach the API and verify your credentials.
+
+![Custom AI API Credentials](assets/screencaptures/settings_panel_custom_ai_api_credentials.png)
+
+### Successful A.I. Connection
+
+If validation succeeds, the section displays:
+- **Connected** status (green indicator)
+- **Model** — the configured model name
+- **Validated** — date and time of the last successful validation
+
+You can click **"Reset to defaults"** to clear your custom credentials and revert to the default configuration.
+
+![AI API Credentials Connected](assets/screencaptures/settings_panel_ai_api_credentials_connected.png)
+
+---
+
+## 6. Selecting Regions
 
 Before scanning, you can limit the discovery to specific AWS regions. Click the **region dropdown** (shows "All Regions" by default) next to the Scan button.
 
@@ -95,7 +139,7 @@ Limiting regions speeds up the scan and focuses the diagram on the infrastructur
 
 ---
 
-## 6. Scanning and Viewing Your Architecture
+## 7. Scanning and Viewing Your Architecture
 
 ### Starting a Scan
 
@@ -131,7 +175,7 @@ Close the panel by clicking the **X** button.
 
 ---
 
-## 7. Filtering Resources
+## 8. Filtering Resources
 
 After a scan, CloudSpyglass provides two filtering mechanisms to focus on what matters. The filter panels are collapsible — click the triangle icon to expand or collapse them.
 
@@ -153,7 +197,33 @@ This is useful for isolating resources by environment (e.g., `Environment: produ
 
 ---
 
-## 8. Exporting Your Diagram
+## 9. AI Architecture Advisor
+
+The **AI Architecture Advisor** is an intelligent analysis tool that reviews your scanned infrastructure and provides actionable recommendations. Navigate to the **Advisor** tab in the top navigation bar.
+
+### Analysis Pillars
+
+The Advisor lets you choose which aspects of your architecture to analyze. Select one or more **Analysis Pillars**:
+
+- **Security** — identifies potential security risks, overly permissive roles, and access control issues
+- **Cost Optimization** — suggests ways to reduce unnecessary spending (e.g., missing S3 lifecycle policies, over-provisioned resources)
+- **Performance** — highlights bottlenecks and optimization opportunities
+
+Check the pillars you're interested in, then click **"Analyze Architecture"**. The AI will evaluate your scanned resources and return findings grouped by pillar, each with a severity level (HIGH, MEDIUM, etc.), a description of the issue, the affected resources (listed by ARN), and the estimated impact.
+
+![AI Advisor - Cost Optimization Analysis](assets/screencaptures/advisor_panel_raw_cost_optimization_example.png)
+
+### Filters Are Reflected in the Advisor
+
+If you have active filters on the **Diagram** page (resource type filters or tag filters), the Advisor will analyze only the filtered subset of resources. A green banner confirms this: *"Analysis will use filters from Diagram page (X type filter, Y tag filters)"*.
+
+This allows you to focus the AI analysis on specific parts of your infrastructure — for example, analyzing only IAM resources for security, or only EC2 instances for performance.
+
+![AI Advisor - Filtered Analysis](assets/screencaptures/advisor_panel_filtered_security_optimization.png)
+
+---
+
+## 10. Exporting Your Diagram
 
 Once you have your diagram configured and filtered to your liking, click the **Export** button (top-right, purple) to download it. Three formats are available:
 
