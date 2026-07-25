@@ -302,7 +302,14 @@ export function SettingsPage() {
   const isConnected = credentialStatus?.connected === true;
 
   return (
-    <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '2rem 1rem' }}>
+    <div style={{
+      maxWidth: '48rem',
+      margin: '0 auto',
+      padding: '2rem 1rem',
+      height: '100%',
+      overflowY: 'auto',
+      boxSizing: 'border-box'
+    }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#111827', marginBottom: '2rem' }}>
         Settings
       </h1>

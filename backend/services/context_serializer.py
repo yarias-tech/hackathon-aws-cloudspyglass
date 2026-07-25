@@ -56,7 +56,7 @@ class ContextSerializer:
             scan_result: The completed scan result containing resources and relationships.
             pillars: List of analysis pillars (e.g., ["Security", "Cost_Optimization", "Performance"]).
             max_tokens: Maximum token budget for the output. Defaults to AI_API_MAX_TOKENS
-                        env var or 120000 if not set.
+                        env var or 30000 if not set.
 
         Returns:
             A JSON string containing the serialized infrastructure context and pillars.
@@ -65,7 +65,7 @@ class ContextSerializer:
             CloudSpyglassError: If zero resources remain after filtering.
         """
         if max_tokens is None:
-            max_tokens = int(os.environ.get("AI_API_MAX_TOKENS", "120000"))
+            max_tokens = int(os.environ.get("AI_API_MAX_TOKENS", "8000"))
 
         # Filter out external and unresolved resources (Requirement 2.6)
         filtered_resources = [
