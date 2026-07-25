@@ -267,28 +267,6 @@ export function SettingsPage() {
     }
   }, []);
 
-  // Handle region selection toggle
-  const handleRegionToggle = useCallback(async (region: string) => {
-    if (!settings) return;
-
-    const selectedRegions = settings.selected_regions.includes(region)
-      ? settings.selected_regions.filter(r => r !== region)
-      : [...settings.selected_regions, region];
-
-    const newSettings: AppSettings = {
-      ...settings,
-      selected_regions: selectedRegions,
-    };
-
-    try {
-      const updated = await apiClient.put<AppSettings>('/settings', newSettings);
-      setSettings(updated);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setSettingsError(err.message);
-      }
-    }
-  }, [settings]);
 
   // Determine if submit button should be disabled
   const isSubmitDisabled = submitting || !accessKeyId.trim() || !secretAccessKey.trim();
@@ -574,58 +552,6 @@ export function SettingsPage() {
         </form>
       </section>
 
-      {/* Region Selector Section */}
-      <section style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', backgroundColor: '#fff' }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#111827', marginTop: 0, marginBottom: '0.5rem' }}>
-          Scan Regions
-        </h2>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: 0, marginBottom: '1rem' }}>
-          Select one or more AWS regions to include in scans.
-        </p>
-
-        {settingsLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} aria-label="Loading regions">
-            <div style={{
-              width: '1rem',
-              height: '1rem',
-              border: '2px solid #e5e7eb',
-              borderTopColor: '#2563eb',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }} />
-            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Loading…</span>
-          </div>
-        ) : settingsError ? (
-          <p style={{ color: '#dc2626', fontSize: '0.875rem', margin: 0 }}>{settingsError}</p>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }} data-testid="region-selector">
-            {AWS_REGIONS.map(region => {
-              const isSelected = settings?.selected_regions.includes(region) ?? false;
-              return (
-                <button
-                  key={region}
-                  type="button"
-                  onClick={() => handleRegionToggle(region)}
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.75rem',
-                    border: `1px solid ${isSelected ? '#2563eb' : '#d1d5db'}`,
-                    borderRadius: '0.25rem',
-                    backgroundColor: isSelected ? '#eff6ff' : '#fff',
-                    color: isSelected ? '#2563eb' : '#374151',
-                    cursor: 'pointer',
-                    fontWeight: isSelected ? 500 : 400,
-                  }}
-                  aria-pressed={isSelected}
-                  aria-label={`${region} region`}
-                >
-                  {region}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
 
       {/* Auto-Refresh Interval Section */}
       <section style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', backgroundColor: '#fff' }}>

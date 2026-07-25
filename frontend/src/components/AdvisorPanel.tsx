@@ -187,7 +187,7 @@ export function AdvisorPanel() {
   }
 
   return (
-    <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '2rem 1rem' }}>
+    <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '2rem 1rem', height: '100%', overflowY: 'auto', boxSizing: 'border-box' }}>
       <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#111827', marginBottom: '1.5rem' }}>
         AI Architecture Advisor
       </h2>
