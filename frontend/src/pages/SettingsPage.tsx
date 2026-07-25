@@ -5,18 +5,6 @@ import type { CredentialSubmission, CredentialStatus } from '../types/credential
 import type { AppSettings, AutoRefreshInterval } from '../types/settings';
 import type { AiCredentialSubmission, AiCredentialStatus } from '../types/aiCredentials';
 
-const AWS_REGIONS = [
-  'us-east-1', 'us-east-2', 'us-west-1', 'us-west-2',
-  'af-south-1', 'ap-east-1', 'ap-south-1', 'ap-south-2',
-  'ap-southeast-1', 'ap-southeast-2', 'ap-southeast-3',
-  'ap-northeast-1', 'ap-northeast-2', 'ap-northeast-3',
-  'ca-central-1',
-  'eu-central-1', 'eu-central-2', 'eu-west-1', 'eu-west-2', 'eu-west-3',
-  'eu-south-1', 'eu-south-2', 'eu-north-1',
-  'me-south-1', 'me-central-1',
-  'sa-east-1',
-];
-
 const AUTO_REFRESH_OPTIONS: { value: AutoRefreshInterval; label: string }[] = [
   { value: 'manual', label: 'Manual' },
   { value: '1m', label: '1 minute' },
@@ -38,7 +26,6 @@ export function SettingsPage() {
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretAccessKey, setSecretAccessKey] = useState('');
   const [sessionToken, setSessionToken] = useState('');
-  const [defaultRegion, setDefaultRegion] = useState('us-east-1');
 
   // Credential status state
   const [credentialStatus, setCredentialStatus] = useState<CredentialStatus | null>(null);
@@ -140,7 +127,7 @@ export function SettingsPage() {
       access_key_id: accessKeyId,
       secret_access_key: secretAccessKey,
       session_token: sessionToken || null,
-      region: defaultRegion,
+      region: 'us-east-1',
     };
 
     try {
@@ -159,7 +146,7 @@ export function SettingsPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [accessKeyId, secretAccessKey, sessionToken, defaultRegion]);
+  }, [accessKeyId, secretAccessKey, sessionToken]);
 
   // Handle disconnect
   const handleDisconnect = useCallback(async () => {
@@ -267,7 +254,6 @@ export function SettingsPage() {
     }
   }, []);
 
-
   // Determine if submit button should be disabled
   const isSubmitDisabled = submitting || !accessKeyId.trim() || !secretAccessKey.trim();
 
@@ -305,7 +291,7 @@ export function SettingsPage() {
         <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 1rem 0', fontStyle: 'italic' }}>
           {t.about_built_with}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>{t.about_source_code}:</span>
           <a
             href="https://github.com/yericksonarias/hackathon-aws-cloudspyglass"
@@ -315,6 +301,29 @@ export function SettingsPage() {
           >
             github.com/yericksonarias/hackathon-aws-cloudspyglass
           </a>
+        </div>
+
+        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '0.75rem' }}>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 0.375rem 0', fontWeight: 500 }}>
+            {t.about_authors}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+            <a href="https://www.linkedin.com/in/stalin-pilapanta-3b9b1096/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Stalin Pilapanta
+            </a>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+            <a href="https://www.linkedin.com/in/yerickson-arias-1a16873a/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Yerick Arias
+            </a>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+            <a href="https://www.linkedin.com/in/chrystianbarros/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Chrystian Barros
+            </a>
+            <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
+            <a href="https://github.com/kikem4n" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
+              Hiram Rosales
+            </a>
+          </div>
         </div>
       </section>
 
@@ -483,31 +492,6 @@ export function SettingsPage() {
               />
             </div>
 
-            {/* Default Region */}
-            <div>
-              <label htmlFor="default-region" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.25rem' }}>
-                Default Region
-              </label>
-              <select
-                id="default-region"
-                value={defaultRegion}
-                onChange={(e) => setDefaultRegion(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem 0.75rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  backgroundColor: '#fff',
-                  boxSizing: 'border-box',
-                }}
-                data-testid="default-region-select"
-              >
-                {AWS_REGIONS.map(region => (
-                  <option key={region} value={region}>{region}</option>
-                ))}
-              </select>
-            </div>
 
             {/* Submit error */}
             {submitError && (
@@ -551,7 +535,6 @@ export function SettingsPage() {
           </div>
         </form>
       </section>
-
 
       {/* Auto-Refresh Interval Section */}
       <section style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', backgroundColor: '#fff' }}>
@@ -819,29 +802,7 @@ export function SettingsPage() {
         )}
       </section>
 
-      {/* Authors */}
-      <section style={{ marginBottom: '1rem', padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb' }}>
-        <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0 0 0.5rem 0', fontWeight: 500 }}>
-          {t.about_authors}
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-          <a href="https://www.linkedin.com/in/stalin-pilapanta-3b9b1096/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Stalin Pilapanta
-          </a>
-          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
-          <a href="https://www.linkedin.com/in/yerickson-arias-1a16873a/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Yerick Arias
-          </a>
-          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
-          <a href="https://www.linkedin.com/in/chrystianbarros/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Chrystian Barros
-          </a>
-          <span style={{ color: '#d1d5db', fontSize: '0.75rem' }}>·</span>
-          <a href="https://github.com/kikem4n" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#2563eb')} onMouseLeave={(e) => (e.currentTarget.style.color = '#6b7280')}>
-            Hiram Rosales
-          </a>
-        </div>
-      </section>
+
     </div>
   );
 }

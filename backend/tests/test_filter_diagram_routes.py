@@ -65,7 +65,10 @@ class TestGetTagSuggestions:
 
     async def test_no_scan_data_returns_404(self, client: AsyncClient) -> None:
         """When no scan data exists, returns 404 with NO_SCAN_DATA error."""
-        with patch("backend.routes.filters.get_last_scan_result", return_value=None):
+        with patch(
+            "backend.routes.filters.get_last_scan_result_from_session",
+            return_value=None,
+        ):
             response = await client.get("/api/tags/suggestions?prefix=env")
             assert response.status_code == 404
             data = response.json()
@@ -76,7 +79,8 @@ class TestGetTagSuggestions:
         """Returns matching tag suggestions when scan data exists."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.filters.get_last_scan_result", return_value=scan_result
+            "backend.routes.filters.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get("/api/tags/suggestions?prefix=env")
             assert response.status_code == 200
@@ -92,7 +96,8 @@ class TestGetTagSuggestions:
         """Empty prefix returns all tag suggestions."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.filters.get_last_scan_result", return_value=scan_result
+            "backend.routes.filters.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get("/api/tags/suggestions")
             assert response.status_code == 200
@@ -106,7 +111,8 @@ class TestGetTagSuggestions:
         """Suggestions are ordered by descending frequency."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.filters.get_last_scan_result", return_value=scan_result
+            "backend.routes.filters.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get("/api/tags/suggestions?prefix=env")
             assert response.status_code == 200
@@ -123,7 +129,10 @@ class TestGetLatestDiagram:
 
     async def test_no_scan_data_returns_404(self, client: AsyncClient) -> None:
         """When no scan data exists, returns 404 with NO_SCAN_DATA error."""
-        with patch("backend.routes.diagrams.get_last_scan_result", return_value=None):
+        with patch(
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=None,
+        ):
             response = await client.get("/api/diagrams/latest")
             assert response.status_code == 404
             data = response.json()
@@ -133,7 +142,8 @@ class TestGetLatestDiagram:
         """Returns full diagram data when scan result exists."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get("/api/diagrams/latest")
             assert response.status_code == 200
@@ -150,7 +160,10 @@ class TestGetFilteredDiagram:
 
     async def test_no_scan_data_returns_404(self, client: AsyncClient) -> None:
         """When no scan data exists, returns 404."""
-        with patch("backend.routes.diagrams.get_last_scan_result", return_value=None):
+        with patch(
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=None,
+        ):
             response = await client.get("/api/diagrams/latest/filtered")
             assert response.status_code == 404
 
@@ -158,7 +171,8 @@ class TestGetFilteredDiagram:
         """No filters returns full unfiltered result."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get("/api/diagrams/latest/filtered")
             assert response.status_code == 200
@@ -171,7 +185,8 @@ class TestGetFilteredDiagram:
         scan_result = _make_scan_result()
         tag_filters_json = json.dumps([{"key": "env", "value": "prod"}])
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get(
                 f"/api/diagrams/latest/filtered?tag_filters={tag_filters_json}"
@@ -186,7 +201,8 @@ class TestGetFilteredDiagram:
         """Type filters narrow down the results (OR logic)."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get(
                 "/api/diagrams/latest/filtered?type_filters=ec2,s3"
@@ -202,7 +218,8 @@ class TestGetFilteredDiagram:
         """Invalid JSON in tag_filters returns 400."""
         scan_result = _make_scan_result()
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get(
                 "/api/diagrams/latest/filtered?tag_filters=not-json"
@@ -218,7 +235,8 @@ class TestGetFilteredDiagram:
         scan_result = _make_scan_result()
         tag_filters_json = json.dumps({"key": "env", "value": "prod"})
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get(
                 f"/api/diagrams/latest/filtered?tag_filters={tag_filters_json}"
@@ -232,7 +250,8 @@ class TestGetFilteredDiagram:
         scan_result = _make_scan_result()
         tag_filters_json = json.dumps([{"key": "env", "value": "prod"}])
         with patch(
-            "backend.routes.diagrams.get_last_scan_result", return_value=scan_result
+            "backend.routes.diagrams.get_last_scan_result_from_session",
+            return_value=scan_result,
         ):
             response = await client.get(
                 f"/api/diagrams/latest/filtered?tag_filters={tag_filters_json}&type_filters=ec2"

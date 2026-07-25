@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .exceptions import CloudSpyglassError, cloudspyglass_error_handler
 from .routes.advisor import router as advisor_router
 from .routes.ai_credentials import router as ai_credentials_router
+from .middleware.session import SessionMiddleware
 from .routes.credentials import router as credentials_router
 from .routes.diagrams import router as diagrams_router
 from .routes.export import router as export_router
@@ -33,6 +34,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Session middleware for per-user state isolation
+app.add_middleware(SessionMiddleware)
 
 # Register custom exception handler
 app.add_exception_handler(CloudSpyglassError, cloudspyglass_error_handler)

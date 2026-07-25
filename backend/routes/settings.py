@@ -1,32 +1,28 @@
 """API routes for application settings management."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ..models.settings import AppSettings
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
-# Module-level in-memory settings store
-_settings = AppSettings()
-
 
 @router.get("", response_model=AppSettings)
-async def get_settings() -> AppSettings:
+async def get_settings(request: Request) -> AppSettings:
     """Return the current application settings.
 
     Requirements: 12.1
     """
-    return _settings
+    session = request.state.session
+    return session.settings
 
 
 @router.put("", response_model=AppSettings)
-async def update_settings(new_settings: AppSettings) -> AppSettings:
+async def update_settings(new_settings: AppSettings, request: Request) -> AppSettings:
     """Update the auto-refresh interval and selected regions.
-
-    Applies the new settings immediately to the next refresh cycle.
 
     Requirements: 12.1, 12.2
     """
-    global _settings
-    _settings = new_settings
-    return _settings
+    session = request.state.session
+    session.settings = new_settings
+    return session.settings
